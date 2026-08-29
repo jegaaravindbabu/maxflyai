@@ -1,0 +1,137 @@
+import type { Project, ProjectDetail } from "../types";
+
+const BASE = import.meta.env.VITE_API_BASE || "";
+
+let authToken: string | null = null;
+export function setAuthToken(t: string | null) { authToken = t; }
+
+function afetch(input: string, init: RequestInit = {}) {
+  const headers = new Headers(init.headers || {});
+  if (authToken) headers.set("Authorization", `Bearer ${authToken}`);
+  return fetch(input, { ...init, headers });
+}
+
+async function j<T>(res: Response): Promise<T> {
+  if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+  return res.json() as Promise<T>;
+}
+
+export const api = {
+  mediaUrl: (key: string) => `${BASE}${key}`,
+
+  async billingMe() {
+    return j<{ plan: string; label: string; minutes_cap: number; minutes_used: number;
+      minutes_left: number; max_res: number; storage_gb: number; provider: string }>(
+      await afetch(`${BASE}/api/billing/me`));
+  },
+
+  async billingPlans() {
+    return j<{ plans: { id: string; label: string; minutes: number; storage_gb: number;
+      max_res: number; price_inr: number }[] }>(await afetch(`${BASE}/api/billing/plans`));
+  },
+
+  async billingCheckout(plan: string) {
+    return j<any>(await afetch(`${BASE}/api/billing/checkout`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan }),
+    }));
+  },
+
+  async captionStyles() {
+    return j<{ styles: { id: string; label: string; animated: boolean }[] }>(
+      await afetch(`${BASE}/api/caption-styles`));
+  },
+
+  async health() {
+    return j<any>(await afetch(`${BASE}/api/health`));
+  },
+
+  async listProjects() {
+    return j<Project[]>(await afetch(`${BASE}/api/projects`));
+  },
+
+  async getProject(id: string) {
+    return j<ProjectDetail>(await afetch(`${BASE}/api/projects/${id}`));
+  },
+
+  async getStatus(id: string) {
+    return j<{ status: string; error?: string | null; job?: any }>(
+      await afetch(`${BASE}/api/projects/${id}/status`));
+  },
+
+  async upload(file: File, name?: string) {
+    const fd = new FormData();
+    fd.append("file", file);
+    if (name) fd.append("name", name);
+    return j<Project>(await afetch(`${BASE}/api/projects`, { method: "POST", body: fd }));
+  },
+
+  async transcribe(id: string, language_code: string, mode: string) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/transcribe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ language_code, mode }),
+    }));
+  },
+
+  async editCue(id: string, cue_idx: number, new_text: string) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/cues`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cue_idx, new_text }),
+    }));
+  },
+
+  async exportSub(id: string, format: string, use_translit: boolean, apply_cuts = true, style = "classic", enhance_audio = false) {
+    return j<{ export_id: string; status: string; format: string }>(
+      await afetch(`${BASE}/api/projects/${id}/export`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ format, use_translit, apply_cuts, style, enhance_audio }),
+      })
+    );
+  },
+
+  async listExports(id: string) {
+    return j<{ id: string; format: string; url: string | null; status: string }[]>(
+      await afetch(`${BASE}/api/projects/${id}/exports`));
+  },
+
+  async detectSilences(id: string) {
+    return j<{ threshold_db: number; count: number; silences: { start_ms: number; end_ms: number }[] }>(
+      await afetch(`${BASE}/api/projects/${id}/silences`)
+    );
+  },
+
+  async addEdit(id: string, type: string, payload_json: any) {
+    return j<{ id: string; type: string; enabled: boolean }>(
+      await afetch(`${BASE}/api/projects/${id}/edits`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, payload_json }),
+      })
+    );
+  },
+
+  async detectFillers(id: string, aggressive = false) {
+    return j<{ count: number; removed_ms: number;
+      fillers: { start_ms: number; end_ms: number; text: string }[] }>(
+      await afetch(`${BASE}/api/projects/${id}/fillers?aggressive=${aggressive}`));
+  },
+
+  async detectRetakes(id: string, threshold = 0.62) {
+    return j<{ count: number; candidates: {
+      similarity: number;
+      kept: { idx: number; start_ms: number; end_ms: number; text: string };
+      cuts: { idx: number; start_ms: number; end_ms: number; text: string }[];
+    }[] }>(await afetch(`${BASE}/api/projects/${id}/retakes?threshold=${threshold}`));
+  },
+
+  async toggleEdit(id: string, editId: string, enabled: boolean) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/edits/${editId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled }),
+    }));
+  },
+};

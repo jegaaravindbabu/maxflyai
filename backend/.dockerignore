@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.production
+storage_data/
+*.sqlite3
+*.sqlite3-journal
+scripts/_batch_raw.json
+maxfly.sqlite3

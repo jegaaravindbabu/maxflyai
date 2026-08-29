@@ -1,0 +1,35 @@
+# Render blueprint for the maxfly backend. (Railway users: use the Dockerfile
+# directly; set the same env vars in the Railway dashboard.)
+services:
+  - type: web
+    name: maxfly-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: starter
+    healthCheckPath: /api/health
+    envVars:
+      - key: SARVAM_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false          # Supabase session-pooler URL (postgresql+psycopg://...)
+      - key: STORAGE_BACKEND
+        value: supabase
+      - key: SUPABASE_URL
+        value: https://eimouchjvvnvcnrrzwmm.supabase.co
+      - key: SUPABASE_BUCKET
+        value: media
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: AUTH_ENABLED
+        value: "false"
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false          # set to your Vercel URL, e.g. https://maxfly.vercel.app
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false

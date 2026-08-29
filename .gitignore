@@ -1,0 +1,51 @@
+# Secrets
+.env
+*.env
+!.env.example
+backend/.env
+frontend/.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Node
+node_modules/
+dist/
+frontend/dist/
+.vite/
+
+# Media / local storage
+backend/storage_data/*
+!backend/storage_data/.gitkeep
+*.mp4
+*.mov
+*.wav
+*.mp3
+*.m4a
+
+# DB
+*.sqlite3
+*.db
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+
+# sqlite wal/journal
+*.sqlite3-journal
+*.sqlite3-wal
+
+# batch test dump
+backend/scripts/_batch_raw.json
+
+# production env (contains real keys)
+.env.production
+**/.env.production
+.env.*
+!.env.example

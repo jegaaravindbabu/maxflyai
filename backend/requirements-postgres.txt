@@ -1,0 +1,4 @@
+# Production extras — install when using Postgres/Supabase and/or R2:
+#   pip install -r requirements-postgres.txt
+psycopg[binary]>=3.2.10
+boto3>=1.35        # only needed for STORAGE_BACKEND=r2
