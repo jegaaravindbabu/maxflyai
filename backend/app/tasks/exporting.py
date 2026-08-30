@@ -51,6 +51,16 @@ def _load_capsettings(db, project_id: str) -> dict | None:
     return (row.payload_json or None) if row else None
 
 
+CANVAS_DIMS = {"9:16": (1080, 1920), "4:5": (1080, 1350), "1:1": (1080, 1080), "16:9": (1920, 1080)}
+
+
+def _load_canvas(db, project_id: str) -> dict | None:
+    row = (db.query(Edit)
+             .filter(Edit.project_id == project_id, Edit.enabled == True,  # noqa: E712
+                     Edit.type == "canvas").order_by(Edit.created_at.desc()).first())
+    return (row.payload_json or None) if row else None
+
+
 def _load_color_filter(db, project_id: str) -> str | None:
     row = (db.query(Edit)
              .filter(Edit.project_id == project_id, Edit.enabled == True,  # noqa: E712
@@ -207,6 +217,21 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                 ffmpeg_utils.burn_captions(video_src, ass_path, out_path,
                                            audio_filter=audio_filter, video_prefilter=prefilter)
             os.remove(ass_path)
+            # canvas backdrop (aspect + background) as a final composite
+            canvas = _load_canvas(db, project_id)
+            if canvas and canvas.get("aspect") in CANVAS_DIMS:
+                cw, ch = CANVAS_DIMS[canvas["aspect"]]
+                cimg = None
+                if canvas.get("bg_type") == "image" and canvas.get("image_url"):
+                    try: cimg = storage.path(canvas["image_url"])
+                    except Exception: cimg = None
+                ctmp = out_path + ".canvas.mp4"
+                try:
+                    ffmpeg_utils.compose_canvas(out_path, ctmp, cw, ch,
+                        canvas.get("bg_type", "color"), canvas.get("color", "#000000"), cimg)
+                    os.replace(ctmp, out_path)
+                except Exception:
+                    if os.path.exists(ctmp): os.remove(ctmp)
             if cuts and os.path.exists(video_src):
                 os.remove(video_src)
         elif fmt in ("fcpxml", "edl"):

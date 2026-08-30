@@ -208,6 +208,21 @@ export const api = {
     }));
   },
 
+  async getCanvas(id: string) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/canvas`));
+  },
+  async setCanvas(id: string, body: Record<string, any>) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/canvas`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }));
+  },
+  async uploadCanvasImage(id: string, file: File) {
+    const fd = new FormData();
+    fd.append("file", file);
+    return j<{ image_url: string }>(await afetch(`${BASE}/api/projects/${id}/canvas/image`, { method: "POST", body: fd }));
+  },
+
   async getProject(id: string) {
     return j<ProjectDetail>(await afetch(`${BASE}/api/projects/${id}`));
   },

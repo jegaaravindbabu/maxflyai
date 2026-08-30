@@ -713,3 +713,20 @@ video.ed-imgovl { object-fit: cover; }
 .ed-sub2-icon.on { background: var(--grad); color: var(--on-accent); border-color: transparent; }
 .ed-style-search { width: 100%; background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
   border-radius: 8px; padding: 9px 12px; font: inherit; margin-bottom: 12px; }
+
+/* ===== Editor · Canvas backdrop ===== */
+.ed-canvas-frame { display: flex; align-items: center; justify-content: center; max-height: 100%; }
+.ed-canvas-frame.on { border-radius: 8px; overflow: hidden; max-width: 100%;
+  height: 100%; max-height: 60vh; }
+.ed-canvas-frame.on .preview-wrap { max-width: 100%; max-height: 100%; width: auto; height: auto; }
+.ed-canvas-aspects { display: flex; gap: 8px; flex-wrap: wrap; }
+.ed-canvas-ar { display: flex; flex-direction: column; align-items: center; gap: 5px;
+  cursor: pointer; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-2); }
+.ed-canvas-ar.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.ed-canvas-ar span { font-size: 11px; color: var(--muted); }
+.ed-ar-box { background: #3a3f57; border-radius: 3px; }
+.ar-original { width: 30px; height: 20px; }
+.ar-9-16 { width: 15px; height: 26px; }
+.ar-4-5 { width: 20px; height: 25px; }
+.ar-1-1 { width: 24px; height: 24px; }
+.ar-16-9 { width: 30px; height: 17px; }

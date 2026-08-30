@@ -10,7 +10,7 @@ Edits are layered over the immutable transcript and applied only at export.
 import os
 import tempfile
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -271,3 +271,61 @@ def add_saved_style(project_id: str, body: SavedStyleIn, db: Session = Depends(g
     db.commit()
     db.refresh(e)
     return {"id": e.id, "name": body.name, "style": body.style, "settings": body.settings}
+
+
+class CanvasIn(BaseModel):
+    aspect: str | None = None       # original | 9:16 | 4:5 | 1:1 | 16:9
+    bg_type: str | None = None      # color | blur | image
+    color: str | None = None
+
+
+@router.get("/{project_id}/canvas")
+def get_canvas(project_id: str, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    row = (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "canvas")
+             .order_by(Edit.created_at.desc()).first())
+    data = dict(row.payload_json or {}) if row else {}
+    if data.get("image_url"):
+        data["image_url"] = storage.url(data["image_url"])
+    return data
+
+
+@router.post("/{project_id}/canvas")
+def set_canvas(project_id: str, body: CanvasIn, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    patch = {k: v for k, v in body.model_dump().items() if v is not None}
+    row = (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "canvas")
+             .order_by(Edit.created_at.desc()).first())
+    if row:
+        merged = dict(row.payload_json or {}); merged.update(patch); row.payload_json = merged
+    else:
+        db.add(Edit(project_id=project_id, type="canvas", payload_json=patch, enabled=True))
+        merged = patch
+    db.commit()
+    out = dict(merged)
+    if out.get("image_url"):
+        out["image_url"] = storage.url(out["image_url"])
+    return out
+
+
+@router.post("/{project_id}/canvas/image")
+async def set_canvas_image(project_id: str, file: UploadFile = File(...),
+    db: Session = Depends(get_db), _owner: Project = Depends(owned_project)):
+    import os, tempfile
+    suffix = os.path.splitext(file.filename or "")[1] or ".jpg"
+    fd, tmp = tempfile.mkstemp(suffix=suffix)
+    with os.fdopen(fd, "wb") as f:
+        while chunk := await file.read(1024 * 1024):
+            f.write(chunk)
+    try:
+        key = storage.save_upload(tmp, file.filename or "canvasbg" + suffix)
+    finally:
+        if os.path.exists(tmp): os.remove(tmp)
+    row = (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "canvas")
+             .order_by(Edit.created_at.desc()).first())
+    if row:
+        merged = dict(row.payload_json or {}); merged["image_url"] = key; merged["bg_type"] = "image"; row.payload_json = merged
+    else:
+        db.add(Edit(project_id=project_id, type="canvas", payload_json={"image_url": key, "bg_type": "image"}, enabled=True))
+    db.commit()
+    return {"image_url": storage.url(key)}

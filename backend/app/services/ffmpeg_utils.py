@@ -228,3 +228,34 @@ def render_mp4(video_src: str, ass_path: str, out_path: str, width: int,
     if cp.returncode != 0:
         raise RuntimeError(f"render_mp4 failed: {cp.stderr[-400:]}")
     return out_path
+
+
+def compose_canvas(src: str, out_path: str, w: int, h: int, bg_type: str = "color",
+                   color: str = "#000000", image_path: str | None = None) -> str:
+    """Place `src` (contain-fit, centred) onto a w×h canvas with a background:
+    color | blur (blurred cover of the video) | image. Audio is copied."""
+    hexc = (color or "#000000").lstrip("#")
+    if len(hexc) == 3:
+        hexc = "".join(c * 2 for c in hexc)
+    if len(hexc) != 6:
+        hexc = "000000"
+    inputs = ["-i", src]
+    if bg_type == "image" and image_path:
+        inputs += ["-i", image_path]
+
+    fg = f"[0:v]scale={w}:{h}:force_original_aspect_ratio=decrease[fg]"
+    if bg_type == "blur":
+        bg = f"[0:v]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},boxblur=luma_radius=24:luma_power=1[bg]"
+    elif bg_type == "image" and image_path:
+        bg = f"[1:v]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h}[bg]"
+    else:
+        bg = f"color=c=0x{hexc}:s={w}x{h}:r=30[bg]"
+    graph = f"{bg};{fg};[bg][fg]overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2:shortest=1[v]"
+
+    cmd = ["ffmpeg", "-y", *inputs, "-filter_complex", graph,
+           "-map", "[v]", "-map", "0:a?", "-c:a", "aac", "-b:a", "192k",
+           "-c:v", "libx264", "-pix_fmt", "yuv420p", out_path]
+    cp = _run(cmd)
+    if cp.returncode != 0:
+        raise RuntimeError(f"compose_canvas failed: {cp.stderr[-400:]}")
+    return out_path

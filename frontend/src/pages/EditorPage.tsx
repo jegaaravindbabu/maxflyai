@@ -46,6 +46,7 @@ const RAILS = [
   { id: "tools", icon: "✨", label: "AI Tools" },
   { id: "zoom", icon: "⊕", label: "Auto Zoom" },
   { id: "filters", icon: "◑", label: "Filters" },
+  { id: "canvas", icon: "▭", label: "Canvas" },
   { id: "export", icon: "⬇", label: "Export" },
 ];
 
@@ -65,6 +66,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [stylesTab, setStylesTab] = useState<"lines" | "words" | "saved">("lines");
   const [savedStyles, setSavedStyles] = useState<{ id: string; name: string; style: string; settings: any }[]>([]);
   const [infoDismissed, setInfoDismissed] = useState(false);
+  const [canvas, setCanvas] = useState<Record<string, any>>({});
+  const canvasImgRef = useRef<HTMLInputElement>(null);
   const [styleSearch, setStyleSearch] = useState("");
   const [styleSearchOpen, setStyleSearchOpen] = useState(false);
   const [overlays, setOverlays] = useState<Overlay[]>([]);
@@ -101,7 +104,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [curMs, setCurMs] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [exports, setExports] = useState<{ fmt: string; url?: string; status: string }[]>([]);
-  const [rail, setRail] = useState<"captions" | "texts" | "images" | "broll" | "tools" | "zoom" | "filters" | "export">("captions");
+  const [rail, setRail] = useState<"captions" | "texts" | "images" | "broll" | "tools" | "zoom" | "filters" | "canvas" | "export">("captions");
   const [rightTab, setRightTab] = useState<"styles" | "settings" | "animation">("styles");
   const [density, setDensity] = useState<"compact" | "roomy">("roomy");
   type CueSnap = { start_ms: number; end_ms: number; text: string; translit_text: string | null; line_count: number };
@@ -137,6 +140,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
     api.listBrolls(projectId).then(setBrolls).catch(() => {});
     api.getCaptionSettings(projectId).then((r) => setCapSettings(r || {})).catch(() => {});
     api.listSavedStyles(projectId).then(setSavedStyles).catch(() => {});
+    api.getCanvas(projectId).then((r) => setCanvas(r || {})).catch(() => {});
   }, [projectId]);
 
   useEffect(() => {
@@ -427,6 +431,16 @@ export function EditorPage({ projectId }: { projectId: string }) {
   async function delSaved(id: string) {
     setSavedStyles((prev) => prev.filter((x) => x.id !== id));
     try { await api.deleteEdit(projectId, id); } catch {}
+  }
+  function saveCanvas(patch: Record<string, any>) {
+    setCanvas((prev) => ({ ...prev, ...patch }));
+    api.setCanvas(projectId, patch).catch(() => {});
+  }
+  async function uploadCanvasImage(file: File) {
+    try {
+      const r = await api.uploadCanvasImage(projectId, file);
+      setCanvas((prev) => ({ ...prev, image_url: r.image_url, bg_type: "image" }));
+    } catch (e: any) { alert("Upload failed: " + (e?.message || "")); }
   }
   function saveCapSetting(patch: Record<string, any>) {
     setCapSettings((prev) => ({ ...prev, ...patch }));
@@ -861,6 +875,50 @@ export function EditorPage({ projectId }: { projectId: string }) {
             </>
           )}
 
+          {rail === "canvas" && (
+            <>
+              <div className="ed-left-head"><h3>Canvas</h3></div>
+              <div className="ed-hint-box">Set the output shape and a background behind your video. Applied on MP4 export.</div>
+              <div className="ed-anim-lbl">ASPECT RATIO</div>
+              <div className="ed-canvas-aspects">
+                {([["original", "Original"], ["9:16", "9:16"], ["4:5", "4:5"], ["1:1", "1:1"], ["16:9", "16:9"]] as [string, string][]).map(([v, l]) => (
+                  <div key={v} className={"ed-canvas-ar" + ((canvas.aspect || "original") === v ? " active" : "")} onClick={() => saveCanvas({ aspect: v })}>
+                    <div className={"ed-ar-box ar-" + v.replace(":", "-")} />
+                    <span>{l}</span>
+                  </div>
+                ))}
+              </div>
+              {canvas.aspect && canvas.aspect !== "original" && (
+                <>
+                  <div className="ed-anim-lbl" style={{ marginTop: 16 }}>BACKGROUND</div>
+                  <div className="ed-seg-row">
+                    {([["color", "Color"], ["blur", "Blur"], ["image", "Image"]] as [string, string][]).map(([v, l]) => (
+                      <div key={v} className={"ed-seg-btn" + ((canvas.bg_type || "color") === v ? " active" : "")} onClick={() => saveCanvas({ bg_type: v })}>{l}</div>
+                    ))}
+                  </div>
+                  {(canvas.bg_type || "color") === "color" && (
+                    <div className="ed-swatches" style={{ marginTop: 12 }}>
+                      {["#000000", "#ffffff", "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#a855f7", "#ec4899"].map((c) => (
+                        <span key={c} className={"ed-swatch" + ((canvas.color || "#000000").toLowerCase() === c ? " active" : "")}
+                          style={{ background: c }} onClick={() => saveCanvas({ color: c })} />
+                      ))}
+                    </div>
+                  )}
+                  {canvas.bg_type === "image" && (
+                    <>
+                      <input ref={canvasImgRef} type="file" accept="image/*" hidden
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadCanvasImage(f); e.currentTarget.value = ""; }} />
+                      <button className="secondary" style={{ width: "100%", marginTop: 12 }} onClick={() => canvasImgRef.current?.click()}>＋ Upload background image</button>
+                      {canvas.image_url && <img src={canvas.image_url} style={{ width: "100%", borderRadius: 8, marginTop: 10, maxHeight: 120, objectFit: "cover" }} />}
+                    </>
+                  )}
+                  {canvas.bg_type === "blur" && <div className="np-sub" style={{ marginTop: 10 }}>A blurred, zoomed copy of your video fills the background.</div>}
+                  <button className="secondary" style={{ width: "100%", marginTop: 14 }} onClick={() => saveCanvas({ aspect: "original" })}>Reset to original</button>
+                </>
+              )}
+            </>
+          )}
+
           {rail === "export" && (
             <>
               <div className="ed-left-head"><h3>Export</h3></div>
@@ -901,6 +959,12 @@ export function EditorPage({ projectId }: { projectId: string }) {
             <button className="ed-replace secondary">↻ Replace</button>
           </div>
           <div className="ed-stage" ref={stageRef}>
+            <div className={"ed-canvas-frame" + (canvas.aspect && canvas.aspect !== "original" ? " on" : "")}
+              style={canvas.aspect && canvas.aspect !== "original" ? {
+                aspectRatio: canvas.aspect.replace(":", "/"),
+                background: canvas.bg_type === "image" && canvas.image_url ? `center/cover no-repeat url("${canvas.image_url}")`
+                  : canvas.bg_type === "blur" ? "#0a0c13" : (canvas.color || "#000000"),
+              } : undefined}>
             <VideoPreview ref={videoRef} src={mediaSrc}
               overlay={<>
                 {activeCue && overlayText ? (
@@ -930,6 +994,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                     onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setRail("broll"); }} />
                 ))}
               </>} />
+            </div>
           </div>
           <div className="ed-zoombar">
             <span className="muted">{fmtT(curMs)} / {fmtT(dur)}</span>
