@@ -12,10 +12,10 @@ import tempfile
 from celery import shared_task
 
 from app.database import SessionLocal
-from app.models import Project, CaptionCue, Export, Edit, TextOverlay
+from app.models import Project, CaptionCue, Export, Edit, TextOverlay, ImageOverlay
 from app.services.captions import SERIALIZERS
 from app.services.caption_styles import build_ass, build_overlay_events
-from app.services import ffmpeg_utils, timeline, timeline_export, stems, autozoom
+from app.services import ffmpeg_utils, timeline, timeline_export, stems, autozoom, filters
 from app.services.storage import storage
 from app.config import settings
 
@@ -42,6 +42,24 @@ def _load_zoom_segments(db, project_id: str) -> list[dict]:
                          "scale": float(p.get("scale", 1.2))})
     segs.sort(key=lambda z: z["start_ms"])
     return segs
+
+
+def _load_color_filter(db, project_id: str) -> str | None:
+    row = (db.query(Edit)
+             .filter(Edit.project_id == project_id, Edit.enabled == True,  # noqa: E712
+                     Edit.type == "filter").order_by(Edit.created_at.desc()).first())
+    if not row:
+        return None
+    name = (row.payload_json or {}).get("name")
+    return filters.filter_string(name)
+
+
+def _load_images(db, project_id: str) -> list[dict]:
+    rows = (db.query(ImageOverlay)
+              .filter(ImageOverlay.project_id == project_id)
+              .order_by(ImageOverlay.idx).all())
+    return [{"image_url": r.image_url, "start_ms": r.start_ms, "end_ms": r.end_ms,
+             "x_pct": r.x_pct, "y_pct": r.y_pct, "size_pct": r.size_pct} for r in rows]
 
 
 def _load_overlays(db, project_id: str) -> list[dict]:
@@ -119,6 +137,8 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
             key = f"exports/{project_id}{suffix}_captioned.mp4"
             out_path = storage.path(key)
             os.makedirs(os.path.dirname(out_path), exist_ok=True)
+            vinfo = ffmpeg_utils.video_info(video_src)
+            # auto-zoom prefilter
             zoom_prefilter = None
             zsegs = _load_zoom_segments(db, project_id)
             if zsegs:
@@ -128,14 +148,35 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                         z["end_ms"] = timeline.remap_ms(z["end_ms"], cuts)
                     zsegs = [z for z in zsegs if z["end_ms"] > z["start_ms"]]
                 try:
-                    vinfo = ffmpeg_utils.video_info(video_src)
                     zoom_prefilter = autozoom.build_zoom_filter(
                         zsegs, vinfo["width"], vinfo["height"],
                         vinfo["fps_num"], vinfo["fps_den"])
                 except Exception:
                     zoom_prefilter = None
-            ffmpeg_utils.burn_captions(video_src, ass_path, out_path,
-                                       audio_filter=audio_filter, video_prefilter=zoom_prefilter)
+            # colour filter
+            color_vf = _load_color_filter(db, project_id)
+            vfilters = [f for f in (zoom_prefilter, color_vf) if f]
+            # image / B-roll overlays
+            images = _load_images(db, project_id)
+            img_inputs = []
+            for im in images:
+                s0 = timeline.remap_ms(im["start_ms"], cuts) if cuts else im["start_ms"]
+                e0 = timeline.remap_ms(im["end_ms"], cuts) if cuts else im["end_ms"]
+                if e0 <= s0:
+                    continue
+                try:
+                    ipath = storage.path(im["image_url"])
+                except Exception:
+                    continue
+                img_inputs.append({"path": ipath, "start_ms": s0, "end_ms": e0,
+                                   "x_pct": im["x_pct"], "y_pct": im["y_pct"], "size_pct": im["size_pct"]})
+            if img_inputs:
+                ffmpeg_utils.render_mp4(video_src, ass_path, out_path, vinfo["width"],
+                                        vfilters=vfilters, images=img_inputs, audio_filter=audio_filter)
+            else:
+                prefilter = ",".join(vfilters) if vfilters else None
+                ffmpeg_utils.burn_captions(video_src, ass_path, out_path,
+                                           audio_filter=audio_filter, video_prefilter=prefilter)
             os.remove(ass_path)
             if cuts and os.path.exists(video_src):
                 os.remove(video_src)

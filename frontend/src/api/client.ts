@@ -1,4 +1,4 @@
-import type { Project, ProjectDetail, Overlay } from "../types";
+import type { Project, ProjectDetail, Overlay, ImageOverlay } from "../types";
 
 const BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? "https://maxfly-api.onrender.com" : "");
 
@@ -108,6 +108,40 @@ export const api = {
 
   async deleteEdit(id: string, editId: string) {
     return j<any>(await afetch(`${BASE}/api/projects/${id}/edits/${editId}`, { method: "DELETE" }));
+  },
+
+  async filterPresets() {
+    return j<{ filters: { id: string; label: string }[] }>(await afetch(`${BASE}/api/filter-presets`));
+  },
+  async getFilter(id: string) {
+    return j<{ name: string }>(await afetch(`${BASE}/api/projects/${id}/filter`));
+  },
+  async setFilter(id: string, name: string) {
+    return j<{ name: string }>(await afetch(`${BASE}/api/projects/${id}/filter`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    }));
+  },
+
+  async listImages(id: string) {
+    return j<ImageOverlay[]>(await afetch(`${BASE}/api/projects/${id}/images`));
+  },
+  async addImage(id: string, file: File, start_ms: number, end_ms: number) {
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("start_ms", String(start_ms));
+    fd.append("end_ms", String(end_ms));
+    fd.append("x_pct", "50"); fd.append("y_pct", "20"); fd.append("size_pct", "40");
+    return j<ImageOverlay>(await afetch(`${BASE}/api/projects/${id}/images`, { method: "POST", body: fd }));
+  },
+  async updateImage(id: string, imageId: string, body: Partial<ImageOverlay>) {
+    return j<ImageOverlay>(await afetch(`${BASE}/api/projects/${id}/images/${imageId}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }));
+  },
+  async deleteImage(id: string, imageId: string) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/images/${imageId}`, { method: "DELETE" }));
   },
 
   async getProject(id: string) {

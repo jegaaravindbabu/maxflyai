@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.deps import owned_project
 from app.models import Project, Edit, Transcript, Segment, CaptionCue
-from app.services import ffmpeg_utils, segmentation, retake, fillers, autozoom
+from app.services import ffmpeg_utils, segmentation, retake, fillers, autozoom, filters
 from app.services.storage import storage
 
 router = APIRouter(prefix="/api/projects", tags=["edits"])
@@ -182,3 +182,28 @@ def clear_autozoom(project_id: str, db: Session = Depends(get_db),
        .delete(synchronize_session=False))
     db.commit()
     return {"ok": True}
+
+
+class FilterIn(BaseModel):
+    name: str = "none"
+
+
+@router.get("/{project_id}/filter")
+def get_filter(project_id: str, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    row = (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "filter")
+             .order_by(Edit.created_at.desc()).first())
+    name = (row.payload_json or {}).get("name", "none") if row else "none"
+    return {"name": name}
+
+
+@router.post("/{project_id}/filter")
+def set_filter(project_id: str, body: FilterIn, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "filter")
+       .delete(synchronize_session=False))
+    if body.name and body.name != "none":
+        db.add(Edit(project_id=project_id, type="filter",
+                    payload_json={"name": body.name}, enabled=True))
+    db.commit()
+    return {"name": body.name}

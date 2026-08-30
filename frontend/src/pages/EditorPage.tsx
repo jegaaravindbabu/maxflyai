@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { api } from "../api/client";
-import type { ProjectDetail, Overlay } from "../types";
+import type { ProjectDetail, Overlay, ImageOverlay } from "../types";
 import { VideoPreview } from "../components/VideoPreview";
 import { CaptionOverlay } from "../components/CaptionOverlay";
 import { Waveform } from "../components/Waveform";
@@ -29,8 +29,10 @@ const SWATCHES: { color: string; style: string }[] = [
 const RAILS = [
   { id: "captions", icon: "▤", label: "Captions" },
   { id: "texts", icon: "T", label: "Texts" },
+  { id: "images", icon: "🖼", label: "Images" },
   { id: "tools", icon: "✨", label: "AI Tools" },
   { id: "zoom", icon: "⊕", label: "Auto Zoom" },
+  { id: "filters", icon: "◑", label: "Filters" },
   { id: "export", icon: "⬇", label: "Export" },
 ];
 
@@ -51,6 +53,14 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [zooms, setZooms] = useState<{ id: string; start_ms: number; end_ms: number; scale: number }[]>([]);
   const [zoomScale, setZoomScale] = useState(1.2);
   const [zoomBusy, setZoomBusy] = useState(false);
+  const [filterList, setFilterList] = useState<{ id: string; label: string }[]>([]);
+  const [curFilter, setCurFilter] = useState("none");
+  const [images, setImages] = useState<ImageOverlay[]>([]);
+  const [selImg, setSelImg] = useState<string | null>(null);
+  const [imgBusy, setImgBusy] = useState(false);
+  const imgInputRef = useRef<HTMLInputElement>(null);
+  const imagesRef = useRef<ImageOverlay[]>([]);
+  imagesRef.current = images;
   const overlaysRef = useRef<Overlay[]>([]);
   overlaysRef.current = overlays;
   const [enhanceAudio, setEnhanceAudio] = useState(false);
@@ -59,7 +69,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [curMs, setCurMs] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [exports, setExports] = useState<{ fmt: string; url?: string; status: string }[]>([]);
-  const [rail, setRail] = useState<"captions" | "texts" | "tools" | "zoom" | "export">("captions");
+  const [rail, setRail] = useState<"captions" | "texts" | "images" | "tools" | "zoom" | "filters" | "export">("captions");
   const [rightTab, setRightTab] = useState<"styles" | "settings" | "animation">("styles");
   const [density, setDensity] = useState<"compact" | "roomy">("roomy");
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -81,6 +91,11 @@ export function EditorPage({ projectId }: { projectId: string }) {
   useEffect(() => { setMediaEl(videoRef.current); }, [proj?.id]);
   useEffect(() => { setOverlays(proj?.overlays || []); }, [proj?.id]);
   useEffect(() => { api.listAutozoom(projectId).then(setZooms).catch(() => {}); }, [projectId]);
+  useEffect(() => { api.filterPresets().then((r) => setFilterList(r.filters)).catch(() => {}); }, []);
+  useEffect(() => {
+    api.getFilter(projectId).then((r) => setCurFilter(r.name)).catch(() => {});
+    api.listImages(projectId).then(setImages).catch(() => {});
+  }, [projectId]);
 
   useEffect(() => {
     if (proj?.status !== "transcribing") return;
@@ -219,6 +234,54 @@ export function EditorPage({ projectId }: { projectId: string }) {
   async function delZoom(id: string) {
     setZooms((prev) => prev.filter((z) => z.id !== id));
     try { await api.deleteEdit(projectId, id); } catch {}
+  }
+
+  async function applyFilter(name: string) {
+    setCurFilter(name);
+    try { await api.setFilter(projectId, name); } catch {}
+  }
+  function pickImage() { imgInputRef.current?.click(); }
+  async function uploadImage(file: File) {
+    setImgBusy(true);
+    const at = Math.round(curMs);
+    try {
+      const im = await api.addImage(projectId, file, at, at + 3000);
+      setImages((prev) => [...prev, im]);
+      setSelImg(im.id);
+    } catch (e: any) { alert("Image upload failed: " + e.message); }
+    finally { setImgBusy(false); }
+  }
+  function patchImgLocal(id: string, patch: Partial<ImageOverlay>) {
+    setImages((prev) => prev.map((im) => (im.id === id ? { ...im, ...patch } : im)));
+  }
+  async function saveImg(id: string, patch: Partial<ImageOverlay>) {
+    patchImgLocal(id, patch);
+    try { await api.updateImage(projectId, id, patch); } catch {}
+  }
+  async function delImg(id: string) {
+    setImages((prev) => prev.filter((im) => im.id !== id));
+    if (selImg === id) setSelImg(null);
+    try { await api.deleteImage(projectId, id); } catch {}
+  }
+  function startDragImg(e: ReactMouseEvent, im: ImageOverlay) {
+    e.preventDefault(); e.stopPropagation();
+    setSelImg(im.id);
+    const parent = (e.currentTarget as HTMLElement).offsetParent as HTMLElement | null;
+    if (!parent) return;
+    const rect = parent.getBoundingClientRect();
+    const move = (ev: MouseEvent) => {
+      const x = Math.max(0, Math.min(100, ((ev.clientX - rect.left) / rect.width) * 100));
+      const y = Math.max(0, Math.min(100, ((ev.clientY - rect.top) / rect.height) * 100));
+      patchImgLocal(im.id, { x_pct: x, y_pct: y });
+    };
+    const up = () => {
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", up);
+      const cur = imagesRef.current.find((v) => v.id === im.id);
+      if (cur) api.updateImage(projectId, im.id, { x_pct: cur.x_pct, y_pct: cur.y_pct }).catch(() => {});
+    };
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", up);
   }
 
   const transcribing = proj.status === "transcribing";
@@ -370,6 +433,51 @@ export function EditorPage({ projectId }: { projectId: string }) {
             </>
           )}
 
+          {rail === "images" && (
+            <>
+              <div className="ed-left-head"><h3>Images / B-roll</h3></div>
+              <div className="ed-hint-box">Overlay a logo, sticker, or B-roll still on the video. Drag it on the preview to position; it burns into the exported MP4.</div>
+              <input ref={imgInputRef} type="file" accept="image/*" hidden
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(f); e.currentTarget.value = ""; }} />
+              <button style={{ width: "100%" }} onClick={pickImage} disabled={imgBusy}>
+                {imgBusy ? "Uploading…" : "＋ Upload image"}
+              </button>
+              {images.length === 0 ? (
+                <div className="ed-cap-empty" style={{ paddingTop: 18 }}>No images yet.</div>
+              ) : (
+                <div className="ed-txt-list">
+                  {images.map((im) => (
+                    <div key={im.id} className={"ed-txt-item" + (selImg === im.id ? " active" : "")}
+                      onClick={() => { setSelImg(im.id); seek(im.start_ms); }}>
+                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                        <img src={im.image_url} style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 6 }} />
+                        <div className="np-sub">{fmtT(im.start_ms)} – {fmtT(im.end_ms)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {selImg && (() => {
+                const im = images.find((v) => v.id === selImg);
+                if (!im) return null;
+                return (
+                  <div className="card ed-txt-editor">
+                    <div className="np-label">Size · {Math.round(im.size_pct)}%</div>
+                    <input type="range" min={8} max={100} value={im.size_pct} style={{ width: "100%" }}
+                      onChange={(e) => patchImgLocal(im.id, { size_pct: +e.target.value })}
+                      onMouseUp={(e) => saveImg(im.id, { size_pct: +(e.target as HTMLInputElement).value })} />
+                    <div className="ed-txt-time">
+                      <button className="secondary" onClick={() => saveImg(im.id, { start_ms: Math.round(curMs) })}>Start ⟵ playhead</button>
+                      <button className="secondary" onClick={() => saveImg(im.id, { end_ms: Math.round(curMs) })}>End ⟵ playhead</button>
+                    </div>
+                    <button className="ed-bulk-del" style={{ width: "100%", marginTop: 12 }} onClick={() => delImg(im.id)}>🗑 Delete image</button>
+                    <div className="np-sub" style={{ marginTop: 8 }}>Drag the image on the video to reposition it.</div>
+                  </div>
+                );
+              })()}
+            </>
+          )}
+
           {rail === "tools" && (
             <>
               <div className="ed-left-head"><h3>AI Tools</h3></div>
@@ -431,6 +539,21 @@ export function EditorPage({ projectId }: { projectId: string }) {
             </>
           )}
 
+          {rail === "filters" && (
+            <>
+              <div className="ed-left-head"><h3>Filters</h3></div>
+              <div className="ed-hint-box">A colour grade applied to the whole video on MP4 export.</div>
+              <div className="ed-style-grid">
+                {filterList.map((f) => (
+                  <div key={f.id} className={"ed-style-card" + (curFilter === f.id ? " active" : "")} onClick={() => applyFilter(f.id)}>
+                    <div className={"ed-filt-prev ed-filt-" + f.id} />
+                    <div className="ed-style-lb">{f.label}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
           {rail === "export" && (
             <>
               <div className="ed-left-head"><h3>Export</h3></div>
@@ -484,6 +607,13 @@ export function EditorPage({ projectId }: { projectId: string }) {
                     onClick={(e) => { e.stopPropagation(); setSelOv(o.id); setRail("texts"); }}>
                     {o.text}
                   </div>
+                ))}
+                {images.filter((im) => curMs >= im.start_ms && curMs < im.end_ms).map((im) => (
+                  <img key={im.id} src={im.image_url} draggable={false}
+                    className={"ed-imgovl" + (selImg === im.id ? " sel" : "")}
+                    style={{ left: im.x_pct + "%", top: im.y_pct + "%", width: im.size_pct + "%" }}
+                    onMouseDown={(e) => startDragImg(e, im)}
+                    onClick={(e) => { e.stopPropagation(); setSelImg(im.id); setRail("images"); }} />
                 ))}
               </>} />
           </div>

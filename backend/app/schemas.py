@@ -82,11 +82,31 @@ class OverlayPatch(BaseModel):
     bold: bool | None = None
 
 
+class ImageOut(BaseModel):
+    id: str
+    idx: int = 0
+    image_url: Optional[str] = None
+    start_ms: int = 0
+    end_ms: int = 3000
+    x_pct: float = 50.0
+    y_pct: float = 20.0
+    size_pct: float = 40.0
+
+
+class ImagePatch(BaseModel):
+    start_ms: int | None = None
+    end_ms: int | None = None
+    x_pct: float | None = None
+    y_pct: float | None = None
+    size_pct: float | None = None
+
+
 class ProjectDetail(ProjectOut):
     media_url: Optional[str] = None
     segments: list[SegmentOut] = []
     cues: list[CueOut] = []
     overlays: list[OverlayOut] = []
+    images: list[ImageOut] = []
     language_code: Optional[str] = None
     mode: Optional[str] = None
 

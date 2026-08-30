@@ -1,13 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import owned_project
-from app.models import Project, Segment, Transcript, CaptionCue, Job, TextOverlay
-from app.schemas import ProjectOut, ProjectDetail, SegmentOut, CueOut, OverlayOut, OverlayIn, OverlayPatch
+from app.models import Project, Segment, Transcript, CaptionCue, Job, TextOverlay, ImageOverlay
+from app.schemas import ProjectOut, ProjectDetail, SegmentOut, CueOut, OverlayOut, OverlayIn, OverlayPatch, ImageOut, ImagePatch
 from app.services.auth import current_user
 from app.services.storage import storage
+import os, tempfile
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -56,6 +57,11 @@ def get_project(project_id: str, db: Session = Depends(get_db),
     overlays = (db.query(TextOverlay).filter(TextOverlay.project_id == project_id)
                   .order_by(TextOverlay.idx).all())
     detail.overlays = [OverlayOut.model_validate(o) for o in overlays]
+    imgs = (db.query(ImageOverlay).filter(ImageOverlay.project_id == project_id)
+              .order_by(ImageOverlay.idx).all())
+    detail.images = [ImageOut(id=i.id, idx=i.idx, image_url=storage.url(i.image_url),
+                              start_ms=i.start_ms, end_ms=i.end_ms, x_pct=i.x_pct,
+                              y_pct=i.y_pct, size_pct=i.size_pct) for i in imgs]
     if transcript:
         detail.language_code = transcript.language_code
         detail.mode = transcript.mode
@@ -186,6 +192,71 @@ def delete_overlay(project_id: str, overlay_id: str, db: Session = Depends(get_d
            .filter(TextOverlay.project_id == project_id, TextOverlay.id == overlay_id).first())
     if o is None:
         raise HTTPException(404, "overlay not found")
+    db.delete(o)
+    db.commit()
+    return {"ok": True}
+
+
+def _img_out(i: ImageOverlay) -> ImageOut:
+    return ImageOut(id=i.id, idx=i.idx, image_url=storage.url(i.image_url),
+                    start_ms=i.start_ms, end_ms=i.end_ms, x_pct=i.x_pct,
+                    y_pct=i.y_pct, size_pct=i.size_pct)
+
+
+@router.get("/{project_id}/images", response_model=list[ImageOut])
+def list_images(project_id: str, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    rows = (db.query(ImageOverlay).filter(ImageOverlay.project_id == project_id)
+              .order_by(ImageOverlay.idx).all())
+    return [_img_out(i) for i in rows]
+
+
+@router.post("/{project_id}/images", response_model=ImageOut)
+async def add_image(project_id: str, file: UploadFile = File(...),
+    start_ms: int = Form(0), end_ms: int = Form(3000),
+    x_pct: float = Form(50.0), y_pct: float = Form(20.0), size_pct: float = Form(40.0),
+    db: Session = Depends(get_db), _owner: Project = Depends(owned_project)):
+    suffix = os.path.splitext(file.filename or "")[1] or ".png"
+    fd, tmp = tempfile.mkstemp(suffix=suffix)
+    with os.fdopen(fd, "wb") as f:
+        while chunk := await file.read(1024 * 1024):
+            f.write(chunk)
+    try:
+        key = storage.save_upload(tmp, file.filename or "image" + suffix)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+    n = db.query(ImageOverlay).filter(ImageOverlay.project_id == project_id).count()
+    o = ImageOverlay(project_id=project_id, idx=n, image_url=key,
+                     start_ms=start_ms, end_ms=max(end_ms, start_ms + 300),
+                     x_pct=x_pct, y_pct=y_pct, size_pct=size_pct)
+    db.add(o)
+    db.commit()
+    db.refresh(o)
+    return _img_out(o)
+
+
+@router.patch("/{project_id}/images/{image_id}", response_model=ImageOut)
+def update_image(project_id: str, image_id: str, body: ImagePatch,
+    db: Session = Depends(get_db), _owner: Project = Depends(owned_project)):
+    o = (db.query(ImageOverlay)
+           .filter(ImageOverlay.project_id == project_id, ImageOverlay.id == image_id).first())
+    if o is None:
+        raise HTTPException(404, "image not found")
+    for field, val in body.model_dump(exclude_unset=True).items():
+        setattr(o, field, val)
+    db.commit()
+    db.refresh(o)
+    return _img_out(o)
+
+
+@router.delete("/{project_id}/images/{image_id}")
+def delete_image(project_id: str, image_id: str, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    o = (db.query(ImageOverlay)
+           .filter(ImageOverlay.project_id == project_id, ImageOverlay.id == image_id).first())
+    if o is None:
+        raise HTTPException(404, "image not found")
     db.delete(o)
     db.commit()
     return {"ok": True}

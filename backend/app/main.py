@@ -34,6 +34,12 @@ def caption_styles():
     return {"styles": list_presets()}
 
 
+@app.get("/api/filter-presets")
+def filter_presets():
+    from app.services.filters import list_presets
+    return {"filters": list_presets()}
+
+
 @app.get("/api/health")
 def health():
     return {

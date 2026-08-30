@@ -158,3 +158,51 @@ def audio_enhance_filter(arnndn_model: str | None = None) -> str:
         "loudnorm=I=-16:TP=-1.5:LRA=11",
     ]
     return ",".join(stages)
+
+
+def render_mp4(video_src: str, ass_path: str, out_path: str, width: int,
+               vfilters: list[str] | None = None,
+               images: list[dict] | None = None,
+               audio_filter: str | None = None) -> str:
+    """Full composite render: base video -> vfilters (zoom/colour) -> image overlays
+    -> burned captions, in a single filter_complex pass. `images` items:
+    {path, start_ms, end_ms, x_pct, y_pct, size_pct}."""
+    vfilters = [v for v in (vfilters or []) if v]
+    images = images or []
+    safe = ass_path.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
+
+    inputs = ["-i", video_src]
+    for img in images:
+        inputs += ["-i", img["path"]]
+
+    parts = []
+    pre = ",".join(vfilters) if vfilters else "null"
+    parts.append(f"[0:v]{pre}[base]")
+    cur = "base"
+    for i, img in enumerate(images):
+        pxw = max(16, round(width * float(img.get("size_pct", 40)) / 100.0))
+        fx = max(0.0, min(1.0, float(img.get("x_pct", 50)) / 100.0))
+        fy = max(0.0, min(1.0, float(img.get("y_pct", 20)) / 100.0))
+        s = max(0, int(img.get("start_ms", 0))) / 1000.0
+        e = max(0, int(img.get("end_ms", 3000))) / 1000.0
+        parts.append(f"[{i+1}:v]scale={pxw}:-1[img{i}]")
+        parts.append(
+            f"[{cur}][img{i}]overlay="
+            f"x='max(0,min(main_w*{fx:.4f},main_w-overlay_w))':"
+            f"y='max(0,min(main_h*{fy:.4f},main_h-overlay_h))':"
+            f"enable='between(t,{s:.3f},{e:.3f})'[ov{i}]")
+        cur = f"ov{i}"
+    parts.append(f"[{cur}]subtitles='{safe}'[vout]")
+    filter_complex = ";".join(parts)
+
+    cmd = ["ffmpeg", "-y", *inputs, "-filter_complex", filter_complex,
+           "-map", "[vout]", "-map", "0:a?"]
+    if audio_filter:
+        cmd += ["-af", audio_filter, "-c:a", "aac", "-b:a", "192k"]
+    else:
+        cmd += ["-c:a", "aac", "-b:a", "192k"]
+    cmd += ["-c:v", "libx264", "-pix_fmt", "yuv420p", out_path]
+    cp = _run(cmd)
+    if cp.returncode != 0:
+        raise RuntimeError(f"render_mp4 failed: {cp.stderr[-400:]}")
+    return out_path
