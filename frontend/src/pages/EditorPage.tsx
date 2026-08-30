@@ -26,6 +26,7 @@ const SWATCHES: { color: string; style: string }[] = [
   { color: "#ffffff", style: "classic" },
 ];
 
+const WORD_STYLES = ["karaoke", "highlight"];
 const CS_FONTS: [string, string][] = [
   ["", "Default (Inter)"], ["Anton", "Anton"], ["Bebas Neue", "Bebas Neue"],
   ["Poppins", "Poppins"], ["Montserrat", "Montserrat"], ["Pacifico", "Pacifico (script)"],
@@ -183,7 +184,6 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const lineStyles = styles.filter((x) => !WORD_STYLES.includes(x.id));
   const wordStyles = styles.filter((x) => WORD_STYLES.includes(x.id));
   const overlayText = activeCue ? (showTranslit && activeCue.translit_text ? activeCue.translit_text : activeCue.text) : "";
-  const WORD_STYLES = ["karaoke", "highlight"];
   const effStyle = animOn ? capStyle : "classic";
   const wordMode = WORD_STYLES.includes(capStyle);
   const mediaSrc = proj.media_url ? (proj.media_url.startsWith("http") ? proj.media_url : api.mediaUrl(proj.media_url)) : "";
