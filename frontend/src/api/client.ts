@@ -66,6 +66,30 @@ export const api = {
     return j<Project>(await afetch(`${BASE}/api/projects`, { method: "POST", body: fd }));
   },
 
+  uploadWithProgress(file: File, onProgress?: (pct: number) => void, name?: string): Promise<Project> {
+    return new Promise((resolve, reject) => {
+      const fd = new FormData();
+      fd.append("file", file);
+      if (name) fd.append("name", name);
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${BASE}/api/projects`);
+      if (authToken) xhr.setRequestHeader("Authorization", `Bearer ${authToken}`);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try { resolve(JSON.parse(xhr.responseText) as Project); }
+          catch (err) { reject(err); }
+        } else {
+          reject(new Error(`${xhr.status}: ${xhr.responseText}`));
+        }
+      };
+      xhr.onerror = () => reject(new Error("Network error during upload"));
+      xhr.send(fd);
+    });
+  },
+
   async transcribe(id: string, language_code: string, mode: string) {
     return j<any>(await afetch(`${BASE}/api/projects/${id}/transcribe`, {
       method: "POST",

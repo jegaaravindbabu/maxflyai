@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { api } from "./api/client";
+import { useEffect, useState } from "react";
 import { AuthProvider, useAuth, authEnabled } from "./auth/AuthContext";
 import { LoginPage } from "./auth/LoginPage";
 import { Sidebar } from "./components/Sidebar";
+import { NewProjectModal } from "./components/NewProjectModal";
 import { HomePage } from "./pages/HomePage";
 import { EditorPage } from "./pages/EditorPage";
 import { BillingPage } from "./pages/BillingPage";
@@ -32,19 +32,9 @@ function MediaPlaceholder() {
 function Shell() {
   const hash = useHashRoute();
   const match = hash.match(/^#\/project\/(.+)$/);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
-  const openUpload = () => inputRef.current?.click();
-  async function handleFile(file: File) {
-    setUploading(true);
-    try {
-      const p = await api.upload(file);
-      window.location.hash = `#/project/${p.id}`;
-    } catch (e: any) {
-      alert("Upload failed: " + e.message);
-    } finally { setUploading(false); }
-  }
+  const openUpload = () => setModalOpen(true);
 
   let content;
   if (match) content = <EditorPage projectId={match[1]} />;
@@ -57,11 +47,9 @@ function Shell() {
     <div className="shell">
       <Sidebar route={hash} onNewProject={openUpload} />
       <main className="main">
-        {uploading && <div className="uploading-bar">Uploading…</div>}
         {content}
       </main>
-      <input ref={inputRef} type="file" accept="video/*,audio/*" hidden
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+      {modalOpen && <NewProjectModal onClose={() => setModalOpen(false)} />}
     </div>
   );
 }
