@@ -50,6 +50,21 @@ export const api = {
     return j<Project[]>(await afetch(`${BASE}/api/projects`));
   },
 
+  async renameProject(id: string, name: string) {
+    return j<Project>(await afetch(`${BASE}/api/projects/${id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    }));
+  },
+
+  async deleteProject(id: string) {
+    return j<{ ok: boolean }>(await afetch(`${BASE}/api/projects/${id}`, { method: "DELETE" }));
+  },
+
+  async duplicateProject(id: string) {
+    return j<Project>(await afetch(`${BASE}/api/projects/${id}/duplicate`, { method: "POST" }));
+  },
+
   async getProject(id: string) {
     return j<ProjectDetail>(await afetch(`${BASE}/api/projects/${id}`));
   },

@@ -38,6 +38,7 @@ class ProjectOut(BaseModel):
     status: str
     error: Optional[str] = None
     created_at: Optional[datetime] = None
+    sub_count: Optional[int] = None
 
     class Config:
         from_attributes = True

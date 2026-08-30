@@ -26,6 +26,7 @@ export interface Project {
   status: string;
   error?: string | null;
   created_at?: string | null;
+  sub_count?: number | null;
 }
 
 export interface ProjectDetail extends Project {
