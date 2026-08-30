@@ -64,6 +64,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [stylesTab, setStylesTab] = useState<"lines" | "words" | "saved">("lines");
   const [savedStyles, setSavedStyles] = useState<{ id: string; name: string; style: string; settings: any }[]>([]);
   const [infoDismissed, setInfoDismissed] = useState(false);
+  const [styleSearch, setStyleSearch] = useState("");
+  const [styleSearchOpen, setStyleSearchOpen] = useState(false);
   const [overlays, setOverlays] = useState<Overlay[]>([]);
   const [selOv, setSelOv] = useState<string | null>(null);
   const [zooms, setZooms] = useState<{ id: string; start_ms: number; end_ms: number; scale: number }[]>([]);
@@ -960,8 +962,14 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   </div>
                 ))}
                 <span className="spacer" />
+                <button className={"ed-sub2-icon" + (styleSearchOpen ? " on" : "")} title="Search styles"
+                  onClick={() => { setStyleSearchOpen((v) => !v); if (styleSearchOpen) setStyleSearch(""); }}>🔍</button>
                 <button className="ed-sub2-icon" title="Save current style" onClick={saveCurrentStyle}>⇧</button>
               </div>
+              {styleSearchOpen && (
+                <input className="ed-style-search" autoFocus placeholder="Search styles…" value={styleSearch}
+                  onChange={(e) => setStyleSearch(e.target.value)} />
+              )}
 
               {!infoDismissed && (
                 <div className="ed-hint-box ed-hint-x">
@@ -973,7 +981,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
               {stylesTab !== "saved" && (
                 <>
                   <div className="ed-preset-list">
-                    {(stylesTab === "lines" ? lineStyles : wordStyles).map((st) => (
+                    {(stylesTab === "lines" ? lineStyles : wordStyles).filter((st) => st.label.toLowerCase().includes(styleSearch.toLowerCase())).map((st) => (
                       <div key={st.id} className={"ed-preset-card" + (capStyle === st.id ? " active" : "")} onClick={() => setCapStyle(st.id)}>
                         <div className="ed-preset-name">{st.label}</div>
                         <div className="ed-preset-stage">
@@ -998,7 +1006,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   {savedStyles.length === 0 ? (
                     <div className="ed-cap-empty" style={{ paddingTop: 16 }}>No saved styles yet.</div>
                   ) : (
-                    savedStyles.map((sv) => (
+                    savedStyles.filter((sv) => sv.name.toLowerCase().includes(styleSearch.toLowerCase())).map((sv) => (
                       <div key={sv.id} className="ed-preset-card" onClick={() => applySaved(sv)}>
                         <div className="ed-preset-name">{sv.name}
                           <button className="ed-preset-del" onClick={(e) => { e.stopPropagation(); delSaved(sv.id); }}>🗑</button>

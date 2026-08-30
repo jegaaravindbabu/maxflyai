@@ -709,3 +709,7 @@ video.ed-imgovl { object-fit: cover; }
   text-align: center; padding: 14px; }
 .ed-preset-stage .cap { font-size: 22px; line-height: 1.3; }
 .cap-emph { color: #f59e0b; }
+
+.ed-sub2-icon.on { background: var(--grad); color: var(--on-accent); border-color: transparent; }
+.ed-style-search { width: 100%; background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+  border-radius: 8px; padding: 9px 12px; font: inherit; margin-bottom: 12px; }
