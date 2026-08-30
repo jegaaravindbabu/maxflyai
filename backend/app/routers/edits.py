@@ -245,3 +245,29 @@ def set_caption_settings(project_id: str, body: CapSettingsIn, db: Session = Dep
         merged = payload
     db.commit()
     return merged
+
+
+class SavedStyleIn(BaseModel):
+    name: str
+    style: str = "classic"
+    settings: dict = {}
+
+
+@router.get("/{project_id}/saved-styles")
+def list_saved_styles(project_id: str, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    rows = (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "savedstyle")
+              .order_by(Edit.created_at).all())
+    return [{"id": r.id, **(r.payload_json or {})} for r in rows]
+
+
+@router.post("/{project_id}/saved-styles")
+def add_saved_style(project_id: str, body: SavedStyleIn, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    e = Edit(project_id=project_id, type="savedstyle",
+             payload_json={"name": body.name, "style": body.style, "settings": body.settings},
+             enabled=True)
+    db.add(e)
+    db.commit()
+    db.refresh(e)
+    return {"id": e.id, "name": body.name, "style": body.style, "settings": body.settings}

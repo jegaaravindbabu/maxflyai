@@ -197,6 +197,17 @@ export const api = {
     }));
   },
 
+  async listSavedStyles(id: string) {
+    return j<{ id: string; name: string; style: string; settings: any }[]>(
+      await afetch(`${BASE}/api/projects/${id}/saved-styles`));
+  },
+  async addSavedStyle(id: string, name: string, style: string, settings: any) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/saved-styles`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, style, settings }),
+    }));
+  },
+
   async getProject(id: string) {
     return j<ProjectDetail>(await afetch(`${BASE}/api/projects/${id}`));
   },

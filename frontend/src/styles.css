@@ -686,3 +686,26 @@ video.ed-imgovl { object-fit: cover; }
 @keyframes capSlideRight { from { transform: translateX(-24px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes capRotate { from { transform: rotate(-14deg); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes capFlip { from { transform: perspective(300px) rotateY(90deg); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ===== Editor · Styles tab (Lines/Words/Saved) ===== */
+.ed-sub2 { display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--border);
+  margin-bottom: 14px; padding-bottom: 2px; }
+.ed-sub2-tab { padding: 8px 2px; color: var(--muted); font-weight: 700; font-size: 14px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+.ed-sub2-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.ed-sub2-icon { background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+  width: 30px; height: 30px; border-radius: 7px; padding: 0; font-size: 14px; }
+.ed-hint-x { display: flex; align-items: flex-start; gap: 10px; justify-content: space-between; }
+.ed-hint-x button { background: transparent; color: var(--muted); font-size: 16px; padding: 0 4px; line-height: 1; }
+.ed-preset-list { display: flex; flex-direction: column; gap: 12px; }
+.ed-preset-card { position: relative; background: radial-gradient(130% 130% at 50% 0%, #1b1f2e 0%, #0a0c13 100%);
+  border: 1px solid var(--border); border-radius: 12px; overflow: hidden; cursor: pointer; }
+.ed-preset-card:hover { border-color: #3a3f57; }
+.ed-preset-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.ed-preset-name { font-size: 12px; font-weight: 700; color: var(--muted); padding: 10px 14px 0;
+  display: flex; align-items: center; justify-content: space-between; }
+.ed-preset-del { background: transparent; color: var(--muted); font-size: 13px; padding: 2px 6px; border-radius: 6px; }
+.ed-preset-del:hover { background: rgba(239,68,68,.15); color: var(--accent); }
+.ed-preset-stage { min-height: 92px; display: flex; align-items: center; justify-content: center;
+  text-align: center; padding: 14px; }
+.ed-preset-stage .cap { font-size: 22px; line-height: 1.3; }
+.cap-emph { color: #f59e0b; }

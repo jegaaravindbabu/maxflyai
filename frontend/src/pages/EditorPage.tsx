@@ -61,6 +61,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [capStyle, setCapStyle] = useState("classic");
   const [animOn, setAnimOn] = useState(true);
   const [capSettings, setCapSettings] = useState<Record<string, any>>({});
+  const [stylesTab, setStylesTab] = useState<"lines" | "words" | "saved">("lines");
+  const [savedStyles, setSavedStyles] = useState<{ id: string; name: string; style: string; settings: any }[]>([]);
+  const [infoDismissed, setInfoDismissed] = useState(false);
   const [overlays, setOverlays] = useState<Overlay[]>([]);
   const [selOv, setSelOv] = useState<string | null>(null);
   const [zooms, setZooms] = useState<{ id: string; start_ms: number; end_ms: number; scale: number }[]>([]);
@@ -130,6 +133,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
     api.listImages(projectId).then(setImages).catch(() => {});
     api.listBrolls(projectId).then(setBrolls).catch(() => {});
     api.getCaptionSettings(projectId).then((r) => setCapSettings(r || {})).catch(() => {});
+    api.listSavedStyles(projectId).then(setSavedStyles).catch(() => {});
   }, [projectId]);
 
   useEffect(() => {
@@ -174,6 +178,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const activeIdx = cues.find((c) => curMs >= c.start_ms && curMs < c.end_ms)?.idx ?? -1;
   const activeCue = cues.find((c) => c.idx === activeIdx);
   cuesRef.current = cues;
+  const lineStyles = styles.filter((x) => !WORD_STYLES.includes(x.id));
+  const wordStyles = styles.filter((x) => WORD_STYLES.includes(x.id));
   const overlayText = activeCue ? (showTranslit && activeCue.translit_text ? activeCue.translit_text : activeCue.text) : "";
   const WORD_STYLES = ["karaoke", "highlight"];
   const effStyle = animOn ? capStyle : "classic";
@@ -402,6 +408,24 @@ export function EditorPage({ projectId }: { projectId: string }) {
     document.addEventListener("mouseup", up);
   }
 
+  function applySaved(sv: { style: string; settings: any }) {
+    setCapStyle(sv.style);
+    setCapSettings(sv.settings || {});
+    api.setCaptionSettings(projectId, sv.settings || {}).catch(() => {});
+  }
+  async function saveCurrentStyle() {
+    const nm = window.prompt("Name this style", styles.find((x) => x.id === capStyle)?.label || "My style");
+    if (!nm || !nm.trim()) return;
+    try {
+      const sv = await api.addSavedStyle(projectId, nm.trim(), capStyle, capSettings);
+      setSavedStyles((prev) => [...prev, sv]);
+      setStylesTab("saved");
+    } catch {}
+  }
+  async function delSaved(id: string) {
+    setSavedStyles((prev) => prev.filter((x) => x.id !== id));
+    try { await api.deleteEdit(projectId, id); } catch {}
+  }
   function saveCapSetting(patch: Record<string, any>) {
     setCapSettings((prev) => ({ ...prev, ...patch }));
     api.setCaptionSettings(projectId, patch).catch(() => {});
@@ -929,29 +953,64 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
           {rightTab === "styles" && (
             <div className="ed-rt-body">
-              <div className="ed-hint-box">Styles apply to every caption in this video — colours and fonts can still be changed per caption.</div>
-              <div className="ed-showcase">
-                <div className="ed-showcase-name">{styles.find((x) => x.id === capStyle)?.label || "Style"}</div>
-                <div className="ed-showcase-stage">
-                  <span className={"cap cap-" + capStyle} key={capStyle}>Welcome to the future<br />of editing</span>
-                </div>
-                <div className="ed-showcase-check">✓</div>
-              </div>
-              <div className="ed-swatches">
-                {SWATCHES.map((s) => (
-                  <span key={s.color} className={"ed-swatch" + (capStyle === s.style ? " active" : "")}
-                    style={{ background: s.color }} title={s.style} onClick={() => setCapStyle(s.style)} />
-                ))}
-              </div>
-              <div className="ed-style-grid ed-style-grid-rich">
-                {styles.map((st) => (
-                  <div key={st.id} className={"ed-style-card" + (capStyle === st.id ? " active" : "")} onClick={() => setCapStyle(st.id)}>
-                    <div className="ed-style-mini"><span className={"cap cap-" + st.id}>Aa</span></div>
-                    <div className="ed-style-lb">{st.label}</div>
+              <div className="ed-sub2">
+                {(["lines", "words", "saved"] as const).map((t) => (
+                  <div key={t} className={"ed-sub2-tab" + (stylesTab === t ? " active" : "")} onClick={() => setStylesTab(t)}>
+                    {t[0].toUpperCase() + t.slice(1)}
                   </div>
                 ))}
+                <span className="spacer" />
+                <button className="ed-sub2-icon" title="Save current style" onClick={saveCurrentStyle}>⇧</button>
               </div>
-              <button style={{ width: "100%", marginTop: 14 }} onClick={() => alert("Applied to all captions")}>Apply to all</button>
+
+              {!infoDismissed && (
+                <div className="ed-hint-box ed-hint-x">
+                  <span>Styles apply to every caption in this video — colours and fonts can still be changed per caption.</span>
+                  <button onClick={() => setInfoDismissed(true)}>×</button>
+                </div>
+              )}
+
+              {stylesTab !== "saved" && (
+                <>
+                  <div className="ed-preset-list">
+                    {(stylesTab === "lines" ? lineStyles : wordStyles).map((st) => (
+                      <div key={st.id} className={"ed-preset-card" + (capStyle === st.id ? " active" : "")} onClick={() => setCapStyle(st.id)}>
+                        <div className="ed-preset-name">{st.label}</div>
+                        <div className="ed-preset-stage">
+                          <span className={"cap cap-" + st.id} key={st.id}>Welcome to the <span className="cap-emph">future</span><br />of editing</span>
+                        </div>
+                        {capStyle === st.id && <div className="ed-showcase-check">✓</div>}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="ed-swatches" style={{ marginTop: 14 }}>
+                    {SWATCHES.map((sw) => (
+                      <span key={sw.color} className={"ed-swatch" + (capStyle === sw.style ? " active" : "")}
+                        style={{ background: sw.color }} title={sw.style} onClick={() => setCapStyle(sw.style)} />
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {stylesTab === "saved" && (
+                <div className="ed-preset-list">
+                  <button className="ed-addcap" onClick={saveCurrentStyle}>＋ Save current style</button>
+                  {savedStyles.length === 0 ? (
+                    <div className="ed-cap-empty" style={{ paddingTop: 16 }}>No saved styles yet.</div>
+                  ) : (
+                    savedStyles.map((sv) => (
+                      <div key={sv.id} className="ed-preset-card" onClick={() => applySaved(sv)}>
+                        <div className="ed-preset-name">{sv.name}
+                          <button className="ed-preset-del" onClick={(e) => { e.stopPropagation(); delSaved(sv.id); }}>🗑</button>
+                        </div>
+                        <div className="ed-preset-stage">
+                          <span className={"cap cap-" + sv.style}>Welcome to the <span className="cap-emph">future</span></span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           )}
 
