@@ -11,6 +11,8 @@ services:
     envVars:
       - key: SARVAM_API_KEY
         sync: false
+      - key: PEXELS_API_KEY
+        sync: false          # Pexels stock-photo search key (set value in Render dashboard)
       - key: DATABASE_URL
         sync: false          # Supabase session-pooler URL (postgresql+psycopg://...)
       - key: STORAGE_BACKEND
