@@ -567,3 +567,27 @@ video.ed-imgovl { object-fit: cover; }
   color: #fff; font-size: 20px; text-shadow: 0 2px 8px rgba(0,0,0,.8); pointer-events: none; }
 .ed-vid-dur { position: absolute; right: 5px; bottom: 5px; background: rgba(0,0,0,.7); color: #fff;
   font-size: 10px; padding: 2px 6px; border-radius: 10px; }
+
+/* ===== Editor · bottom toolbar ===== */
+.ed-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-bottom: 10px; flex-wrap: wrap; }
+.ed-tb-group { display: flex; align-items: center; gap: 4px; }
+.ed-tb-center { display: flex; align-items: center; gap: 8px; }
+.ed-tb-btn { background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+  height: 34px; min-width: 34px; padding: 0 8px; border-radius: 8px; font-size: 14px; font-weight: 600; }
+.ed-tb-btn.wide { padding: 0 12px; }
+.ed-tb-btn:hover:not(:disabled) { background: var(--border); }
+.ed-tb-btn:disabled { opacity: .35; cursor: not-allowed; }
+.ed-tb-sep { width: 1px; height: 22px; background: var(--border); margin: 0 4px; }
+.ed-tb-time { font-size: 13px; margin-left: 6px; min-width: 92px; }
+.ed-tb-aiwrap { position: relative; }
+.ed-tb-aimenu { position: absolute; bottom: 40px; left: 0; z-index: 40; background: #1a1d2b;
+  border: 1px solid var(--border); border-radius: 10px; padding: 6px; min-width: 180px;
+  box-shadow: 0 -12px 40px rgba(0,0,0,.5); }
+.ed-tb-aiitem { padding: 9px 12px; border-radius: 7px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.ed-tb-aiitem:hover { background: var(--panel-2); }
+.ed-tb-zoom { width: 110px; accent-color: var(--accent); }
+.ed-tb-sel { color: var(--muted); font-size: 12px; margin-right: 2px; }
+.ed-tb-selbtn { background: transparent; border: 1px solid var(--border); color: var(--muted);
+  padding: 6px 10px; border-radius: 7px; font-size: 12px; font-weight: 700; }
+.ed-tb-selbtn:hover { color: var(--text); border-color: var(--accent); }

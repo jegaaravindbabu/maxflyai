@@ -267,6 +267,13 @@ export const api = {
     }));
   },
 
+  async replaceCues(id: string, cues: { start_ms: number; end_ms: number; text: string; translit_text?: string | null; line_count?: number }[]) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/cues/replace`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cues }),
+    }));
+  },
+
   async editCue(id: string, cue_idx: number, new_text: string) {
     return j<any>(await afetch(`${BASE}/api/projects/${id}/cues`, {
       method: "PATCH",

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { api } from "../api/client";
-import type { ProjectDetail, Overlay, ImageOverlay, BrollClip } from "../types";
+import type { ProjectDetail, Overlay, ImageOverlay, BrollClip, Cue } from "../types";
 import { VideoPreview } from "../components/VideoPreview";
 import { CaptionOverlay } from "../components/CaptionOverlay";
 import { Waveform } from "../components/Waveform";
@@ -86,6 +86,13 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [rail, setRail] = useState<"captions" | "texts" | "images" | "broll" | "tools" | "zoom" | "filters" | "export">("captions");
   const [rightTab, setRightTab] = useState<"styles" | "settings" | "animation">("styles");
   const [density, setDensity] = useState<"compact" | "roomy">("roomy");
+  type CueSnap = { start_ms: number; end_ms: number; text: string; translit_text: string | null; line_count: number };
+  const [undoStack, setUndoStack] = useState<CueSnap[][]>([]);
+  const [redoStack, setRedoStack] = useState<CueSnap[][]>([]);
+  const [tlZoom, setTlZoom] = useState(1);
+  const [aiMenu, setAiMenu] = useState(false);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const cuesRef = useRef<Cue[]>([]);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -132,12 +139,28 @@ export function EditorPage({ projectId }: { projectId: string }) {
     return () => { v.removeEventListener("timeupdate", onT); v.removeEventListener("play", onP); v.removeEventListener("pause", onPa); };
   }, [proj?.id]);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        if (e.shiftKey) redo(); else undo();
+      } else if (e.key === " ") {
+        e.preventDefault(); togglePlay();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   if (!proj) return <div className="ed-loading muted">Loading editor…</div>;
 
   const dur = proj.duration_ms || 1;
   const cues = proj.cues || [];
   const activeIdx = cues.find((c) => curMs >= c.start_ms && curMs < c.end_ms)?.idx ?? -1;
   const activeCue = cues.find((c) => c.idx === activeIdx);
+  cuesRef.current = cues;
   const overlayText = activeCue ? (showTranslit && activeCue.translit_text ? activeCue.translit_text : activeCue.text) : "";
   const WORD_STYLES = ["karaoke", "highlight"];
   const effStyle = animOn ? capStyle : "classic";
@@ -153,7 +176,60 @@ export function EditorPage({ projectId }: { projectId: string }) {
     catch (e: any) { alert("Transcription failed: " + e.message); }
     finally { setBusy(false); }
   }
+  function cloneCues(list: Cue[]) {
+    return list.map((c) => ({ start_ms: c.start_ms, end_ms: c.end_ms, text: c.text,
+      translit_text: c.translit_text ?? null, line_count: c.line_count ?? 1 }));
+  }
+  function pushHistory() {
+    setUndoStack((prev) => [...prev.slice(-40), cloneCues(cuesRef.current)]);
+    setRedoStack([]);
+  }
+  async function undo() {
+    if (undoStack.length === 0) return;
+    const snap = undoStack[undoStack.length - 1];
+    setRedoStack((r) => [...r, cloneCues(cuesRef.current)]);
+    setUndoStack((s2) => s2.slice(0, -1));
+    try { await api.replaceCues(projectId, snap); } catch {}
+    load();
+  }
+  async function redo() {
+    if (redoStack.length === 0) return;
+    const snap = redoStack[redoStack.length - 1];
+    setUndoStack((s2) => [...s2, cloneCues(cuesRef.current)]);
+    setRedoStack((r) => r.slice(0, -1));
+    try { await api.replaceCues(projectId, snap); } catch {}
+    load();
+  }
+  function targetCueIdx(): number {
+    if (activeIdx >= 0) return activeIdx;
+    if (selected.size) return [...selected][0];
+    return cues[0]?.idx ?? -1;
+  }
+  async function duplicateCap(idx: number) {
+    const c = cues.find((x) => x.idx === idx);
+    if (!c) return;
+    pushHistory();
+    const durc = Math.max(c.end_ms - c.start_ms, 500);
+    await api.addCue(projectId, c.end_ms, c.end_ms + durc, c.text);
+    load();
+  }
+  function prevCap() {
+    const prev = [...cues].reverse().find((c) => c.start_ms < curMs - 60);
+    if (prev) seek(prev.start_ms);
+  }
+  function nextCap() {
+    const nx = cues.find((c) => c.start_ms > curMs + 60);
+    if (nx) seek(nx.start_ms);
+  }
+  function toggleFullscreen() {
+    const el = stageRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) document.exitFullscreen();
+    else el.requestFullscreen?.();
+  }
+
   async function saveCue(idx: number) {
+    pushHistory();
     await api.editCue(projectId, idx, draft);
     setEditingIdx(null);
     load();
@@ -162,15 +238,20 @@ export function EditorPage({ projectId }: { projectId: string }) {
     setSelected((s) => { const n = new Set(s); n.has(idx) ? n.delete(idx) : n.add(idx); return n; });
   }
   async function addCaption() {
+    pushHistory();
     const at = Math.round(curMs);
     await api.addCue(projectId, at, at + 2000, "New caption");
     load();
   }
-  async function splitAt(idx: number) { await api.splitCue(projectId, idx, Math.round(curMs)); setSelected(new Set()); load(); }
-  async function mergeNext(idx: number) { await api.mergeCue(projectId, idx); setSelected(new Set()); load(); }
-  async function deleteOne(idx: number) { await api.deleteCue(projectId, idx); setSelected(new Set()); load(); }
+  async function splitAt(idx: number) {    pushHistory();
+ await api.splitCue(projectId, idx, Math.round(curMs)); setSelected(new Set()); load(); }
+  async function mergeNext(idx: number) {    pushHistory();
+ await api.mergeCue(projectId, idx); setSelected(new Set()); load(); }
+  async function deleteOne(idx: number) {    pushHistory();
+ await api.deleteCue(projectId, idx); setSelected(new Set()); load(); }
   async function bulkDelete() {
     if (selected.size === 0) return;
+    pushHistory();
     await api.bulkDeleteCues(projectId, [...selected]);
     setSelected(new Set());
     load();
@@ -762,7 +843,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
           <div className="ed-center-top">
             <button className="ed-replace secondary">↻ Replace</button>
           </div>
-          <div className="ed-stage">
+          <div className="ed-stage" ref={stageRef}>
             <VideoPreview ref={videoRef} src={mediaSrc}
               overlay={<>
                 {activeCue && overlayText ? (
@@ -900,14 +981,52 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
       {/* ===== bottom timeline ===== */}
       <div className="ed-timeline">
-        <div className="ed-tl-controls">
-          <button className="ed-tl-play" onClick={togglePlay}>{playing ? "⏸" : "▶"}</button>
-          <span className="muted">{fmtT(curMs)} / {fmtT(dur)}</span>
-          <span className="spacer" />
-          <span className="muted" style={{ fontSize: 12 }}>Click a caption to jump · double-click to edit</span>
+        <div className="ed-toolbar">
+          <div className="ed-tb-group">
+            <button className="ed-tb-btn" title="Undo" onClick={undo} disabled={undoStack.length === 0}>↺</button>
+            <button className="ed-tb-btn" title="Redo" onClick={redo} disabled={redoStack.length === 0}>↻</button>
+            <button className="ed-tb-btn" title="Delete selected caption" onClick={() => { if (selected.size) bulkDelete(); else { const t = targetCueIdx(); if (t >= 0) deleteOne(t); } }}>🗑</button>
+            <button className="ed-tb-btn" title="Jump to start" onClick={() => seek(0)}>⏮</button>
+            <span className="ed-tb-sep" />
+            <button className="ed-tb-btn wide" title="Split caption at playhead" onClick={() => { const t = targetCueIdx(); if (t >= 0) splitAt(t); }}>⑃ Split</button>
+            <button className="ed-tb-btn wide" title="Duplicate caption" onClick={() => { const t = targetCueIdx(); if (t >= 0) duplicateCap(t); }}>⧉ Duplicate</button>
+            <div className="ed-tb-aiwrap">
+              <button className="ed-tb-btn wide" title="AI tools" onClick={() => setAiMenu((v) => !v)}>✨ AI tools ▾</button>
+              {aiMenu && (
+                <div className="ed-tb-aimenu" onMouseLeave={() => setAiMenu(false)}>
+                  <div className="ed-tb-aiitem" onClick={() => { setRail("tools"); setAiMenu(false); }}>Remove silences</div>
+                  <div className="ed-tb-aiitem" onClick={() => { setRail("tools"); setAiMenu(false); }}>Remove filler words</div>
+                  <div className="ed-tb-aiitem" onClick={() => { setRail("tools"); setAiMenu(false); }}>Remove retakes</div>
+                  <div className="ed-tb-aiitem" onClick={() => { setRail("zoom"); setAiMenu(false); }}>Auto zoom</div>
+                  <div className="ed-tb-aiitem" onClick={() => { setRail("tools"); setAiMenu(false); }}>Re-transcribe</div>
+                </div>
+              )}
+            </div>
+            <button className="ed-tb-btn" title="Add text overlay" onClick={() => { setRail("texts"); addText(); }}>T</button>
+            <button className="ed-tb-btn" title="Toggle caption density" onClick={() => setDensity((d) => d === "roomy" ? "compact" : "roomy")}>▤▥</button>
+          </div>
+
+          <div className="ed-tb-center">
+            <button className="ed-tb-btn" title="Previous caption" onClick={prevCap}>⏪</button>
+            <button className="ed-tl-play" onClick={togglePlay}>{playing ? "⏸" : "▶"}</button>
+            <button className="ed-tb-btn" title="Next caption" onClick={nextCap}>⏩</button>
+            <span className="muted ed-tb-time">{fmtT(curMs)} / {fmtT(dur)}</span>
+          </div>
+
+          <div className="ed-tb-group">
+            <button className="ed-tb-btn" title="Zoom out timeline" onClick={() => setTlZoom((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))}>➖</button>
+            <input type="range" min={0.5} max={4} step={0.25} value={tlZoom} className="ed-tb-zoom"
+              onChange={(e) => setTlZoom(+e.target.value)} />
+            <button className="ed-tb-btn" title="Zoom in timeline" onClick={() => setTlZoom((z) => Math.min(4, +(z + 0.25).toFixed(2)))}>➕</button>
+            <button className="ed-tb-btn" title="Fullscreen preview" onClick={toggleFullscreen}>⛶</button>
+            <span className="ed-tb-sep" />
+            <span className="ed-tb-sel">Select</span>
+            <button className="ed-tb-selbtn" onClick={() => setSelected(new Set(cues.map((c) => c.idx)))}>All</button>
+            <button className="ed-tb-selbtn" onClick={() => setSelected(new Set())}>None</button>
+          </div>
         </div>
         <div className="ed-tl-scroll">
-          <div className="ed-tl-track ed-tl-caps" style={{ minWidth: Math.max(cues.length * 46, 800) }}>
+          <div className="ed-tl-track ed-tl-caps" style={{ minWidth: Math.max(cues.length * 46, 800) * tlZoom }}>
             {cues.map((c) => (
               <div key={c.idx} className={"ed-tl-pill" + (c.idx === activeIdx ? " active" : "")}
                 style={{ left: `${(c.start_ms / dur) * 100}%`, width: `${Math.max(((c.end_ms - c.start_ms) / dur) * 100, 1.5)}%` }}

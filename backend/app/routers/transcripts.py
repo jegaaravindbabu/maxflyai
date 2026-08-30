@@ -161,3 +161,29 @@ def bulk_delete_cues(project_id: str, body: BulkDeleteIn, db: Session = Depends(
         db.commit()
         _reindex(db, project_id)
     return {"ok": True}
+
+
+class CueItem(BaseModel):
+    start_ms: int
+    end_ms: int
+    text: str = ""
+    translit_text: str | None = None
+    line_count: int = 1
+
+
+class ReplaceCuesIn(BaseModel):
+    cues: list[CueItem]
+
+
+@router.post("/{project_id}/cues/replace")
+def replace_cues(project_id: str, body: ReplaceCuesIn, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    """Replace the whole cue list (used by editor undo/redo)."""
+    db.query(CaptionCue).filter(CaptionCue.project_id == project_id).delete(synchronize_session=False)
+    ordered = sorted(body.cues, key=lambda c: c.start_ms)
+    for i, c in enumerate(ordered):
+        db.add(CaptionCue(project_id=project_id, idx=i, start_ms=c.start_ms,
+                          end_ms=max(c.end_ms, c.start_ms + 100), text=c.text,
+                          translit_text=c.translit_text, line_count=c.line_count or 1))
+    db.commit()
+    return {"ok": True, "count": len(ordered)}
