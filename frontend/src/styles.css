@@ -487,3 +487,24 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
 .ed-seg-btn { flex: 1; text-align: center; padding: 10px; border-radius: 9px; cursor: pointer;
   background: var(--panel-2); border: 1px solid var(--border); font-weight: 600; font-size: 13px; color: var(--muted); }
 .ed-seg-btn.active { background: var(--grad); color: var(--on-accent); border-color: transparent; }
+
+/* ===== Editor · caption editing ===== */
+.ed-cap-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.ed-selall { color: var(--accent); font-size: 13px; font-weight: 700; cursor: pointer; }
+.ed-selall:hover { text-decoration: underline; }
+.ed-bulkbar { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: rgba(239,68,68,.1); border: 1px solid var(--accent); border-radius: 9px; padding: 8px 12px; margin-bottom: 12px; font-size: 13px; }
+.ed-bulk-del { background: var(--grad); padding: 6px 12px; font-size: 13px; }
+.ed-cap-item { position: relative; }
+.ed-cap-chk { flex: none; margin-top: 2px; accent-color: var(--accent); width: 16px; height: 16px; }
+.ed-cap-item.sel { border-color: var(--accent); }
+.ed-cap-acts { display: none; gap: 4px; flex: none; align-self: flex-start; }
+.ed-cap-item:hover .ed-cap-acts { display: flex; }
+.ed-cap-acts button { background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+  width: 28px; height: 28px; padding: 0; border-radius: 7px; font-size: 13px; }
+.ed-cap-acts button:hover { background: var(--border); }
+.ed-cap-acts button.del:hover { background: rgba(239,68,68,.2); color: var(--accent); }
+.ed-cap-acts button:disabled { opacity: .3; }
+.ed-addcap { width: 100%; margin-top: 12px; background: var(--panel-2); border: 1px dashed var(--border);
+  color: var(--text); padding: 12px; border-radius: 10px; font-weight: 700; }
+.ed-addcap:hover { border-color: var(--accent); color: var(--accent); }

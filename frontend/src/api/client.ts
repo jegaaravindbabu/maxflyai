@@ -113,6 +113,38 @@ export const api = {
     }));
   },
 
+  async addCue(id: string, start_ms: number, end_ms: number, text = "") {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/cues/add`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ start_ms, end_ms, text }),
+    }));
+  },
+
+  async splitCue(id: string, cue_idx: number, split_ms?: number) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/cues/${cue_idx}/split`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ split_ms: split_ms ?? null }),
+    }));
+  },
+
+  async mergeCue(id: string, cue_idx: number) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/cues/merge`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cue_idx }),
+    }));
+  },
+
+  async deleteCue(id: string, cue_idx: number) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/cues/${cue_idx}`, { method: "DELETE" }));
+  },
+
+  async bulkDeleteCues(id: string, idxs: number[]) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/cues/bulk-delete`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idxs }),
+    }));
+  },
+
   async editCue(id: string, cue_idx: number, new_text: string) {
     return j<any>(await afetch(`${BASE}/api/projects/${id}/cues`, {
       method: "PATCH",

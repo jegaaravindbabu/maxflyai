@@ -54,6 +54,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [density, setDensity] = useState<"compact" | "roomy">("roomy");
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
+  const [selected, setSelected] = useState<Set<number>>(new Set());
   const videoRef = useRef<HTMLVideoElement>(null);
   const [mediaEl, setMediaEl] = useState<HTMLMediaElement | null>(null);
 
@@ -113,6 +114,23 @@ export function EditorPage({ projectId }: { projectId: string }) {
   async function saveCue(idx: number) {
     await api.editCue(projectId, idx, draft);
     setEditingIdx(null);
+    load();
+  }
+  function toggleSel(idx: number) {
+    setSelected((s) => { const n = new Set(s); n.has(idx) ? n.delete(idx) : n.add(idx); return n; });
+  }
+  async function addCaption() {
+    const at = Math.round(curMs);
+    await api.addCue(projectId, at, at + 2000, "New caption");
+    load();
+  }
+  async function splitAt(idx: number) { await api.splitCue(projectId, idx, Math.round(curMs)); setSelected(new Set()); load(); }
+  async function mergeNext(idx: number) { await api.mergeCue(projectId, idx); setSelected(new Set()); load(); }
+  async function deleteOne(idx: number) { await api.deleteCue(projectId, idx); setSelected(new Set()); load(); }
+  async function bulkDelete() {
+    if (selected.size === 0) return;
+    await api.bulkDeleteCues(projectId, [...selected]);
+    setSelected(new Set());
     load();
   }
   function upsertExport(fmt: string, patch: { url?: string; status: string }) {
@@ -179,16 +197,32 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   <span className={density === "roomy" ? "active" : ""} onClick={() => setDensity("roomy")}>Roomy</span>
                 </div>
               </div>
-              <div className="ed-cap-count">{cues.length} captions</div>
+              <div className="ed-cap-bar">
+                <span className="ed-cap-count">{cues.length} captions</span>
+                {cues.length > 0 && (
+                  <span className="ed-selall" onClick={() => setSelected(selected.size === cues.length ? new Set() : new Set(cues.map((c) => c.idx)))}>
+                    {selected.size === cues.length && cues.length > 0 ? "Deselect all" : "Select all"}
+                  </span>
+                )}
+              </div>
+              {selected.size > 0 && (
+                <div className="ed-bulkbar">
+                  <span>{selected.size} selected</span>
+                  <button className="ed-bulk-del" onClick={bulkDelete}>🗑 Delete selected</button>
+                </div>
+              )}
               {cues.length === 0 ? (
                 <div className="ed-cap-empty">
                   {transcribing ? "Transcribing your video…" : "No captions yet."}
                   {!transcribing && <button className="secondary" style={{ marginTop: 12 }} onClick={runTranscribe} disabled={busy}>Generate captions</button>}
                 </div>
               ) : (
+                <>
                 <div className={"ed-cap-list " + density}>
                   {cues.map((c) => (
-                    <div key={c.idx} className={"ed-cap-item" + (c.idx === activeIdx ? " active" : "")} onClick={() => seek(c.start_ms)}>
+                    <div key={c.idx} className={"ed-cap-item" + (c.idx === activeIdx ? " active" : "") + (selected.has(c.idx) ? " sel" : "")} onClick={() => seek(c.start_ms)}>
+                      <input type="checkbox" className="ed-cap-chk" checked={selected.has(c.idx)}
+                        onClick={(e) => e.stopPropagation()} onChange={() => toggleSel(c.idx)} />
                       <div className="ed-cap-num">{c.idx + 1}<span>{fmtT(c.start_ms)}</span></div>
                       <div className="ed-cap-text" onDoubleClick={(e) => { e.stopPropagation(); setEditingIdx(c.idx); setDraft(showTranslit && c.translit_text ? c.translit_text : c.text); }}>
                         {editingIdx === c.idx ? (
@@ -199,9 +233,16 @@ export function EditorPage({ projectId }: { projectId: string }) {
                           showTranslit && c.translit_text ? c.translit_text : c.text
                         )}
                       </div>
+                      <div className="ed-cap-acts" onClick={(e) => e.stopPropagation()}>
+                        <button title="Split at playhead" onClick={() => splitAt(c.idx)}>⑃</button>
+                        <button title="Merge with next" onClick={() => mergeNext(c.idx)} disabled={c.idx >= cues.length - 1}>⤵</button>
+                        <button title="Delete" className="del" onClick={() => deleteOne(c.idx)}>🗑</button>
+                      </div>
                     </div>
                   ))}
                 </div>
+                <button className="ed-addcap" onClick={addCaption}>+ Add caption</button>
+                </>
               )}
             </>
           )}
