@@ -428,7 +428,7 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
 
 .ed-setting { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
 
-.ed-timeline { height: 190px; flex: none; border-top: 1px solid var(--border); background: var(--panel); padding: 10px 16px; display: flex; flex-direction: column; }
+.ed-timeline { height: 300px; flex: none; border-top: 1px solid var(--border); background: var(--panel); padding: 10px 16px 8px; display: flex; flex-direction: column; }
 .ed-tl-controls { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
 .ed-tl-play { width: 38px; height: 38px; border-radius: 50%; font-size: 15px; padding: 0; }
 .ed-tl-scroll { flex: 1; overflow-x: auto; overflow-y: hidden; }
@@ -591,3 +591,29 @@ video.ed-imgovl { object-fit: cover; }
 .ed-tb-selbtn { background: transparent; border: 1px solid var(--border); color: var(--muted);
   padding: 6px 10px; border-radius: 7px; font-size: 12px; font-weight: 700; }
 .ed-tb-selbtn:hover { color: var(--text); border-color: var(--accent); }
+
+/* ===== Editor · multi-track timeline ===== */
+.ed-tl2 { flex: 1; overflow: auto; position: relative; margin-top: 6px; }
+.ed-tl2-inner { position: relative; min-height: 100%; }
+.ed-ph { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); z-index: 8;
+  pointer-events: none; box-shadow: 0 0 6px var(--accent); }
+.ed-tl2-ruler { position: relative; height: 20px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.ed-tick { position: absolute; top: 3px; font-size: 10px; color: var(--muted);
+  border-left: 1px solid var(--border); padding-left: 4px; height: 15px; }
+.ed-lane { position: relative; height: 34px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.ed-lane-audio { height: 62px; }
+.ed-lane-label { position: sticky; left: 0; z-index: 7; display: inline-block;
+  background: var(--panel); color: var(--muted); font-size: 10px; font-weight: 700;
+  letter-spacing: .3px; padding: 3px 8px; border-radius: 0 0 6px 0; pointer-events: none;
+  text-transform: uppercase; }
+.ed-tl-block { position: absolute; top: 5px; height: 24px; border-radius: 5px; font-size: 10px;
+  padding: 4px 6px; overflow: hidden; white-space: nowrap; cursor: pointer; box-sizing: border-box;
+  color: var(--text); font-weight: 600; }
+.ed-tl-text { background: rgba(248,113,113,.22); border: 1px solid var(--accent-2); }
+.ed-tl-img { background: rgba(59,130,246,.22); border: 1px solid #3b82f6; text-align: center; }
+.ed-tl-broll { background: rgba(168,85,247,.22); border: 1px solid #a855f7; }
+.ed-tl-vid { background: rgba(148,163,184,.16); border: 1px solid var(--border); color: var(--muted); }
+.ed-tl-block.sel { outline: 2px solid var(--accent); outline-offset: -1px; }
+.ed-lane .ed-tl-pill { position: absolute; top: 5px; height: 24px; }
+.ed-lane-wave { position: absolute; left: 0; right: 0; top: 3px; bottom: 3px; }
+.ed-lane-wave > * { height: 100% !important; }

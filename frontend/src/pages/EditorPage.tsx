@@ -167,6 +167,15 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const wordMode = WORD_STYLES.includes(capStyle);
   const mediaSrc = proj.media_url ? (proj.media_url.startsWith("http") ? proj.media_url : api.mediaUrl(proj.media_url)) : "";
 
+  const TLW = Math.max(900, Math.round((dur / 1000) * 44)) * tlZoom;
+  const tlStep = dur <= 20000 ? 2000 : dur <= 60000 ? 5000 : dur <= 180000 ? 15000 : 30000;
+  const tlTicks: number[] = [];
+  for (let t = 0; t <= dur; t += tlStep) tlTicks.push(t);
+  function scrub(e: ReactMouseEvent) {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    seek(pct * dur);
+  }
   function seek(ms: number) { if (videoRef.current) videoRef.current.currentTime = ms / 1000; }
   function togglePlay() { const v = videoRef.current; if (!v) return; if (v.paused) v.play(); else v.pause(); }
 
@@ -1025,18 +1034,74 @@ export function EditorPage({ projectId }: { projectId: string }) {
             <button className="ed-tb-selbtn" onClick={() => setSelected(new Set())}>None</button>
           </div>
         </div>
-        <div className="ed-tl-scroll">
-          <div className="ed-tl-track ed-tl-caps" style={{ minWidth: Math.max(cues.length * 46, 800) * tlZoom }}>
-            {cues.map((c) => (
-              <div key={c.idx} className={"ed-tl-pill" + (c.idx === activeIdx ? " active" : "")}
-                style={{ left: `${(c.start_ms / dur) * 100}%`, width: `${Math.max(((c.end_ms - c.start_ms) / dur) * 100, 1.5)}%` }}
-                title={c.text} onClick={() => seek(c.start_ms)}>
-                {(showTranslit && c.translit_text ? c.translit_text : c.text).slice(0, 10)}
+        <div className="ed-tl2">
+          <div className="ed-tl2-inner" style={{ width: TLW }}>
+            <div className="ed-ph" style={{ left: `${(curMs / dur) * 100}%` }} />
+            <div className="ed-tl2-ruler" onClick={scrub}>
+              {tlTicks.map((t) => (
+                <span key={t} className="ed-tick" style={{ left: `${(t / dur) * 100}%` }}>{fmtT(t)}</span>
+              ))}
+            </div>
+
+            <div className="ed-lane" onClick={scrub}>
+              <span className="ed-lane-label">Captions</span>
+              {cues.map((c) => (
+                <div key={c.idx} className={"ed-tl-pill" + (c.idx === activeIdx ? " active" : "")}
+                  style={{ left: `${(c.start_ms / dur) * 100}%`, width: `${Math.max(((c.end_ms - c.start_ms) / dur) * 100, 1.2)}%` }}
+                  title={c.text}
+                  onClick={(e) => { e.stopPropagation(); setRail("captions"); seek(c.start_ms); }}>
+                  {(showTranslit && c.translit_text ? c.translit_text : c.text).slice(0, 12)}
+                </div>
+              ))}
+            </div>
+
+            {overlays.length > 0 && (
+              <div className="ed-lane" onClick={scrub}>
+                <span className="ed-lane-label">Text</span>
+                {overlays.map((o) => (
+                  <div key={o.id} className={"ed-tl-block ed-tl-text" + (selOv === o.id ? " sel" : "")}
+                    style={{ left: `${(o.start_ms / dur) * 100}%`, width: `${Math.max(((o.end_ms - o.start_ms) / dur) * 100, 1.2)}%` }}
+                    title={o.text}
+                    onClick={(e) => { e.stopPropagation(); setSelOv(o.id); setRail("texts"); seek(o.start_ms); }}>
+                    {o.text.slice(0, 14)}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="ed-tl-wave">
-            <Waveform mediaEl={mediaEl} />
+            )}
+
+            {images.length > 0 && (
+              <div className="ed-lane" onClick={scrub}>
+                <span className="ed-lane-label">Images</span>
+                {images.map((im) => (
+                  <div key={im.id} className={"ed-tl-block ed-tl-img" + (selImg === im.id ? " sel" : "")}
+                    style={{ left: `${(im.start_ms / dur) * 100}%`, width: `${Math.max(((im.end_ms - im.start_ms) / dur) * 100, 1.2)}%` }}
+                    onClick={(e) => { e.stopPropagation(); setSelImg(im.id); setRail("images"); seek(im.start_ms); }}>🖼</div>
+                ))}
+              </div>
+            )}
+
+            {brolls.length > 0 && (
+              <div className="ed-lane" onClick={scrub}>
+                <span className="ed-lane-label">B-roll</span>
+                {brolls.map((b) => (
+                  <div key={b.id} className={"ed-tl-block ed-tl-broll" + (selBroll === b.id ? " sel" : "")}
+                    style={{ left: `${(b.start_ms / dur) * 100}%`, width: `${Math.max(((b.end_ms - b.start_ms) / dur) * 100, 1.2)}%` }}
+                    onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setRail("broll"); seek(b.start_ms); }}>🎞 B-roll</div>
+                ))}
+              </div>
+            )}
+
+            <div className="ed-lane" onClick={scrub}>
+              <span className="ed-lane-label">Video</span>
+              <div className="ed-tl-block ed-tl-vid" style={{ left: 0, width: "100%" }}>
+                {proj.source_filename || "video"} · {fmtT(dur)}
+              </div>
+            </div>
+
+            <div className="ed-lane ed-lane-audio" onClick={scrub}>
+              <span className="ed-lane-label">Audio</span>
+              <div className="ed-lane-wave"><Waveform mediaEl={mediaEl} /></div>
+            </div>
           </div>
         </div>
       </div>
