@@ -207,3 +207,41 @@ def set_filter(project_id: str, body: FilterIn, db: Session = Depends(get_db),
                     payload_json={"name": body.name}, enabled=True))
     db.commit()
     return {"name": body.name}
+
+
+class CapSettingsIn(BaseModel):
+    font: str | None = None
+    bold: int | None = None
+    spacing: float | None = None
+    outline_w: int | None = None
+    shadow: int | None = None
+    glow: bool | None = None
+    anim_enabled: bool | None = None
+    anim: str | None = None
+    speed: float | None = None
+    scope: str | None = None
+
+
+@router.get("/{project_id}/caption-settings")
+def get_caption_settings(project_id: str, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    row = (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "capsettings")
+             .order_by(Edit.created_at.desc()).first())
+    return row.payload_json if row else {}
+
+
+@router.post("/{project_id}/caption-settings")
+def set_caption_settings(project_id: str, body: CapSettingsIn, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    payload = {k: v for k, v in body.model_dump().items() if v is not None}
+    row = (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "capsettings")
+             .order_by(Edit.created_at.desc()).first())
+    if row:
+        merged = dict(row.payload_json or {})
+        merged.update(payload)
+        row.payload_json = merged
+    else:
+        db.add(Edit(project_id=project_id, type="capsettings", payload_json=payload, enabled=True))
+        merged = payload
+    db.commit()
+    return merged

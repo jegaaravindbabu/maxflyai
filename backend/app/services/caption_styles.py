@@ -52,7 +52,7 @@ def _ms_to_ass(ms: int) -> str:
     return f"{h:d}:{m:02d}:{s:02d}.{ms // 10:02d}"
 
 
-def _header(p: dict) -> str:
+def _header(p: dict, spacing: float = 0.0) -> str:
     return (
         "[Script Info]\n"
         "ScriptType: v4.00+\nPlayResX: 1920\nPlayResY: 1080\nWrapStyle: 2\n\n"
@@ -61,22 +61,37 @@ def _header(p: dict) -> str:
         "BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, "
         "BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
         f"Style: Default,{p['font']},{p['size']},{p['primary']},{p['secondary']},{p['outline']},"
-        f"{p['back']},{p['bold']},0,0,0,100,100,0,0,{p['border_style']},{p['outline_w']},"
+        f"{p['back']},{p['bold']},0,0,0,100,100,{spacing:g},0,{p['border_style']},{p['outline_w']},"
         f"{p['shadow']},2,80,80,90,1\n\n"
         "[Events]\n"
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
     )
 
 
-def _anim_prefix(anim: str | None, dur_ms: int) -> str:
+def _anim_prefix(anim: str | None, dur_ms: int, speed: float = 1.0) -> str:
+    """Entrance-animation ASS override tags. `speed` scales the timing (higher = faster)."""
+    sp = max(0.3, min(float(speed or 1.0), 4.0))
+    d = lambda ms: max(20, int(ms / sp))
+    if anim in (None, "none"):
+        return ""
     if anim == "fade":
-        return "{\\fad(180,120)}"
+        return f"{{\\fad({d(180)},{d(120)})}}"
     if anim == "slide_up":
-        return "{\\an2\\move(960,1010,960,970,0,220)\\fad(150,0)}"
+        return f"{{\\an2\\move(960,1010,960,970,0,{d(220)})\\fad({d(150)},0)}}"
+    if anim == "slide_down":
+        return f"{{\\an2\\move(960,930,960,970,0,{d(220)})\\fad({d(150)},0)}}"
+    if anim == "slide_left":
+        return f"{{\\move(1120,960,960,960,0,{d(240)})\\fad({d(150)},0)}}"
+    if anim == "slide_right":
+        return f"{{\\move(800,960,960,960,0,{d(240)})\\fad({d(150)},0)}}"
     if anim == "pop":
-        return "{\\fscx60\\fscy60\\t(0,140,\\fscx100\\fscy100)\\fad(80,60)}"
+        return f"{{\\fscx60\\fscy60\\t(0,{d(140)},\\fscx100\\fscy100)\\fad({d(80)},{d(60)})}}"
     if anim == "bounce":
-        return "{\\fscx115\\fscy115\\t(0,90,\\fscx95\\fscy95)\\t(90,180,\\fscx100\\fscy100)}"
+        return f"{{\\fscx115\\fscy115\\t(0,{d(90)},\\fscx95\\fscy95)\\t({d(90)},{d(180)},\\fscx100\\fscy100)}}"
+    if anim == "rotate":
+        return f"{{\\frz-25\\t(0,{d(220)},\\frz0)\\fad({d(120)},0)}}"
+    if anim == "flip":
+        return f"{{\\fry90\\t(0,{d(220)},\\fry0)\\fad({d(80)},0)}}"
     if anim == "glow":
         return "{\\blur4}"
     return ""
@@ -104,20 +119,46 @@ def _karaoke_text(text: str, dur_ms: int) -> str:
     return "".join(out).strip()
 
 
-def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False) -> str:
-    p = PRESETS.get(style, PRESETS[DEFAULT])
-    lines = [_header(p)]
+def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False,
+              settings: dict | None = None) -> str:
+    p = dict(PRESETS.get(style, PRESETS[DEFAULT]))   # copy so overrides don't mutate presets
+    spacing = 0.0
+    anim = p.get("anim")
+    speed = 1.0
+    glow = False
+    scope = "caption"
+    st = settings or {}
+    if st.get("font"):
+        p["font"] = st["font"]
+    if st.get("bold") is not None:
+        p["bold"] = st["bold"]
+    if st.get("outline_w") is not None:
+        p["outline_w"] = st["outline_w"]
+    if st.get("shadow") is not None:
+        p["shadow"] = st["shadow"]
+    spacing = float(st.get("spacing", 0) or 0)
+    glow = bool(st.get("glow"))
+    speed = float(st.get("speed", 1.0) or 1.0)
+    scope = st.get("scope", "caption")
+    if st.get("anim_enabled") is False:
+        anim = None
+    elif st.get("anim"):
+        anim = st["anim"]
+
+    lines = [_header(p, spacing)]
+    glow_tag = "{\\blur3}" if glow else ""
     for c in cues:
         txt = (c.get("translit_text") if use_translit and c.get("translit_text") else c["text"]) or ""
         if p.get("upper"):
             txt = txt.upper()
         dur = max(c["end_ms"] - c["start_ms"], 1)
-        if p.get("anim") == "karaoke":
+        word_mode = scope == "word" or (anim == "karaoke")
+        if word_mode:
             body = _karaoke_text(txt, dur)
-            prefix = "{\\fad(80,80)}"
+            prefix = glow_tag + "{\\fad(80,80)}"
         else:
             body = txt.replace("\n", "\\N")
-            prefix = _anim_prefix(p.get("anim"), dur)
+            prefix = glow_tag + _anim_prefix(anim, dur, speed)
         lines.append(
             f"Dialogue: 0,{_ms_to_ass(c['start_ms'])},{_ms_to_ass(c['end_ms'])},"
             f"Default,,0,0,0,,{prefix}{body}"

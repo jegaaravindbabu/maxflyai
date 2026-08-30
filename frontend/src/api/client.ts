@@ -187,6 +187,16 @@ export const api = {
     }));
   },
 
+  async getCaptionSettings(id: string) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/caption-settings`));
+  },
+  async setCaptionSettings(id: string, body: Record<string, any>) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/caption-settings`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }));
+  },
+
   async getProject(id: string) {
     return j<ProjectDetail>(await afetch(`${BASE}/api/projects/${id}`));
   },

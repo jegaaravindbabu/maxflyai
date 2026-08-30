@@ -44,6 +44,13 @@ def _load_zoom_segments(db, project_id: str) -> list[dict]:
     return segs
 
 
+def _load_capsettings(db, project_id: str) -> dict | None:
+    row = (db.query(Edit)
+             .filter(Edit.project_id == project_id, Edit.enabled == True,  # noqa: E712
+                     Edit.type == "capsettings").order_by(Edit.created_at.desc()).first())
+    return (row.payload_json or None) if row else None
+
+
 def _load_color_filter(db, project_id: str) -> str | None:
     row = (db.query(Edit)
              .filter(Edit.project_id == project_id, Edit.enabled == True,  # noqa: E712
@@ -108,7 +115,7 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
         suffix = "_clean" if cuts else ""
 
         if fmt == "ass":
-            content = build_ass(cues, style, use_translit)
+            content = build_ass(cues, style, use_translit, _load_capsettings(db, project_id))
             key = f"exports/{project_id}{suffix}.ass"
             storage.write_bytes(key, content.encode("utf-8"))
         elif fmt in SERIALIZERS:
@@ -129,7 +136,7 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
             # 2. burn the (remapped) captions
             audio_filter = (ffmpeg_utils.audio_enhance_filter(settings.arnndn_model_path or None)
                             if enhance_audio else None)
-            ass = build_ass(cues, style, use_translit)
+            ass = build_ass(cues, style, use_translit, _load_capsettings(db, project_id))
             overlays = _load_overlays(db, project_id)
             if overlays:
                 for o in overlays:
@@ -238,7 +245,7 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                 with open(os.path.join(work, "captions.srt"), "w", encoding="utf-8") as fh:
                     fh.write(SERIALIZERS["srt"](cues, use_translit))
                 with open(os.path.join(work, "captions.ass"), "w", encoding="utf-8") as fh:
-                    fh.write(build_ass(cues, style, use_translit))
+                    fh.write(build_ass(cues, style, use_translit, _load_capsettings(db, project_id)))
                 fcp = timeline_export.build_fcpxml_multitrack(
                     project.name or "maxfly", total_ms, "video.mp4", "voice.wav", music_name,
                     cues=cues, fps_num=info["fps_num"], fps_den=info["fps_den"],

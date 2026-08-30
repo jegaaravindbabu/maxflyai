@@ -26,6 +26,17 @@ const SWATCHES: { color: string; style: string }[] = [
   { color: "#ffffff", style: "classic" },
 ];
 
+const CS_FONTS: [string, string][] = [
+  ["", "Default (Inter)"], ["Anton", "Anton"], ["Bebas Neue", "Bebas Neue"],
+  ["Poppins", "Poppins"], ["Montserrat", "Montserrat"], ["Pacifico", "Pacifico (script)"],
+  ["Arial Black", "Arial Black"],
+];
+const ANIM_PRESETS: [string, string][] = [
+  ["", "None"], ["fade", "Fade"], ["slide_up", "Slide Up"], ["slide_down", "Slide Down"],
+  ["slide_left", "Slide Left"], ["slide_right", "Slide Right"], ["pop", "Pop"],
+  ["bounce", "Bounce"], ["rotate", "Rotate"], ["flip", "Flip"],
+];
+
 const RAILS = [
   { id: "captions", icon: "▤", label: "Captions" },
   { id: "texts", icon: "T", label: "Texts" },
@@ -49,6 +60,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [showTranslit, setShowTranslit] = useState(true);
   const [capStyle, setCapStyle] = useState("classic");
   const [animOn, setAnimOn] = useState(true);
+  const [capSettings, setCapSettings] = useState<Record<string, any>>({});
   const [overlays, setOverlays] = useState<Overlay[]>([]);
   const [selOv, setSelOv] = useState<string | null>(null);
   const [zooms, setZooms] = useState<{ id: string; start_ms: number; end_ms: number; scale: number }[]>([]);
@@ -117,6 +129,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
     api.getFilter(projectId).then((r) => setCurFilter(r.name)).catch(() => {});
     api.listImages(projectId).then(setImages).catch(() => {});
     api.listBrolls(projectId).then(setBrolls).catch(() => {});
+    api.getCaptionSettings(projectId).then((r) => setCapSettings(r || {})).catch(() => {});
   }, [projectId]);
 
   useEffect(() => {
@@ -389,6 +402,15 @@ export function EditorPage({ projectId }: { projectId: string }) {
     document.addEventListener("mouseup", up);
   }
 
+  function saveCapSetting(patch: Record<string, any>) {
+    setCapSettings((prev) => ({ ...prev, ...patch }));
+    api.setCaptionSettings(projectId, patch).catch(() => {});
+  }
+  function resetCapSettings() {
+    setCapSettings({});
+    api.setCaptionSettings(projectId, { font: "", bold: null, spacing: 0, glow: false,
+      anim_enabled: true, anim: "", speed: 1, scope: "caption" }).catch(() => {});
+  }
   async function runStock() {
     if (!stockQ.trim()) return;
     setStockBusy(true);
@@ -856,7 +878,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             <VideoPreview ref={videoRef} src={mediaSrc}
               overlay={<>
                 {activeCue && overlayText ? (
-                  <CaptionOverlay text={overlayText} styleId={effStyle} cue={activeCue} curMs={curMs} keyId={activeIdx} />
+                  <CaptionOverlay text={overlayText} styleId={effStyle} cue={activeCue} curMs={curMs} keyId={activeIdx} settings={capSettings} />
                 ) : null}
                 {overlays.filter((o) => curMs >= o.start_ms && curMs < o.end_ms).map((o) => (
                   <div key={o.id} className={"ed-ovl" + (selOv === o.id ? " sel" : "")}
@@ -935,6 +957,40 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
           {rightTab === "settings" && (
             <div className="ed-rt-body">
+              <div className="ed-cs-title">Caption settings</div>
+              <div className="ed-cs-row"><span>Font</span>
+                <select value={capSettings.font || ""} onChange={(e) => saveCapSetting({ font: e.target.value })}>
+                  {CS_FONTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </div>
+              <div className="ed-cs-row"><span>Weight</span>
+                <select value={String(capSettings.bold ?? 0)} onChange={(e) => saveCapSetting({ bold: +e.target.value })}>
+                  <option value="0">Regular</option>
+                  <option value="-1">Bold</option>
+                </select>
+              </div>
+              <div className="ed-cs-slider">
+                <div className="ed-cs-slabel"><span>Letter spacing</span><span>{capSettings.spacing ?? 0}px</span></div>
+                <input type="range" min={-6} max={30} step={0.5} value={capSettings.spacing ?? 0}
+                  onChange={(e) => setCapSettings((pr) => ({ ...pr, spacing: +e.target.value }))}
+                  onMouseUp={(e) => saveCapSetting({ spacing: +(e.target as HTMLInputElement).value })} />
+              </div>
+              <div className="ed-anim-lbl" style={{ marginTop: 16 }}>EFFECTS</div>
+              <div className="ed-cs-effects">
+                {([["Outline", "outline"], ["Glow", "glow"], ["Shadow", "shadow"]] as [string, string][]).map(([lb, key]) => {
+                  const on = key === "glow" ? !!capSettings.glow
+                    : key === "outline" ? (capSettings.outline_w ?? 3) > 0
+                    : (capSettings.shadow ?? 1) > 0;
+                  return (
+                    <div key={key} className={"ed-cs-chip" + (on ? " on" : "")} onClick={() => {
+                      if (key === "glow") saveCapSetting({ glow: !on });
+                      else if (key === "outline") saveCapSetting({ outline_w: on ? 0 : 4 });
+                      else saveCapSetting({ shadow: on ? 0 : 3 });
+                    }}>{lb}</div>
+                  );
+                })}
+              </div>
+              <div className="ed-cs-divider" />
               <label className="ed-setting">
                 <span>Show romanized (Thanglish)</span>
                 <input type="checkbox" checked={showTranslit} onChange={(e) => setShowTranslit(e.target.checked)} />
@@ -958,38 +1014,55 @@ export function EditorPage({ projectId }: { projectId: string }) {
               <div className="ed-anim-toggle">
                 <div>
                   <div className="ed-anim-title">Animations</div>
-                  <div className="np-sub">Animate caption entrance as it appears</div>
+                  <div className="np-sub">Animate caption entrance &amp; exit</div>
                 </div>
                 <label className="ed-switch">
-                  <input type="checkbox" checked={animOn} onChange={(e) => setAnimOn(e.target.checked)} />
+                  <input type="checkbox" checked={capSettings.anim_enabled !== false}
+                    onChange={(e) => saveCapSetting({ anim_enabled: e.target.checked })} />
                   <span className="ed-switch-track" />
                 </label>
               </div>
 
-              <div className={"ed-anim-controls" + (animOn ? "" : " disabled")}>
-                <div className="ed-anim-lbl">WHAT MOVES</div>
-                <div className="ed-seg-row">
-                  <div className={"ed-seg-btn" + (!wordMode ? " active" : "")}
-                    onClick={() => setCapStyle(WORD_STYLES.includes(capStyle) ? "pop" : capStyle === "classic" ? "pop" : capStyle)}>As one block</div>
-                  <div className={"ed-seg-btn" + (wordMode ? " active" : "")}
-                    onClick={() => setCapStyle("karaoke")}>Each word</div>
-                </div>
-                <div className="np-sub" style={{ marginTop: 8 }}>
-                  {wordMode ? "Each word pops in on its own, right when it's spoken." : "The whole caption animates in as one block."}
+              <div className={"ed-anim-controls" + (capSettings.anim_enabled === false ? " disabled" : "")}>
+                <div className="ed-anim-lbl">WHEN</div>
+                <div className="ed-seg-row" style={{ maxWidth: 180 }}>
+                  {(["in", "out"] as const).map((w) => (
+                    <div key={w} className={"ed-seg-btn" + ((capSettings.when || "in") === w ? " active" : "")}
+                      onClick={() => saveCapSetting({ when: w })}>{w === "in" ? "In" : "Out"}</div>
+                  ))}
                 </div>
 
-                <div className="ed-anim-lbl" style={{ marginTop: 18 }}>ANIMATION STYLE</div>
-                <div className="ed-style-grid">
-                  {(wordMode ? ["karaoke", "highlight"] : ["classic", "fade", "slide_up", "pop", "bounce", "glow"]).map((id) => {
-                    const st = styles.find((s) => s.id === id);
-                    return (
-                      <div key={id} className={"ed-style-card" + (capStyle === id ? " active" : "")} onClick={() => setCapStyle(id)}>
-                        <div className={"ed-style-prev cap cap-" + id}>Aa</div>
-                        <div className="ed-style-lb">{st?.label || id}</div>
-                      </div>
-                    );
-                  })}
+                <div className="ed-anim-lbl" style={{ marginTop: 16 }}>WHAT MOVES</div>
+                <div className="ed-seg-row">
+                  {([["caption", "Caption"], ["word", "Word"]] as [string, string][]).map(([v, l]) => (
+                    <div key={v} className={"ed-seg-btn" + ((capSettings.scope || "caption") === v ? " active" : "")}
+                      onClick={() => saveCapSetting({ scope: v })}>{l}</div>
+                  ))}
                 </div>
+                <div className="np-sub" style={{ marginTop: 8 }}>
+                  {capSettings.scope === "word" ? "Each word pops in on its own, right when it's spoken." : "The whole caption animates in as one block."}
+                </div>
+
+                <div className="ed-anim-lbl" style={{ marginTop: 18 }}>ANIMATION</div>
+                <div className="ed-anim-grid">
+                  {ANIM_PRESETS.map(([v, l]) => (
+                    <div key={v || "none"} className={"ed-anim-card" + ((capSettings.anim || "") === v ? " active" : "")}
+                      onClick={() => saveCapSetting({ anim: v })}>
+                      <div className="ed-anim-prev"><span className={"ed-anim-word" + (v ? " capset-" + v : "")} key={v}>welcome</span></div>
+                      <div className="ed-style-lb">{l}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="ed-cs-slider" style={{ marginTop: 16 }}>
+                  <div className="ed-cs-slabel"><span>Speed</span><span>{(capSettings.speed ?? 1).toFixed(1)}x</span></div>
+                  <input type="range" min={0.5} max={4} step={0.1} value={capSettings.speed ?? 1}
+                    onChange={(e) => setCapSettings((pr) => ({ ...pr, speed: +e.target.value }))}
+                    onMouseUp={(e) => saveCapSetting({ speed: +(e.target as HTMLInputElement).value })} />
+                  <div className="ed-cs-slabel" style={{ color: "var(--muted)" }}><span>slower</span><span>faster</span></div>
+                </div>
+
+                <button className="secondary" style={{ width: "100%", marginTop: 14 }} onClick={resetCapSettings}>↺ Reset to defaults</button>
               </div>
             </div>
           )}
