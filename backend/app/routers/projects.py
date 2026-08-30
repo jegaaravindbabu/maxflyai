@@ -375,3 +375,45 @@ def add_image_from_url(project_id: str, body: ImageFromUrlIn, db: Session = Depe
     db.commit()
     db.refresh(o)
     return _img_out(o)
+
+
+class BrollFromUrlIn(BaseModel):
+    url: str
+    start_ms: int = 0
+    end_ms: int = 4000
+    x_pct: float = 0.0
+    y_pct: float = 0.0
+    size_pct: float = 100.0
+
+
+@router.post("/{project_id}/brolls/from-url", response_model=BrollOut)
+def add_broll_from_url(project_id: str, body: BrollFromUrlIn, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    if not body.url.startswith(("http://", "https://")):
+        raise HTTPException(400, "invalid url")
+    try:
+        with httpx.Client(timeout=90, follow_redirects=True) as c:
+            r = c.get(body.url)
+        if r.status_code >= 400:
+            raise HTTPException(400, "could not fetch video")
+        data = r.content
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(400, "could not fetch video")
+    fd, tmp = tempfile.mkstemp(suffix=".mp4")
+    with os.fdopen(fd, "wb") as f:
+        f.write(data)
+    try:
+        key = storage.save_upload(tmp, "stock.mp4")
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+    n = db.query(BrollClip).filter(BrollClip.project_id == project_id).count()
+    b = BrollClip(project_id=project_id, idx=n, video_url=key,
+                  start_ms=body.start_ms, end_ms=max(body.end_ms, body.start_ms + 300),
+                  x_pct=body.x_pct, y_pct=body.y_pct, size_pct=body.size_pct)
+    db.add(b)
+    db.commit()
+    db.refresh(b)
+    return _broll_out(b)

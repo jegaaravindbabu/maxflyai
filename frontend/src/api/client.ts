@@ -176,6 +176,17 @@ export const api = {
     }));
   },
 
+  async stockVideos(q: string) {
+    return j<{ results: { id: string; thumb: string; url: string; alt: string; duration?: number }[] }>(
+      await afetch(`${BASE}/api/stock/videos?q=${encodeURIComponent(q)}`));
+  },
+  async addBrollFromUrl(id: string, url: string, start_ms: number, end_ms: number) {
+    return j<BrollClip>(await afetch(`${BASE}/api/projects/${id}/brolls/from-url`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url, start_ms, end_ms, x_pct: 0, y_pct: 0, size_pct: 100 }),
+    }));
+  },
+
   async getProject(id: string) {
     return j<ProjectDetail>(await afetch(`${BASE}/api/projects/${id}`));
   },

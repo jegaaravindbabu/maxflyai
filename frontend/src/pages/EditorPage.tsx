@@ -71,6 +71,10 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const brollInputRef = useRef<HTMLInputElement>(null);
   const brollsRef = useRef<BrollClip[]>([]);
   brollsRef.current = brolls;
+  const [bvQ, setBvQ] = useState("");
+  const [bvRes, setBvRes] = useState<{ id: string; thumb: string; url: string; alt: string; duration?: number }[]>([]);
+  const [bvBusy, setBvBusy] = useState(false);
+  const [bvAdding, setBvAdding] = useState(false);
   const overlaysRef = useRef<Overlay[]>([]);
   overlaysRef.current = overlays;
   const [enhanceAudio, setEnhanceAudio] = useState(false);
@@ -309,6 +313,24 @@ export function EditorPage({ projectId }: { projectId: string }) {
       setImages((prev) => [...prev, im]);
       setSelImg(im.id);
     } catch (e: any) { alert("Could not add image: " + (e?.message || "")); }
+  }
+  async function runBrollStock() {
+    if (!bvQ.trim()) return;
+    setBvBusy(true);
+    try { const r = await api.stockVideos(bvQ); setBvRes(r.results); }
+    catch { setBvRes([]); }
+    finally { setBvBusy(false); }
+  }
+  async function addBrollStock(url: string, duration?: number) {
+    const at = Math.round(curMs);
+    const len = duration ? Math.min(duration * 1000, 8000) : 4000;
+    setBvAdding(true);
+    try {
+      const b = await api.addBrollFromUrl(projectId, url, at, at + len);
+      setBrolls((prev) => [...prev, b]);
+      setSelBroll(b.id);
+    } catch (e: any) { alert("Could not add B-roll: " + (e?.message || "")); }
+    finally { setBvAdding(false); }
   }
   function pickBroll() { brollInputRef.current?.click(); }
   async function uploadBroll(file: File) {
@@ -566,6 +588,24 @@ export function EditorPage({ projectId }: { projectId: string }) {
             <>
               <div className="ed-left-head"><h3>B-roll clips</h3></div>
               <div className="ed-hint-box">Overlay a second video clip (cutaway or picture-in-picture). It plays over your main video; the main audio is kept. Drag to reposition; burns into the exported MP4.</div>
+              <div className="ed-stock">
+                <input className="ed-stock-input" placeholder="Search stock videos…" value={bvQ}
+                  onChange={(e) => setBvQ(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") runBrollStock(); }} />
+                <button className="ed-stock-go" onClick={runBrollStock} disabled={bvBusy}>{bvBusy ? "…" : "🔍"}</button>
+              </div>
+              {bvAdding && <div className="np-sub" style={{ marginBottom: 10 }}>Downloading clip…</div>}
+              {bvRes.length > 0 && (
+                <div className="ed-stock-grid ed-stock-grid-2">
+                  {bvRes.map((r) => (
+                    <div key={r.id} className="ed-vid-thumb" onClick={() => addBrollStock(r.url, r.duration)}>
+                      <img src={r.thumb} loading="lazy" />
+                      <span className="ed-vid-play">▶</span>
+                      {r.duration ? <span className="ed-vid-dur">{r.duration}s</span> : null}
+                    </div>
+                  ))}
+                </div>
+              )}
               <input ref={brollInputRef} type="file" accept="video/*" hidden
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadBroll(f); e.currentTarget.value = ""; }} />
               <button style={{ width: "100%" }} onClick={pickBroll} disabled={brollBusy}>

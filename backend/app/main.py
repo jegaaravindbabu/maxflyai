@@ -46,6 +46,12 @@ def stock_search(q: str = ""):
     return {"results": stock.search(q)}
 
 
+@app.get("/api/stock/videos")
+def stock_videos(q: str = ""):
+    from app.services import stock
+    return {"results": stock.search_videos(q)}
+
+
 @app.get("/api/health")
 def health():
     return {

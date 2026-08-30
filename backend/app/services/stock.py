@@ -54,3 +54,34 @@ def _openverse(query: str, per_page: int) -> list[dict]:
         return out
     except Exception:
         return []
+
+
+def search_videos(query: str, per_page: int = 18) -> list[dict]:
+    """Stock video search (Pexels Videos). Requires PEXELS_API_KEY; returns
+    [] when no key is configured."""
+    query = (query or "").strip()
+    if not query or not settings.pexels_api_key:
+        return []
+    try:
+        with httpx.Client(timeout=20) as c:
+            r = c.get("https://api.pexels.com/videos/search",
+                      headers={"Authorization": settings.pexels_api_key},
+                      params={"query": query, "per_page": per_page})
+        if r.status_code >= 400:
+            return []
+        out = []
+        for v in r.json().get("videos", []):
+            files = v.get("video_files", []) or []
+            mp4s = [f for f in files if (f.get("file_type") == "video/mp4") and f.get("link")]
+            if not mp4s:
+                continue
+            # prefer the largest file at or under 720p, else the smallest available
+            under = [f for f in mp4s if (f.get("height") or 0) <= 720]
+            pick = (max(under, key=lambda f: f.get("height") or 0) if under
+                    else min(mp4s, key=lambda f: f.get("height") or 9999))
+            out.append({"id": str(v.get("id")), "thumb": v.get("image"),
+                        "url": pick["link"], "alt": query,
+                        "duration": v.get("duration")})
+        return out
+    except Exception:
+        return []
