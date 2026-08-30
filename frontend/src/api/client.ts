@@ -1,6 +1,6 @@
 import type { Project, ProjectDetail } from "../types";
 
-const BASE = import.meta.env.VITE_API_BASE || "";
+const BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? "https://maxfly-api.onrender.com" : "");
 
 let authToken: string | null = null;
 export function setAuthToken(t: string | null) { authToken = t; }
