@@ -62,6 +62,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const imgInputRef = useRef<HTMLInputElement>(null);
   const imagesRef = useRef<ImageOverlay[]>([]);
   imagesRef.current = images;
+  const [stockQ, setStockQ] = useState("");
+  const [stockRes, setStockRes] = useState<{ id: string; thumb: string; url: string; alt: string }[]>([]);
+  const [stockBusy, setStockBusy] = useState(false);
   const [brolls, setBrolls] = useState<BrollClip[]>([]);
   const [selBroll, setSelBroll] = useState<string | null>(null);
   const [brollBusy, setBrollBusy] = useState(false);
@@ -292,6 +295,21 @@ export function EditorPage({ projectId }: { projectId: string }) {
     document.addEventListener("mouseup", up);
   }
 
+  async function runStock() {
+    if (!stockQ.trim()) return;
+    setStockBusy(true);
+    try { const r = await api.stockSearch(stockQ); setStockRes(r.results); }
+    catch { setStockRes([]); }
+    finally { setStockBusy(false); }
+  }
+  async function addStock(url: string) {
+    const at = Math.round(curMs);
+    try {
+      const im = await api.addImageFromUrl(projectId, url, at, at + 3000);
+      setImages((prev) => [...prev, im]);
+      setSelImg(im.id);
+    } catch (e: any) { alert("Could not add image: " + (e?.message || "")); }
+  }
   function pickBroll() { brollInputRef.current?.click(); }
   async function uploadBroll(file: File) {
     setBrollBusy(true);
@@ -488,7 +506,21 @@ export function EditorPage({ projectId }: { projectId: string }) {
           {rail === "images" && (
             <>
               <div className="ed-left-head"><h3>Images / B-roll</h3></div>
-              <div className="ed-hint-box">Overlay a logo, sticker, or B-roll still on the video. Drag it on the preview to position; it burns into the exported MP4.</div>
+              <div className="ed-hint-box">Overlay a logo, sticker, or stock photo on the video. Drag it on the preview to position; it burns into the exported MP4.</div>
+              <div className="ed-stock">
+                <input className="ed-stock-input" placeholder="Search stock photos…" value={stockQ}
+                  onChange={(e) => setStockQ(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") runStock(); }} />
+                <button className="ed-stock-go" onClick={runStock} disabled={stockBusy}>{stockBusy ? "…" : "🔍"}</button>
+              </div>
+              {stockRes.length > 0 && (
+                <div className="ed-stock-grid">
+                  {stockRes.map((r) => (
+                    <img key={r.id} src={r.thumb} title={r.alt} className="ed-stock-thumb"
+                      loading="lazy" onClick={() => addStock(r.url)} />
+                  ))}
+                </div>
+              )}
               <input ref={imgInputRef} type="file" accept="image/*" hidden
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(f); e.currentTarget.value = ""; }} />
               <button style={{ width: "100%" }} onClick={pickImage} disabled={imgBusy}>

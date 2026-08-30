@@ -40,6 +40,12 @@ def filter_presets():
     return {"filters": list_presets()}
 
 
+@app.get("/api/stock/search")
+def stock_search(q: str = ""):
+    from app.services import stock
+    return {"results": stock.search(q)}
+
+
 @app.get("/api/health")
 def health():
     return {

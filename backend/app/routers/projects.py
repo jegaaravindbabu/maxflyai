@@ -9,6 +9,7 @@ from app.schemas import ProjectOut, ProjectDetail, SegmentOut, CueOut, OverlayOu
 from app.services.auth import current_user
 from app.services.storage import storage
 import os, tempfile
+import httpx
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -330,3 +331,47 @@ def delete_broll(project_id: str, broll_id: str, db: Session = Depends(get_db),
     db.delete(b)
     db.commit()
     return {"ok": True}
+
+
+class ImageFromUrlIn(BaseModel):
+    url: str
+    start_ms: int = 0
+    end_ms: int = 3000
+    x_pct: float = 50.0
+    y_pct: float = 20.0
+    size_pct: float = 40.0
+
+
+@router.post("/{project_id}/images/from-url", response_model=ImageOut)
+def add_image_from_url(project_id: str, body: ImageFromUrlIn, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    if not body.url.startswith(("http://", "https://")):
+        raise HTTPException(400, "invalid url")
+    try:
+        with httpx.Client(timeout=30, follow_redirects=True) as c:
+            r = c.get(body.url)
+        if r.status_code >= 400:
+            raise HTTPException(400, "could not fetch image")
+        data = r.content
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(400, "could not fetch image")
+    ct = (r.headers.get("content-type") or "").lower()
+    ext = ".png" if "png" in ct else ".webp" if "webp" in ct else ".jpg"
+    fd, tmp = tempfile.mkstemp(suffix=ext)
+    with os.fdopen(fd, "wb") as f:
+        f.write(data)
+    try:
+        key = storage.save_upload(tmp, "stock" + ext)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+    n = db.query(ImageOverlay).filter(ImageOverlay.project_id == project_id).count()
+    o = ImageOverlay(project_id=project_id, idx=n, image_url=key,
+                     start_ms=body.start_ms, end_ms=max(body.end_ms, body.start_ms + 300),
+                     x_pct=body.x_pct, y_pct=body.y_pct, size_pct=body.size_pct)
+    db.add(o)
+    db.commit()
+    db.refresh(o)
+    return _img_out(o)

@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     sarvam_api_key: str = ""
+    pexels_api_key: str = ""   # optional; falls back to keyless Openverse
 
     database_url: str = "sqlite:///./maxfly.sqlite3"
     redis_url: str = ""

@@ -165,6 +165,17 @@ export const api = {
     return j<any>(await afetch(`${BASE}/api/projects/${id}/brolls/${brollId}`, { method: "DELETE" }));
   },
 
+  async stockSearch(q: string) {
+    return j<{ results: { id: string; thumb: string; url: string; alt: string }[] }>(
+      await afetch(`${BASE}/api/stock/search?q=${encodeURIComponent(q)}`));
+  },
+  async addImageFromUrl(id: string, url: string, start_ms: number, end_ms: number) {
+    return j<ImageOverlay>(await afetch(`${BASE}/api/projects/${id}/images/from-url`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url, start_ms, end_ms, x_pct: 50, y_pct: 20, size_pct: 40 }),
+    }));
+  },
+
   async getProject(id: string) {
     return j<ProjectDetail>(await afetch(`${BASE}/api/projects/${id}`));
   },
