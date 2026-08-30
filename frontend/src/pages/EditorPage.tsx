@@ -30,6 +30,7 @@ const RAILS = [
   { id: "captions", icon: "▤", label: "Captions" },
   { id: "texts", icon: "T", label: "Texts" },
   { id: "tools", icon: "✨", label: "AI Tools" },
+  { id: "zoom", icon: "⊕", label: "Auto Zoom" },
   { id: "export", icon: "⬇", label: "Export" },
 ];
 
@@ -47,6 +48,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [animOn, setAnimOn] = useState(true);
   const [overlays, setOverlays] = useState<Overlay[]>([]);
   const [selOv, setSelOv] = useState<string | null>(null);
+  const [zooms, setZooms] = useState<{ id: string; start_ms: number; end_ms: number; scale: number }[]>([]);
+  const [zoomScale, setZoomScale] = useState(1.2);
+  const [zoomBusy, setZoomBusy] = useState(false);
   const overlaysRef = useRef<Overlay[]>([]);
   overlaysRef.current = overlays;
   const [enhanceAudio, setEnhanceAudio] = useState(false);
@@ -55,7 +59,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [curMs, setCurMs] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [exports, setExports] = useState<{ fmt: string; url?: string; status: string }[]>([]);
-  const [rail, setRail] = useState<"captions" | "texts" | "tools" | "export">("captions");
+  const [rail, setRail] = useState<"captions" | "texts" | "tools" | "zoom" | "export">("captions");
   const [rightTab, setRightTab] = useState<"styles" | "settings" | "animation">("styles");
   const [density, setDensity] = useState<"compact" | "roomy">("roomy");
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -76,6 +80,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
   useEffect(() => { setMediaEl(videoRef.current); }, [proj?.id]);
   useEffect(() => { setOverlays(proj?.overlays || []); }, [proj?.id]);
+  useEffect(() => { api.listAutozoom(projectId).then(setZooms).catch(() => {}); }, [projectId]);
 
   useEffect(() => {
     if (proj?.status !== "transcribing") return;
@@ -197,6 +202,23 @@ export function EditorPage({ projectId }: { projectId: string }) {
       }
       upsertExport(fmt, { status: "error" });
     } catch { upsertExport(fmt, { status: "error" }); }
+  }
+
+  async function generateZoom() {
+    setZoomBusy(true);
+    try { const r = await api.generateAutozoom(projectId, zoomScale); setZooms(r.zooms); }
+    catch (e: any) { alert("Auto zoom failed: " + e.message); }
+    finally { setZoomBusy(false); }
+  }
+  async function addZoomHere() {
+    const s0 = Math.round(curMs);
+    await api.addZoom(projectId, s0, s0 + 2500, zoomScale);
+    api.listAutozoom(projectId).then(setZooms).catch(() => {});
+  }
+  async function clearZoom() { await api.clearAutozoom(projectId); setZooms([]); }
+  async function delZoom(id: string) {
+    setZooms((prev) => prev.filter((z) => z.id !== id));
+    try { await api.deleteEdit(projectId, id); } catch {}
   }
 
   const transcribing = proj.status === "transcribing";
@@ -370,6 +392,42 @@ export function EditorPage({ projectId }: { projectId: string }) {
               <SilenceRemover projectId={projectId} durationMs={dur} onSeek={seek} />
               <RetakeRemover projectId={projectId} onSeek={seek} />
               <FillerRemover projectId={projectId} onSeek={seek} />
+            </>
+          )}
+
+          {rail === "zoom" && (
+            <>
+              <div className="ed-left-head"><h3>Auto Zoom</h3></div>
+              <div className="ed-hint-box">Adds dynamic punch-in zooms to keep the edit lively. Applied when you export MP4.</div>
+              <div className="ed-anim-lbl">INTENSITY</div>
+              <div className="ed-seg-row">
+                {[["Subtle", 1.1], ["Medium", 1.2], ["Strong", 1.35]].map(([lb, v]) => (
+                  <div key={lb as string} className={"ed-seg-btn" + (zoomScale === v ? " active" : "")}
+                    onClick={() => setZoomScale(v as number)}>{lb}</div>
+                ))}
+              </div>
+              <button style={{ width: "100%", marginTop: 14 }} onClick={generateZoom} disabled={zoomBusy}>
+                {zoomBusy ? "Generating…" : "✨ Generate auto zoom"}
+              </button>
+              <button className="secondary" style={{ width: "100%", marginTop: 8 }} onClick={addZoomHere}>+ Add zoom at playhead</button>
+              <div className="ed-cap-count" style={{ marginTop: 16 }}>{zooms.length} zoom{zooms.length === 1 ? "" : "s"}</div>
+              {zooms.length > 0 && (
+                <>
+                  <div className="ed-txt-list">
+                    {zooms.map((z) => (
+                      <div key={z.id} className="ed-txt-item" onClick={() => seek(z.start_ms)}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span>{fmtT(z.start_ms)} – {fmtT(z.end_ms)} · {Math.round((z.scale - 1) * 100)}%</span>
+                          <button className="ed-cap-acts" style={{ display: "flex" }} onClick={(e) => { e.stopPropagation(); delZoom(z.id); }}>
+                            <span className="del" style={{ padding: "2px 8px" }}>🗑</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <button className="secondary" style={{ width: "100%", marginTop: 12 }} onClick={clearZoom}>Clear all zooms</button>
+                </>
+              )}
             </>
           )}
 

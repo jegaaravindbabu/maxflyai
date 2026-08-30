@@ -15,7 +15,7 @@ from app.database import SessionLocal
 from app.models import Project, CaptionCue, Export, Edit, TextOverlay
 from app.services.captions import SERIALIZERS
 from app.services.caption_styles import build_ass, build_overlay_events
-from app.services import ffmpeg_utils, timeline, timeline_export, stems
+from app.services import ffmpeg_utils, timeline, timeline_export, stems, autozoom
 from app.services.storage import storage
 from app.config import settings
 
@@ -28,6 +28,20 @@ def _load_cues(db, project_id: str) -> list[dict]:
               .order_by(CaptionCue.idx).all())
     return [{"start_ms": r.start_ms, "end_ms": r.end_ms, "text": r.text,
              "translit_text": r.translit_text} for r in rows]
+
+
+def _load_zoom_segments(db, project_id: str) -> list[dict]:
+    rows = (db.query(Edit)
+              .filter(Edit.project_id == project_id, Edit.enabled == True,  # noqa: E712
+                      Edit.type == "zoom").all())
+    segs = []
+    for r in rows:
+        p = r.payload_json or {}
+        if "start_ms" in p and "end_ms" in p:
+            segs.append({"start_ms": int(p["start_ms"]), "end_ms": int(p["end_ms"]),
+                         "scale": float(p.get("scale", 1.2))})
+    segs.sort(key=lambda z: z["start_ms"])
+    return segs
 
 
 def _load_overlays(db, project_id: str) -> list[dict]:
@@ -105,7 +119,23 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
             key = f"exports/{project_id}{suffix}_captioned.mp4"
             out_path = storage.path(key)
             os.makedirs(os.path.dirname(out_path), exist_ok=True)
-            ffmpeg_utils.burn_captions(video_src, ass_path, out_path, audio_filter=audio_filter)
+            zoom_prefilter = None
+            zsegs = _load_zoom_segments(db, project_id)
+            if zsegs:
+                if cuts:
+                    for z in zsegs:
+                        z["start_ms"] = timeline.remap_ms(z["start_ms"], cuts)
+                        z["end_ms"] = timeline.remap_ms(z["end_ms"], cuts)
+                    zsegs = [z for z in zsegs if z["end_ms"] > z["start_ms"]]
+                try:
+                    vinfo = ffmpeg_utils.video_info(video_src)
+                    zoom_prefilter = autozoom.build_zoom_filter(
+                        zsegs, vinfo["width"], vinfo["height"],
+                        vinfo["fps_num"], vinfo["fps_den"])
+                except Exception:
+                    zoom_prefilter = None
+            ffmpeg_utils.burn_captions(video_src, ass_path, out_path,
+                                       audio_filter=audio_filter, video_prefilter=zoom_prefilter)
             os.remove(ass_path)
             if cuts and os.path.exists(video_src):
                 os.remove(video_src)

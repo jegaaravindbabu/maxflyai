@@ -63,12 +63,15 @@ def detect_silences(audio_path: str, noise_db: float = -30.0,
 
 
 def burn_captions(media_path: str, ass_path: str, out_path: str,
-                  audio_filter: str | None = None) -> str:
+                  audio_filter: str | None = None, video_prefilter: str | None = None) -> str:
     """Burn a styled ASS subtitle track into the video (M1 export).
-    If audio_filter is given, the audio is re-encoded through it (enhancement)."""
+    If audio_filter is given, the audio is re-encoded through it (enhancement).
+    If video_prefilter is given (e.g. an auto-zoom zoompan), it is chained before
+    the subtitle burn."""
     # escape path for the subtitles filter
     safe = ass_path.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
-    cmd = ["ffmpeg", "-y", "-i", media_path, "-vf", f"subtitles='{safe}'"]
+    vf = (video_prefilter + "," if video_prefilter else "") + f"subtitles='{safe}'"
+    cmd = ["ffmpeg", "-y", "-i", media_path, "-vf", vf]
     if audio_filter:
         cmd += ["-af", audio_filter, "-c:a", "aac", "-b:a", "192k"]
     else:

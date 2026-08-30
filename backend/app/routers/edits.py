@@ -16,8 +16,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import owned_project
-from app.models import Project, Edit, Transcript, Segment
-from app.services import ffmpeg_utils, segmentation, retake, fillers
+from app.models import Project, Edit, Transcript, Segment, CaptionCue
+from app.services import ffmpeg_utils, segmentation, retake, fillers, autozoom
 from app.services.storage import storage
 
 router = APIRouter(prefix="/api/projects", tags=["edits"])
@@ -127,3 +127,58 @@ def detect_fillers(project_id: str, aggressive: bool = False,
     cuts = fillers.detect_filler_cuts(seg_dicts, aggressive=aggressive)
     total = sum(c["end_ms"] - c["start_ms"] for c in cuts)
     return {"count": len(cuts), "removed_ms": total, "fillers": cuts}
+
+
+class AutoZoomIn(BaseModel):
+    scale: float = 1.2
+
+
+@router.delete("/{project_id}/edits/{edit_id}")
+def delete_edit(project_id: str, edit_id: str, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    edit = db.get(Edit, edit_id)
+    if edit is None or edit.project_id != project_id:
+        raise HTTPException(404, "edit not found")
+    db.delete(edit)
+    db.commit()
+    return {"ok": True}
+
+
+@router.get("/{project_id}/autozoom")
+def list_autozoom(project_id: str, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    rows = (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "zoom")
+              .order_by(Edit.created_at).all())
+    return [{"id": r.id, "enabled": r.enabled, **(r.payload_json or {})} for r in rows]
+
+
+@router.post("/{project_id}/autozoom/generate")
+def generate_autozoom(project_id: str, body: AutoZoomIn, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    project = db.get(Project, project_id)
+    if project is None:
+        raise HTTPException(404, "project not found")
+    cues = (db.query(CaptionCue).filter(CaptionCue.project_id == project_id)
+              .order_by(CaptionCue.idx).all())
+    cue_dicts = [{"start_ms": c.start_ms, "end_ms": c.end_ms} for c in cues]
+    segs = autozoom.auto_segments(cue_dicts, project.duration_ms or 0, body.scale)
+    # replace existing zoom edits
+    (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "zoom")
+       .delete(synchronize_session=False))
+    created = []
+    for z in segs:
+        e = Edit(project_id=project_id, type="zoom", payload_json=z, enabled=True)
+        db.add(e)
+        db.flush()
+        created.append({"id": e.id, "enabled": True, **z})
+    db.commit()
+    return {"count": len(created), "zooms": created}
+
+
+@router.delete("/{project_id}/autozoom")
+def clear_autozoom(project_id: str, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "zoom")
+       .delete(synchronize_session=False))
+    db.commit()
+    return {"ok": True}

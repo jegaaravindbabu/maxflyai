@@ -83,6 +83,33 @@ export const api = {
     return j<any>(await afetch(`${BASE}/api/projects/${id}/overlays/${overlayId}`, { method: "DELETE" }));
   },
 
+  async listAutozoom(id: string) {
+    return j<{ id: string; enabled: boolean; start_ms: number; end_ms: number; scale: number }[]>(
+      await afetch(`${BASE}/api/projects/${id}/autozoom`));
+  },
+
+  async generateAutozoom(id: string, scale: number) {
+    return j<{ count: number; zooms: any[] }>(await afetch(`${BASE}/api/projects/${id}/autozoom/generate`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scale }),
+    }));
+  },
+
+  async clearAutozoom(id: string) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/autozoom`, { method: "DELETE" }));
+  },
+
+  async addZoom(id: string, start_ms: number, end_ms: number, scale: number) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/edits`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "zoom", payload_json: { start_ms, end_ms, scale }, enabled: true }),
+    }));
+  },
+
+  async deleteEdit(id: string, editId: string) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/edits/${editId}`, { method: "DELETE" }));
+  },
+
   async getProject(id: string) {
     return j<ProjectDetail>(await afetch(`${BASE}/api/projects/${id}`));
   },
