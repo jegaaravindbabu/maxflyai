@@ -42,6 +42,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [mode, setMode] = useState("transcribe");
   const [showTranslit, setShowTranslit] = useState(true);
   const [capStyle, setCapStyle] = useState("classic");
+  const [animOn, setAnimOn] = useState(true);
   const [enhanceAudio, setEnhanceAudio] = useState(false);
   const [styles, setStyles] = useState<{ id: string; label: string }[]>([]);
   const [busy, setBusy] = useState(false);
@@ -95,6 +96,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const activeIdx = cues.find((c) => curMs >= c.start_ms && curMs < c.end_ms)?.idx ?? -1;
   const activeCue = cues.find((c) => c.idx === activeIdx);
   const overlayText = activeCue ? (showTranslit && activeCue.translit_text ? activeCue.translit_text : activeCue.text) : "";
+  const WORD_STYLES = ["karaoke", "highlight"];
+  const effStyle = animOn ? capStyle : "classic";
+  const wordMode = WORD_STYLES.includes(capStyle);
   const mediaSrc = proj.media_url ? (proj.media_url.startsWith("http") ? proj.media_url : api.mediaUrl(proj.media_url)) : "";
 
   function seek(ms: number) { if (videoRef.current) videoRef.current.currentTime = ms / 1000; }
@@ -115,9 +119,10 @@ export function EditorPage({ projectId }: { projectId: string }) {
     setExports((prev) => [{ fmt, ...patch }, ...prev.filter((e) => e.fmt !== fmt)]);
   }
   async function doExport(fmt: string) {
+    const style = animOn ? capStyle : "classic";
     upsertExport(fmt, { status: "processing" });
     try {
-      const r = await api.exportSub(projectId, fmt, showTranslit, true, capStyle, enhanceAudio);
+      const r = await api.exportSub(projectId, fmt, showTranslit, true, style, enhanceAudio);
       const eid = r.export_id;
       for (let i = 0; i < 120; i++) {
         await new Promise((res) => setTimeout(res, 1500));
@@ -268,7 +273,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
           <div className="ed-stage">
             <VideoPreview ref={videoRef} src={mediaSrc}
               overlay={activeCue && overlayText ? (
-                <CaptionOverlay text={overlayText} styleId={capStyle} cue={activeCue} curMs={curMs} keyId={activeIdx} />
+                <CaptionOverlay text={overlayText} styleId={effStyle} cue={activeCue} curMs={curMs} keyId={activeIdx} />
               ) : null} />
           </div>
           <div className="ed-zoombar">
@@ -335,17 +340,41 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
           {rightTab === "animation" && (
             <div className="ed-rt-body">
-              <div className="ed-hint-box">Pick a caption animation. It plays as each caption appears.</div>
-              <div className="ed-style-grid">
-                {["classic", "fade", "slide_up", "pop", "bounce", "glow", "karaoke", "highlight"].map((id) => {
-                  const st = styles.find((s) => s.id === id);
-                  return (
-                    <div key={id} className={"ed-style-card" + (capStyle === id ? " active" : "")} onClick={() => setCapStyle(id)}>
-                      <div className={"ed-style-prev cap cap-" + id}>Aa</div>
-                      <div className="ed-style-lb">{st?.label || id}</div>
-                    </div>
-                  );
-                })}
+              <div className="ed-anim-toggle">
+                <div>
+                  <div className="ed-anim-title">Animations</div>
+                  <div className="np-sub">Animate caption entrance as it appears</div>
+                </div>
+                <label className="ed-switch">
+                  <input type="checkbox" checked={animOn} onChange={(e) => setAnimOn(e.target.checked)} />
+                  <span className="ed-switch-track" />
+                </label>
+              </div>
+
+              <div className={"ed-anim-controls" + (animOn ? "" : " disabled")}>
+                <div className="ed-anim-lbl">WHAT MOVES</div>
+                <div className="ed-seg-row">
+                  <div className={"ed-seg-btn" + (!wordMode ? " active" : "")}
+                    onClick={() => setCapStyle(WORD_STYLES.includes(capStyle) ? "pop" : capStyle === "classic" ? "pop" : capStyle)}>As one block</div>
+                  <div className={"ed-seg-btn" + (wordMode ? " active" : "")}
+                    onClick={() => setCapStyle("karaoke")}>Each word</div>
+                </div>
+                <div className="np-sub" style={{ marginTop: 8 }}>
+                  {wordMode ? "Each word pops in on its own, right when it's spoken." : "The whole caption animates in as one block."}
+                </div>
+
+                <div className="ed-anim-lbl" style={{ marginTop: 18 }}>ANIMATION STYLE</div>
+                <div className="ed-style-grid">
+                  {(wordMode ? ["karaoke", "highlight"] : ["classic", "fade", "slide_up", "pop", "bounce", "glow"]).map((id) => {
+                    const st = styles.find((s) => s.id === id);
+                    return (
+                      <div key={id} className={"ed-style-card" + (capStyle === id ? " active" : "")} onClick={() => setCapStyle(id)}>
+                        <div className={"ed-style-prev cap cap-" + id}>Aa</div>
+                        <div className="ed-style-lb">{st?.label || id}</div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}

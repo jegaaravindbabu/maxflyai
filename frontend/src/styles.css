@@ -469,3 +469,21 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
 .pm-item:hover { background: var(--panel-2); }
 .pm-item.danger { color: var(--accent); }
 .pm-item.danger:hover { background: rgba(239,68,68,.12); }
+
+/* ===== Editor · Animation panel ===== */
+.ed-anim-toggle { display: flex; align-items: center; justify-content: space-between;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 18px; }
+.ed-anim-title { font-weight: 700; font-size: 15px; }
+.ed-switch { position: relative; display: inline-block; width: 46px; height: 26px; flex: none; cursor: pointer; }
+.ed-switch input { opacity: 0; width: 0; height: 0; }
+.ed-switch-track { position: absolute; inset: 0; background: var(--border); border-radius: 20px; transition: background .18s; }
+.ed-switch-track::before { content: ""; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px;
+  background: #fff; border-radius: 50%; transition: transform .18s; }
+.ed-switch input:checked + .ed-switch-track { background: var(--accent); }
+.ed-switch input:checked + .ed-switch-track::before { transform: translateX(20px); }
+.ed-anim-controls.disabled { opacity: .45; pointer-events: none; }
+.ed-anim-lbl { font-size: 11px; letter-spacing: .8px; color: var(--muted); font-weight: 700; margin-bottom: 8px; }
+.ed-seg-row { display: flex; gap: 8px; }
+.ed-seg-btn { flex: 1; text-align: center; padding: 10px; border-radius: 9px; cursor: pointer;
+  background: var(--panel-2); border: 1px solid var(--border); font-weight: 600; font-size: 13px; color: var(--muted); }
+.ed-seg-btn.active { background: var(--grad); color: var(--on-accent); border-color: transparent; }
