@@ -508,3 +508,19 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
 .ed-addcap { width: 100%; margin-top: 12px; background: var(--panel-2); border: 1px dashed var(--border);
   color: var(--text); padding: 12px; border-radius: 10px; font-weight: 700; }
 .ed-addcap:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ===== Editor · text overlays ===== */
+.ed-ovl { position: absolute; transform: translate(-50%, -50%); cursor: move;
+  text-align: center; white-space: pre-wrap; line-height: 1.2; pointer-events: auto;
+  text-shadow: 0 2px 6px rgba(0,0,0,.85), 0 0 2px rgba(0,0,0,.9); max-width: 92%; user-select: none; }
+.ed-ovl.sel { outline: 2px dashed var(--accent); outline-offset: 4px; }
+.ed-txt-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.ed-txt-item { background: #0b0d15; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+.ed-txt-item:hover { border-color: #3a3f57; }
+.ed-txt-item.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.ed-txt-preview { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ed-txt-editor { margin-top: 14px; }
+.ed-txt-input { width: 100%; min-height: 60px; background: var(--panel-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px; font: inherit; resize: vertical; }
+.ed-txt-time { display: flex; gap: 8px; margin-top: 12px; }
+.ed-txt-time button { flex: 1; font-size: 12px; padding: 8px; }

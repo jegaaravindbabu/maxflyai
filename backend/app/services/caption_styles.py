@@ -121,3 +121,32 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
 def list_presets() -> list[dict]:
     return [{"id": k, "label": v["label"],
              "animated": v.get("anim") is not None} for k, v in PRESETS.items()]
+
+
+def _hex_to_ass(hex_color: str) -> str:
+    h = (hex_color or "#ffffff").lstrip("#")
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    if len(h) != 6:
+        h = "ffffff"
+    rr, gg, bb = h[0:2], h[2:4], h[4:6]
+    return f"&H00{bb}{gg}{rr}".upper() + "&"
+
+
+def build_overlay_events(overlays: list[dict]) -> str:
+    """Extra ASS Dialogue lines for positioned text overlays (PlayRes 1920x1080)."""
+    out = []
+    for o in overlays:
+        text = (o.get("text") or "").replace("\n", "\\N")
+        if not text.strip():
+            continue
+        x = round(max(0.0, min(100.0, float(o.get("x_pct", 50)))) / 100.0 * 1920)
+        y = round(max(0.0, min(100.0, float(o.get("y_pct", 20)))) / 100.0 * 1080)
+        size = int(o.get("font_size", 72))
+        colour = _hex_to_ass(o.get("color", "#ffffff"))
+        bold = 1 if o.get("bold", True) else 0
+        start = _ms_to_ass(int(o.get("start_ms", 0)))
+        end = _ms_to_ass(int(o.get("end_ms", 3000)))
+        tags = f"{{\\an5\\pos({x},{y})\\fs{size}\\c{colour}\\b{bold}\\bord3\\shad1}}"
+        out.append(f"Dialogue: 1,{start},{end},Default,,0,0,0,,{tags}{text}")
+    return "\n".join(out)

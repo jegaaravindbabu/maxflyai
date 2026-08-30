@@ -43,6 +43,7 @@ class Project(Base):
     edits = relationship("Edit", back_populates="project", cascade="all, delete-orphan")
     exports = relationship("Export", back_populates="project", cascade="all, delete-orphan")
     jobs = relationship("Job", back_populates="project", cascade="all, delete-orphan")
+    overlays = relationship("TextOverlay", back_populates="project", cascade="all, delete-orphan")
 
 
 class Transcript(Base):
@@ -157,3 +158,22 @@ class UsageEvent(Base):
     kind = Column(String, nullable=False, default="transcription")
     minutes = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime(timezone=True), default=_now)
+
+
+class TextOverlay(Base):
+    """Custom on-screen text / title (separate from captions). Burned in at export."""
+    __tablename__ = "text_overlays"
+    id = Column(String, primary_key=True, default=_uuid)
+    project_id = Column(String, ForeignKey("projects.id"), index=True, nullable=False)
+    idx = Column(Integer, nullable=False, default=0)
+    text = Column(Text, nullable=False, default="")
+    start_ms = Column(Integer, nullable=False, default=0)
+    end_ms = Column(Integer, nullable=False, default=3000)
+    x_pct = Column(Float, nullable=False, default=50.0)   # centre X, 0-100 of frame width
+    y_pct = Column(Float, nullable=False, default=20.0)   # centre Y, 0-100 of frame height
+    font_size = Column(Integer, nullable=False, default=72)
+    color = Column(String, nullable=False, default="#ffffff")   # hex RRGGBB
+    bold = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+    project = relationship("Project", back_populates="overlays")

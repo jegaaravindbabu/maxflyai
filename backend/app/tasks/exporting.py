@@ -12,9 +12,9 @@ import tempfile
 from celery import shared_task
 
 from app.database import SessionLocal
-from app.models import Project, CaptionCue, Export, Edit
+from app.models import Project, CaptionCue, Export, Edit, TextOverlay
 from app.services.captions import SERIALIZERS
-from app.services.caption_styles import build_ass
+from app.services.caption_styles import build_ass, build_overlay_events
 from app.services import ffmpeg_utils, timeline, timeline_export, stems
 from app.services.storage import storage
 from app.config import settings
@@ -28,6 +28,15 @@ def _load_cues(db, project_id: str) -> list[dict]:
               .order_by(CaptionCue.idx).all())
     return [{"start_ms": r.start_ms, "end_ms": r.end_ms, "text": r.text,
              "translit_text": r.translit_text} for r in rows]
+
+
+def _load_overlays(db, project_id: str) -> list[dict]:
+    rows = (db.query(TextOverlay)
+              .filter(TextOverlay.project_id == project_id)
+              .order_by(TextOverlay.idx).all())
+    return [{"text": r.text, "start_ms": r.start_ms, "end_ms": r.end_ms,
+             "x_pct": r.x_pct, "y_pct": r.y_pct, "font_size": r.font_size,
+             "color": r.color, "bold": r.bold} for r in rows]
 
 
 def _load_enabled_cuts(db, project_id: str) -> list[dict]:
@@ -81,6 +90,15 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
             audio_filter = (ffmpeg_utils.audio_enhance_filter(settings.arnndn_model_path or None)
                             if enhance_audio else None)
             ass = build_ass(cues, style, use_translit)
+            overlays = _load_overlays(db, project_id)
+            if overlays:
+                for o in overlays:
+                    o["start_ms"] = timeline.remap_ms(o["start_ms"], cuts) if cuts else o["start_ms"]
+                    o["end_ms"] = timeline.remap_ms(o["end_ms"], cuts) if cuts else o["end_ms"]
+                overlays = [o for o in overlays if o["end_ms"] > o["start_ms"]]
+                ev = build_overlay_events(overlays)
+                if ev:
+                    ass = ass.rstrip("\n") + "\n" + ev + "\n"
             fd, ass_path = tempfile.mkstemp(suffix=".ass"); os.close(fd)
             with open(ass_path, "w", encoding="utf-8") as f:
                 f.write(ass)

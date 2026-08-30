@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import owned_project
-from app.models import Project, Segment, Transcript, CaptionCue, Job
-from app.schemas import ProjectOut, ProjectDetail, SegmentOut, CueOut
+from app.models import Project, Segment, Transcript, CaptionCue, Job, TextOverlay
+from app.schemas import ProjectOut, ProjectDetail, SegmentOut, CueOut, OverlayOut, OverlayIn, OverlayPatch
 from app.services.auth import current_user
 from app.services.storage import storage
 
@@ -53,6 +53,9 @@ def get_project(project_id: str, db: Session = Depends(get_db),
     detail.media_url = storage.url(project.source_media_url) if project.source_media_url else None
     detail.segments = [SegmentOut.model_validate(s) for s in segments]
     detail.cues = [CueOut.model_validate(c) for c in cues]
+    overlays = (db.query(TextOverlay).filter(TextOverlay.project_id == project_id)
+                  .order_by(TextOverlay.idx).all())
+    detail.overlays = [OverlayOut.model_validate(o) for o in overlays]
     if transcript:
         detail.language_code = transcript.language_code
         detail.mode = transcript.mode
@@ -139,3 +142,50 @@ def duplicate_project(project_id: str, db: Session = Depends(get_db),
     db.commit()
     db.refresh(copy)
     return copy
+
+
+@router.get("/{project_id}/overlays", response_model=list[OverlayOut])
+def list_overlays(project_id: str, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    return (db.query(TextOverlay).filter(TextOverlay.project_id == project_id)
+              .order_by(TextOverlay.idx).all())
+
+
+@router.post("/{project_id}/overlays", response_model=OverlayOut)
+def add_overlay(project_id: str, body: OverlayIn, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    n = db.query(TextOverlay).filter(TextOverlay.project_id == project_id).count()
+    o = TextOverlay(project_id=project_id, idx=n, text=body.text,
+                    start_ms=body.start_ms, end_ms=max(body.end_ms, body.start_ms + 300),
+                    x_pct=body.x_pct, y_pct=body.y_pct, font_size=body.font_size,
+                    color=body.color, bold=body.bold)
+    db.add(o)
+    db.commit()
+    db.refresh(o)
+    return o
+
+
+@router.patch("/{project_id}/overlays/{overlay_id}", response_model=OverlayOut)
+def update_overlay(project_id: str, overlay_id: str, body: OverlayPatch,
+    db: Session = Depends(get_db), _owner: Project = Depends(owned_project)):
+    o = (db.query(TextOverlay)
+           .filter(TextOverlay.project_id == project_id, TextOverlay.id == overlay_id).first())
+    if o is None:
+        raise HTTPException(404, "overlay not found")
+    for field, val in body.model_dump(exclude_unset=True).items():
+        setattr(o, field, val)
+    db.commit()
+    db.refresh(o)
+    return o
+
+
+@router.delete("/{project_id}/overlays/{overlay_id}")
+def delete_overlay(project_id: str, overlay_id: str, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    o = (db.query(TextOverlay)
+           .filter(TextOverlay.project_id == project_id, TextOverlay.id == overlay_id).first())
+    if o is None:
+        raise HTTPException(404, "overlay not found")
+    db.delete(o)
+    db.commit()
+    return {"ok": True}

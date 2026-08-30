@@ -44,10 +44,49 @@ class ProjectOut(BaseModel):
         from_attributes = True
 
 
+class OverlayOut(BaseModel):
+    id: str
+    idx: int = 0
+    text: str = ""
+    start_ms: int = 0
+    end_ms: int = 3000
+    x_pct: float = 50.0
+    y_pct: float = 20.0
+    font_size: int = 72
+    color: str = "#ffffff"
+    bold: bool = True
+
+    class Config:
+        from_attributes = True
+
+
+class OverlayIn(BaseModel):
+    text: str = ""
+    start_ms: int = 0
+    end_ms: int = 3000
+    x_pct: float = 50.0
+    y_pct: float = 20.0
+    font_size: int = 72
+    color: str = "#ffffff"
+    bold: bool = True
+
+
+class OverlayPatch(BaseModel):
+    text: str | None = None
+    start_ms: int | None = None
+    end_ms: int | None = None
+    x_pct: float | None = None
+    y_pct: float | None = None
+    font_size: int | None = None
+    color: str | None = None
+    bold: bool | None = None
+
+
 class ProjectDetail(ProjectOut):
     media_url: Optional[str] = None
     segments: list[SegmentOut] = []
     cues: list[CueOut] = []
+    overlays: list[OverlayOut] = []
     language_code: Optional[str] = None
     mode: Optional[str] = None
 

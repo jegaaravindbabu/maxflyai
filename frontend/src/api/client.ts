@@ -1,4 +1,4 @@
-import type { Project, ProjectDetail } from "../types";
+import type { Project, ProjectDetail, Overlay } from "../types";
 
 const BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? "https://maxfly-api.onrender.com" : "");
 
@@ -63,6 +63,24 @@ export const api = {
 
   async duplicateProject(id: string) {
     return j<Project>(await afetch(`${BASE}/api/projects/${id}/duplicate`, { method: "POST" }));
+  },
+
+  async addOverlay(id: string, body: Partial<Overlay>) {
+    return j<Overlay>(await afetch(`${BASE}/api/projects/${id}/overlays`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }));
+  },
+
+  async updateOverlay(id: string, overlayId: string, body: Partial<Overlay>) {
+    return j<Overlay>(await afetch(`${BASE}/api/projects/${id}/overlays/${overlayId}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }));
+  },
+
+  async deleteOverlay(id: string, overlayId: string) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/overlays/${overlayId}`, { method: "DELETE" }));
   },
 
   async getProject(id: string) {

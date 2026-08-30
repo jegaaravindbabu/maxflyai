@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import { api } from "../api/client";
-import type { ProjectDetail } from "../types";
+import type { ProjectDetail, Overlay } from "../types";
 import { VideoPreview } from "../components/VideoPreview";
 import { CaptionOverlay } from "../components/CaptionOverlay";
 import { Waveform } from "../components/Waveform";
@@ -27,6 +28,7 @@ const SWATCHES: { color: string; style: string }[] = [
 
 const RAILS = [
   { id: "captions", icon: "▤", label: "Captions" },
+  { id: "texts", icon: "T", label: "Texts" },
   { id: "tools", icon: "✨", label: "AI Tools" },
   { id: "export", icon: "⬇", label: "Export" },
 ];
@@ -43,13 +45,17 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [showTranslit, setShowTranslit] = useState(true);
   const [capStyle, setCapStyle] = useState("classic");
   const [animOn, setAnimOn] = useState(true);
+  const [overlays, setOverlays] = useState<Overlay[]>([]);
+  const [selOv, setSelOv] = useState<string | null>(null);
+  const overlaysRef = useRef<Overlay[]>([]);
+  overlaysRef.current = overlays;
   const [enhanceAudio, setEnhanceAudio] = useState(false);
   const [styles, setStyles] = useState<{ id: string; label: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [curMs, setCurMs] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [exports, setExports] = useState<{ fmt: string; url?: string; status: string }[]>([]);
-  const [rail, setRail] = useState<"captions" | "tools" | "export">("captions");
+  const [rail, setRail] = useState<"captions" | "texts" | "tools" | "export">("captions");
   const [rightTab, setRightTab] = useState<"styles" | "settings" | "animation">("styles");
   const [density, setDensity] = useState<"compact" | "roomy">("roomy");
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -69,6 +75,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   }, [projectId]);
 
   useEffect(() => { setMediaEl(videoRef.current); }, [proj?.id]);
+  useEffect(() => { setOverlays(proj?.overlays || []); }, [proj?.id]);
 
   useEffect(() => {
     if (proj?.status !== "transcribing") return;
@@ -132,6 +139,46 @@ export function EditorPage({ projectId }: { projectId: string }) {
     await api.bulkDeleteCues(projectId, [...selected]);
     setSelected(new Set());
     load();
+  }
+  async function addText() {
+    const at = Math.round(curMs);
+    const o = await api.addOverlay(projectId, { text: "Your text", start_ms: at, end_ms: at + 3000,
+      x_pct: 50, y_pct: 20, font_size: 72, color: "#ffffff", bold: true });
+    setOverlays((prev) => [...prev, o]);
+    setSelOv(o.id);
+    setRail("texts");
+  }
+  function patchLocal(id: string, patch: Partial<Overlay>) {
+    setOverlays((prev) => prev.map((o) => (o.id === id ? { ...o, ...patch } : o)));
+  }
+  async function saveOverlay(id: string, patch: Partial<Overlay>) {
+    patchLocal(id, patch);
+    try { await api.updateOverlay(projectId, id, patch); } catch {}
+  }
+  async function delText(id: string) {
+    setOverlays((prev) => prev.filter((o) => o.id !== id));
+    if (selOv === id) setSelOv(null);
+    try { await api.deleteOverlay(projectId, id); } catch {}
+  }
+  function startDrag(e: ReactMouseEvent, o: Overlay) {
+    e.preventDefault(); e.stopPropagation();
+    setSelOv(o.id);
+    const parent = (e.currentTarget as HTMLElement).offsetParent as HTMLElement | null;
+    if (!parent) return;
+    const rect = parent.getBoundingClientRect();
+    const move = (ev: MouseEvent) => {
+      const x = Math.max(0, Math.min(100, ((ev.clientX - rect.left) / rect.width) * 100));
+      const y = Math.max(0, Math.min(100, ((ev.clientY - rect.top) / rect.height) * 100));
+      patchLocal(o.id, { x_pct: x, y_pct: y });
+    };
+    const up = () => {
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", up);
+      const cur = overlaysRef.current.find((v) => v.id === o.id);
+      if (cur) api.updateOverlay(projectId, o.id, { x_pct: cur.x_pct, y_pct: cur.y_pct }).catch(() => {});
+    };
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", up);
   }
   function upsertExport(fmt: string, patch: { url?: string; status: string }) {
     setExports((prev) => [{ fmt, ...patch }, ...prev.filter((e) => e.fmt !== fmt)]);
@@ -247,6 +294,60 @@ export function EditorPage({ projectId }: { projectId: string }) {
             </>
           )}
 
+          {rail === "texts" && (
+            <>
+              <div className="ed-left-head"><h3>Texts</h3></div>
+              <button className="ed-addcap" onClick={addText}>+ Add text</button>
+              {overlays.length === 0 ? (
+                <div className="ed-cap-empty" style={{ paddingTop: 20 }}>
+                  No text overlays yet. Add a title or on-screen text that burns onto the exported video.
+                </div>
+              ) : (
+                <div className="ed-txt-list">
+                  {overlays.map((o) => (
+                    <div key={o.id} className={"ed-txt-item" + (selOv === o.id ? " active" : "")}
+                      onClick={() => { setSelOv(o.id); seek(o.start_ms); }}>
+                      <div className="ed-txt-preview" style={{ color: o.color, fontWeight: o.bold ? 800 : 500 }}>{o.text || "(empty)"}</div>
+                      <div className="np-sub">{fmtT(o.start_ms)} – {fmtT(o.end_ms)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {selOv && (() => {
+                const o = overlays.find((v) => v.id === selOv);
+                if (!o) return null;
+                return (
+                  <div className="card ed-txt-editor">
+                    <div className="np-label">Text</div>
+                    <textarea className="ed-txt-input" value={o.text}
+                      onChange={(e) => patchLocal(o.id, { text: e.target.value })}
+                      onBlur={(e) => saveOverlay(o.id, { text: e.target.value })} />
+                    <div className="np-label" style={{ marginTop: 12 }}>Font size · {o.font_size}</div>
+                    <input type="range" min={32} max={160} value={o.font_size}
+                      onChange={(e) => patchLocal(o.id, { font_size: +e.target.value })}
+                      onMouseUp={(e) => saveOverlay(o.id, { font_size: +(e.target as HTMLInputElement).value })}
+                      style={{ width: "100%" }} />
+                    <div className="np-label" style={{ marginTop: 12 }}>Colour</div>
+                    <div className="ed-swatches">
+                      {["#ffffff", "#ffd21e", "#f97316", "#22c55e", "#22d3ee", "#a855f7", "#ec4899", "#ef4444"].map((c) => (
+                        <span key={c} className={"ed-swatch" + (o.color.toLowerCase() === c ? " active" : "")}
+                          style={{ background: c }} onClick={() => saveOverlay(o.id, { color: c })} />
+                      ))}
+                    </div>
+                    <label className="ed-setting"><span>Bold</span>
+                      <input type="checkbox" checked={o.bold} onChange={(e) => saveOverlay(o.id, { bold: e.target.checked })} /></label>
+                    <div className="ed-txt-time">
+                      <button className="secondary" onClick={() => saveOverlay(o.id, { start_ms: Math.round(curMs) })}>Start ⟵ playhead</button>
+                      <button className="secondary" onClick={() => saveOverlay(o.id, { end_ms: Math.round(curMs) })}>End ⟵ playhead</button>
+                    </div>
+                    <button className="ed-bulk-del" style={{ width: "100%", marginTop: 12 }} onClick={() => delText(o.id)}>🗑 Delete text</button>
+                    <div className="np-sub" style={{ marginTop: 8 }}>Drag the text on the video to reposition it.</div>
+                  </div>
+                );
+              })()}
+            </>
+          )}
+
           {rail === "tools" && (
             <>
               <div className="ed-left-head"><h3>AI Tools</h3></div>
@@ -313,9 +414,20 @@ export function EditorPage({ projectId }: { projectId: string }) {
           </div>
           <div className="ed-stage">
             <VideoPreview ref={videoRef} src={mediaSrc}
-              overlay={activeCue && overlayText ? (
-                <CaptionOverlay text={overlayText} styleId={effStyle} cue={activeCue} curMs={curMs} keyId={activeIdx} />
-              ) : null} />
+              overlay={<>
+                {activeCue && overlayText ? (
+                  <CaptionOverlay text={overlayText} styleId={effStyle} cue={activeCue} curMs={curMs} keyId={activeIdx} />
+                ) : null}
+                {overlays.filter((o) => curMs >= o.start_ms && curMs < o.end_ms).map((o) => (
+                  <div key={o.id} className={"ed-ovl" + (selOv === o.id ? " sel" : "")}
+                    style={{ left: o.x_pct + "%", top: o.y_pct + "%", color: o.color,
+                             fontSize: Math.max(11, o.font_size * 0.24) + "px", fontWeight: o.bold ? 800 : 500 }}
+                    onMouseDown={(e) => startDrag(e, o)}
+                    onClick={(e) => { e.stopPropagation(); setSelOv(o.id); setRail("texts"); }}>
+                    {o.text}
+                  </div>
+                ))}
+              </>} />
           </div>
           <div className="ed-zoombar">
             <span className="muted">{fmtT(curMs)} / {fmtT(dur)}</span>

@@ -29,10 +29,24 @@ export interface Project {
   sub_count?: number | null;
 }
 
+export interface Overlay {
+  id: string;
+  idx: number;
+  text: string;
+  start_ms: number;
+  end_ms: number;
+  x_pct: number;
+  y_pct: number;
+  font_size: number;
+  color: string;
+  bold: boolean;
+}
+
 export interface ProjectDetail extends Project {
   media_url?: string | null;
   segments: Segment[];
   cues: Cue[];
+  overlays?: Overlay[];
   language_code?: string | null;
   mode?: string | null;
 }
