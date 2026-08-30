@@ -32,6 +32,13 @@ PRESETS = {
     "shadow":     {"label": "Drop shadow",      "font": "Arial",           "size": 64, "bold": -1, "primary": WHITE,  "secondary": DIMWHITE, "outline": BLACK, "back": BLACK, "border_style": 1, "outline_w": 2, "shadow": 4, "anim": None},
     "karaoke":    {"label": "Word-by-word",     "font": "Arial",           "size": 66, "bold": -1, "primary": ACCENT, "secondary": WHITE,    "outline": BLACK, "back": BOX,   "border_style": 1, "outline_w": 3, "shadow": 1, "anim": "karaoke"},
     "highlight":  {"label": "Highlight words",  "font": "Arial Black",     "size": 68, "bold": -1, "primary": YELLOW, "secondary": WHITE,    "outline": BLACK, "back": BOX,   "border_style": 1, "outline_w": 4, "shadow": 1, "anim": "karaoke"},
+    "anton":      {"label": "Anton",             "font": "Anton",           "size": 82, "bold": 0,  "primary": WHITE,  "secondary": DIMWHITE, "outline": BLACK, "back": BOX,   "border_style": 1, "outline_w": 5, "shadow": 2, "anim": "pop", "upper": True},
+    "anton_gold": {"label": "Anton gold",        "font": "Anton",           "size": 82, "bold": 0,  "primary": YELLOW, "secondary": WHITE,    "outline": BLACK, "back": BOX,   "border_style": 1, "outline_w": 5, "shadow": 2, "anim": "karaoke", "upper": True},
+    "bebas":      {"label": "Bebas",             "font": "Bebas Neue",      "size": 88, "bold": 0,  "primary": WHITE,  "secondary": DIMWHITE, "outline": BLACK, "back": BOX,   "border_style": 1, "outline_w": 4, "shadow": 1, "anim": "slide_up", "upper": True},
+    "poppins":    {"label": "Poppins bold",      "font": "Poppins",         "size": 66, "bold": 0,  "primary": WHITE,  "secondary": DIMWHITE, "outline": BLACK, "back": BOX,   "border_style": 1, "outline_w": 4, "shadow": 1, "anim": "fade"},
+    "montserrat": {"label": "Montserrat",        "font": "Montserrat",      "size": 66, "bold": 0,  "primary": WHITE,  "secondary": DIMWHITE, "outline": BLACK, "back": BOX,   "border_style": 1, "outline_w": 4, "shadow": 1, "anim": "pop"},
+    "script":     {"label": "Script",            "font": "Pacifico",        "size": 74, "bold": 0,  "primary": WHITE,  "secondary": DIMWHITE, "outline": BLACK, "back": BOX,   "border_style": 1, "outline_w": 3, "shadow": 2, "anim": "fade"},
+    "script_gold":{"label": "Script gold",       "font": "Pacifico",        "size": 74, "bold": 0,  "primary": YELLOW, "secondary": WHITE,    "outline": BLACK, "back": "&H00000000", "border_style": 1, "outline_w": 2, "shadow": 3, "anim": "glow"},
 }
 
 DEFAULT = "classic"

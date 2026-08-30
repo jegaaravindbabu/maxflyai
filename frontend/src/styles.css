@@ -633,3 +633,16 @@ video.ed-imgovl { object-fit: cover; }
 .ed-style-mini { height: 54px; border-radius: 8px; background: radial-gradient(120% 120% at 50% 0%, #1a1e2c 0%, #0b0d15 100%);
   display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }
 .ed-style-mini .cap { font-size: 20px; }
+
+/* ===== caption font styles (match backend presets + exports) ===== */
+.cap-anton { font-family: "Anton", system-ui, sans-serif; text-transform: uppercase; letter-spacing: .5px;
+  text-shadow: 2px 2px 0 #000, 0 0 4px #000; }
+.cap-anton_gold { font-family: "Anton", system-ui, sans-serif; text-transform: uppercase; color: #ffe11a;
+  letter-spacing: .5px; text-shadow: 2px 2px 0 #000, 0 0 4px #000; }
+.cap-bebas { font-family: "Bebas Neue", system-ui, sans-serif; text-transform: uppercase; letter-spacing: 1px;
+  text-shadow: 2px 2px 0 #000; }
+.cap-poppins { font-family: "Poppins", system-ui, sans-serif; font-weight: 700; text-shadow: 1px 2px 3px #000; }
+.cap-montserrat { font-family: "Montserrat", system-ui, sans-serif; font-weight: 700; text-shadow: 1px 2px 3px #000; }
+.cap-script { font-family: "Pacifico", cursive; text-shadow: 2px 2px 4px #000; }
+.cap-script_gold { font-family: "Pacifico", cursive; color: #ffe11a; background: transparent;
+  text-shadow: 0 0 10px rgba(255,225,26,.6), 2px 2px 4px #000; }
