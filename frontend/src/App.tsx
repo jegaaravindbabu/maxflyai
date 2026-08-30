@@ -36,9 +36,11 @@ function Shell() {
 
   const openUpload = () => setModalOpen(true);
 
+  // Editor is full-screen with its own rail — no app sidebar.
+  if (match) return <div className="ed-full"><EditorPage projectId={match[1]} /></div>;
+
   let content;
-  if (match) content = <EditorPage projectId={match[1]} />;
-  else if (hash === "#/billing") content = <BillingPage />;
+  if (hash === "#/billing") content = <BillingPage />;
   else if (hash === "#/settings") content = <SettingsPage />;
   else if (hash === "#/media") content = <MediaPlaceholder />;
   else content = <HomePage onNewProject={openUpload} />;
