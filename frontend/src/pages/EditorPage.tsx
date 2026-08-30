@@ -908,20 +908,28 @@ export function EditorPage({ projectId }: { projectId: string }) {
           {rightTab === "styles" && (
             <div className="ed-rt-body">
               <div className="ed-hint-box">Styles apply to every caption in this video — colours and fonts can still be changed per caption.</div>
+              <div className="ed-showcase">
+                <div className="ed-showcase-name">{styles.find((x) => x.id === capStyle)?.label || "Style"}</div>
+                <div className="ed-showcase-stage">
+                  <span className={"cap cap-" + capStyle} key={capStyle}>Welcome to the future<br />of editing</span>
+                </div>
+                <div className="ed-showcase-check">✓</div>
+              </div>
               <div className="ed-swatches">
                 {SWATCHES.map((s) => (
                   <span key={s.color} className={"ed-swatch" + (capStyle === s.style ? " active" : "")}
                     style={{ background: s.color }} title={s.style} onClick={() => setCapStyle(s.style)} />
                 ))}
               </div>
-              <div className="ed-style-grid">
+              <div className="ed-style-grid ed-style-grid-rich">
                 {styles.map((st) => (
                   <div key={st.id} className={"ed-style-card" + (capStyle === st.id ? " active" : "")} onClick={() => setCapStyle(st.id)}>
-                    <div className={"ed-style-prev cap cap-" + st.id}>Aa</div>
+                    <div className="ed-style-mini"><span className={"cap cap-" + st.id}>Aa</span></div>
                     <div className="ed-style-lb">{st.label}</div>
                   </div>
                 ))}
               </div>
+              <button style={{ width: "100%", marginTop: 14 }} onClick={() => alert("Applied to all captions")}>Apply to all</button>
             </div>
           )}
 
