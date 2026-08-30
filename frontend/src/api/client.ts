@@ -1,4 +1,4 @@
-import type { Project, ProjectDetail, Overlay, ImageOverlay } from "../types";
+import type { Project, ProjectDetail, Overlay, ImageOverlay, BrollClip } from "../types";
 
 const BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? "https://maxfly-api.onrender.com" : "");
 
@@ -142,6 +142,27 @@ export const api = {
   },
   async deleteImage(id: string, imageId: string) {
     return j<any>(await afetch(`${BASE}/api/projects/${id}/images/${imageId}`, { method: "DELETE" }));
+  },
+
+  async listBrolls(id: string) {
+    return j<BrollClip[]>(await afetch(`${BASE}/api/projects/${id}/brolls`));
+  },
+  async addBroll(id: string, file: File, start_ms: number, end_ms: number) {
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("start_ms", String(start_ms));
+    fd.append("end_ms", String(end_ms));
+    fd.append("x_pct", "0"); fd.append("y_pct", "0"); fd.append("size_pct", "100");
+    return j<BrollClip>(await afetch(`${BASE}/api/projects/${id}/brolls`, { method: "POST", body: fd }));
+  },
+  async updateBroll(id: string, brollId: string, body: Partial<BrollClip>) {
+    return j<BrollClip>(await afetch(`${BASE}/api/projects/${id}/brolls/${brollId}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }));
+  },
+  async deleteBroll(id: string, brollId: string) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/brolls/${brollId}`, { method: "DELETE" }));
   },
 
   async getProject(id: string) {

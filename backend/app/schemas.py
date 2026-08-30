@@ -101,12 +101,32 @@ class ImagePatch(BaseModel):
     size_pct: float | None = None
 
 
+class BrollOut(BaseModel):
+    id: str
+    idx: int = 0
+    video_url: Optional[str] = None
+    start_ms: int = 0
+    end_ms: int = 3000
+    x_pct: float = 0.0
+    y_pct: float = 0.0
+    size_pct: float = 100.0
+
+
+class BrollPatch(BaseModel):
+    start_ms: int | None = None
+    end_ms: int | None = None
+    x_pct: float | None = None
+    y_pct: float | None = None
+    size_pct: float | None = None
+
+
 class ProjectDetail(ProjectOut):
     media_url: Optional[str] = None
     segments: list[SegmentOut] = []
     cues: list[CueOut] = []
     overlays: list[OverlayOut] = []
     images: list[ImageOut] = []
+    brolls: list[BrollOut] = []
     language_code: Optional[str] = None
     mode: Optional[str] = None
 

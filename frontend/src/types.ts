@@ -53,12 +53,24 @@ export interface ImageOverlay {
   size_pct: number;
 }
 
+export interface BrollClip {
+  id: string;
+  idx: number;
+  video_url: string;
+  start_ms: number;
+  end_ms: number;
+  x_pct: number;
+  y_pct: number;
+  size_pct: number;
+}
+
 export interface ProjectDetail extends Project {
   media_url?: string | null;
   segments: Segment[];
   cues: Cue[];
   overlays?: Overlay[];
   images?: ImageOverlay[];
+  brolls?: BrollClip[];
   language_code?: string | null;
   mode?: string | null;
 }

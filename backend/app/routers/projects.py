@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import owned_project
-from app.models import Project, Segment, Transcript, CaptionCue, Job, TextOverlay, ImageOverlay
-from app.schemas import ProjectOut, ProjectDetail, SegmentOut, CueOut, OverlayOut, OverlayIn, OverlayPatch, ImageOut, ImagePatch
+from app.models import Project, Segment, Transcript, CaptionCue, Job, TextOverlay, ImageOverlay, BrollClip
+from app.schemas import ProjectOut, ProjectDetail, SegmentOut, CueOut, OverlayOut, OverlayIn, OverlayPatch, ImageOut, ImagePatch, BrollOut, BrollPatch
 from app.services.auth import current_user
 from app.services.storage import storage
 import os, tempfile
@@ -62,6 +62,11 @@ def get_project(project_id: str, db: Session = Depends(get_db),
     detail.images = [ImageOut(id=i.id, idx=i.idx, image_url=storage.url(i.image_url),
                               start_ms=i.start_ms, end_ms=i.end_ms, x_pct=i.x_pct,
                               y_pct=i.y_pct, size_pct=i.size_pct) for i in imgs]
+    brolls = (db.query(BrollClip).filter(BrollClip.project_id == project_id)
+                .order_by(BrollClip.idx).all())
+    detail.brolls = [BrollOut(id=b.id, idx=b.idx, video_url=storage.url(b.video_url),
+                              start_ms=b.start_ms, end_ms=b.end_ms, x_pct=b.x_pct,
+                              y_pct=b.y_pct, size_pct=b.size_pct) for b in brolls]
     if transcript:
         detail.language_code = transcript.language_code
         detail.mode = transcript.mode
@@ -258,5 +263,70 @@ def delete_image(project_id: str, image_id: str, db: Session = Depends(get_db),
     if o is None:
         raise HTTPException(404, "image not found")
     db.delete(o)
+    db.commit()
+    return {"ok": True}
+
+
+def _broll_out(b: BrollClip) -> BrollOut:
+    return BrollOut(id=b.id, idx=b.idx, video_url=storage.url(b.video_url),
+                    start_ms=b.start_ms, end_ms=b.end_ms, x_pct=b.x_pct,
+                    y_pct=b.y_pct, size_pct=b.size_pct)
+
+
+@router.get("/{project_id}/brolls", response_model=list[BrollOut])
+def list_brolls(project_id: str, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    rows = (db.query(BrollClip).filter(BrollClip.project_id == project_id)
+              .order_by(BrollClip.idx).all())
+    return [_broll_out(b) for b in rows]
+
+
+@router.post("/{project_id}/brolls", response_model=BrollOut)
+async def add_broll(project_id: str, file: UploadFile = File(...),
+    start_ms: int = Form(0), end_ms: int = Form(3000),
+    x_pct: float = Form(0.0), y_pct: float = Form(0.0), size_pct: float = Form(100.0),
+    db: Session = Depends(get_db), _owner: Project = Depends(owned_project)):
+    suffix = os.path.splitext(file.filename or "")[1] or ".mp4"
+    fd, tmp = tempfile.mkstemp(suffix=suffix)
+    with os.fdopen(fd, "wb") as f:
+        while chunk := await file.read(1024 * 1024):
+            f.write(chunk)
+    try:
+        key = storage.save_upload(tmp, file.filename or "broll" + suffix)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+    n = db.query(BrollClip).filter(BrollClip.project_id == project_id).count()
+    b = BrollClip(project_id=project_id, idx=n, video_url=key,
+                  start_ms=start_ms, end_ms=max(end_ms, start_ms + 300),
+                  x_pct=x_pct, y_pct=y_pct, size_pct=size_pct)
+    db.add(b)
+    db.commit()
+    db.refresh(b)
+    return _broll_out(b)
+
+
+@router.patch("/{project_id}/brolls/{broll_id}", response_model=BrollOut)
+def update_broll(project_id: str, broll_id: str, body: BrollPatch,
+    db: Session = Depends(get_db), _owner: Project = Depends(owned_project)):
+    b = (db.query(BrollClip)
+           .filter(BrollClip.project_id == project_id, BrollClip.id == broll_id).first())
+    if b is None:
+        raise HTTPException(404, "broll not found")
+    for field, val in body.model_dump(exclude_unset=True).items():
+        setattr(b, field, val)
+    db.commit()
+    db.refresh(b)
+    return _broll_out(b)
+
+
+@router.delete("/{project_id}/brolls/{broll_id}")
+def delete_broll(project_id: str, broll_id: str, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    b = (db.query(BrollClip)
+           .filter(BrollClip.project_id == project_id, BrollClip.id == broll_id).first())
+    if b is None:
+        raise HTTPException(404, "broll not found")
+    db.delete(b)
     db.commit()
     return {"ok": True}

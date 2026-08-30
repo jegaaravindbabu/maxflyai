@@ -45,6 +45,7 @@ class Project(Base):
     jobs = relationship("Job", back_populates="project", cascade="all, delete-orphan")
     overlays = relationship("TextOverlay", back_populates="project", cascade="all, delete-orphan")
     images = relationship("ImageOverlay", back_populates="project", cascade="all, delete-orphan")
+    brolls = relationship("BrollClip", back_populates="project", cascade="all, delete-orphan")
 
 
 class Transcript(Base):
@@ -195,3 +196,21 @@ class ImageOverlay(Base):
     created_at = Column(DateTime(timezone=True), default=_now)
 
     project = relationship("Project", back_populates="images")
+
+
+class BrollClip(Base):
+    """A second video clip (B-roll) overlaid on the main video for a time range.
+    Burned in at export; main audio is kept, B-roll is muted."""
+    __tablename__ = "broll_clips"
+    id = Column(String, primary_key=True, default=_uuid)
+    project_id = Column(String, ForeignKey("projects.id"), index=True, nullable=False)
+    idx = Column(Integer, nullable=False, default=0)
+    video_url = Column(String, nullable=False)          # storage key
+    start_ms = Column(Integer, nullable=False, default=0)
+    end_ms = Column(Integer, nullable=False, default=3000)
+    x_pct = Column(Float, nullable=False, default=0.0)   # top-left anchor fraction (0-100)
+    y_pct = Column(Float, nullable=False, default=0.0)
+    size_pct = Column(Float, nullable=False, default=100.0)  # width as % of frame width
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+    project = relationship("Project", back_populates="brolls")

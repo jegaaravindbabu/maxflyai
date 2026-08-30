@@ -12,7 +12,7 @@ import tempfile
 from celery import shared_task
 
 from app.database import SessionLocal
-from app.models import Project, CaptionCue, Export, Edit, TextOverlay, ImageOverlay
+from app.models import Project, CaptionCue, Export, Edit, TextOverlay, ImageOverlay, BrollClip
 from app.services.captions import SERIALIZERS
 from app.services.caption_styles import build_ass, build_overlay_events
 from app.services import ffmpeg_utils, timeline, timeline_export, stems, autozoom, filters
@@ -59,6 +59,14 @@ def _load_images(db, project_id: str) -> list[dict]:
               .filter(ImageOverlay.project_id == project_id)
               .order_by(ImageOverlay.idx).all())
     return [{"image_url": r.image_url, "start_ms": r.start_ms, "end_ms": r.end_ms,
+             "x_pct": r.x_pct, "y_pct": r.y_pct, "size_pct": r.size_pct} for r in rows]
+
+
+def _load_brolls(db, project_id: str) -> list[dict]:
+    rows = (db.query(BrollClip)
+              .filter(BrollClip.project_id == project_id)
+              .order_by(BrollClip.idx).all())
+    return [{"video_url": r.video_url, "start_ms": r.start_ms, "end_ms": r.end_ms,
              "x_pct": r.x_pct, "y_pct": r.y_pct, "size_pct": r.size_pct} for r in rows]
 
 
@@ -170,9 +178,23 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                     continue
                 img_inputs.append({"path": ipath, "start_ms": s0, "end_ms": e0,
                                    "x_pct": im["x_pct"], "y_pct": im["y_pct"], "size_pct": im["size_pct"]})
-            if img_inputs:
+            broll_rows = _load_brolls(db, project_id)
+            broll_inputs = []
+            for br in broll_rows:
+                s0 = timeline.remap_ms(br["start_ms"], cuts) if cuts else br["start_ms"]
+                e0 = timeline.remap_ms(br["end_ms"], cuts) if cuts else br["end_ms"]
+                if e0 <= s0:
+                    continue
+                try:
+                    bpath = storage.path(br["video_url"])
+                except Exception:
+                    continue
+                broll_inputs.append({"path": bpath, "start_ms": s0, "end_ms": e0,
+                                     "x_pct": br["x_pct"], "y_pct": br["y_pct"], "size_pct": br["size_pct"]})
+            if img_inputs or broll_inputs:
                 ffmpeg_utils.render_mp4(video_src, ass_path, out_path, vinfo["width"],
-                                        vfilters=vfilters, images=img_inputs, audio_filter=audio_filter)
+                                        vfilters=vfilters, images=img_inputs,
+                                        brolls=broll_inputs, audio_filter=audio_filter)
             else:
                 prefilter = ",".join(vfilters) if vfilters else None
                 ffmpeg_utils.burn_captions(video_src, ass_path, out_path,

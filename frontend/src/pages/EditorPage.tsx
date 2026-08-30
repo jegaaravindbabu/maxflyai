@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { api } from "../api/client";
-import type { ProjectDetail, Overlay, ImageOverlay } from "../types";
+import type { ProjectDetail, Overlay, ImageOverlay, BrollClip } from "../types";
 import { VideoPreview } from "../components/VideoPreview";
 import { CaptionOverlay } from "../components/CaptionOverlay";
 import { Waveform } from "../components/Waveform";
@@ -30,6 +30,7 @@ const RAILS = [
   { id: "captions", icon: "▤", label: "Captions" },
   { id: "texts", icon: "T", label: "Texts" },
   { id: "images", icon: "🖼", label: "Images" },
+  { id: "broll", icon: "🎞", label: "B-roll" },
   { id: "tools", icon: "✨", label: "AI Tools" },
   { id: "zoom", icon: "⊕", label: "Auto Zoom" },
   { id: "filters", icon: "◑", label: "Filters" },
@@ -61,6 +62,12 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const imgInputRef = useRef<HTMLInputElement>(null);
   const imagesRef = useRef<ImageOverlay[]>([]);
   imagesRef.current = images;
+  const [brolls, setBrolls] = useState<BrollClip[]>([]);
+  const [selBroll, setSelBroll] = useState<string | null>(null);
+  const [brollBusy, setBrollBusy] = useState(false);
+  const brollInputRef = useRef<HTMLInputElement>(null);
+  const brollsRef = useRef<BrollClip[]>([]);
+  brollsRef.current = brolls;
   const overlaysRef = useRef<Overlay[]>([]);
   overlaysRef.current = overlays;
   const [enhanceAudio, setEnhanceAudio] = useState(false);
@@ -69,7 +76,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [curMs, setCurMs] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [exports, setExports] = useState<{ fmt: string; url?: string; status: string }[]>([]);
-  const [rail, setRail] = useState<"captions" | "texts" | "images" | "tools" | "zoom" | "filters" | "export">("captions");
+  const [rail, setRail] = useState<"captions" | "texts" | "images" | "broll" | "tools" | "zoom" | "filters" | "export">("captions");
   const [rightTab, setRightTab] = useState<"styles" | "settings" | "animation">("styles");
   const [density, setDensity] = useState<"compact" | "roomy">("roomy");
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -95,6 +102,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   useEffect(() => {
     api.getFilter(projectId).then((r) => setCurFilter(r.name)).catch(() => {});
     api.listImages(projectId).then(setImages).catch(() => {});
+    api.listBrolls(projectId).then(setBrolls).catch(() => {});
   }, [projectId]);
 
   useEffect(() => {
@@ -279,6 +287,50 @@ export function EditorPage({ projectId }: { projectId: string }) {
       document.removeEventListener("mouseup", up);
       const cur = imagesRef.current.find((v) => v.id === im.id);
       if (cur) api.updateImage(projectId, im.id, { x_pct: cur.x_pct, y_pct: cur.y_pct }).catch(() => {});
+    };
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", up);
+  }
+
+  function pickBroll() { brollInputRef.current?.click(); }
+  async function uploadBroll(file: File) {
+    setBrollBusy(true);
+    const at = Math.round(curMs);
+    try {
+      const b = await api.addBroll(projectId, file, at, at + 4000);
+      setBrolls((prev) => [...prev, b]);
+      setSelBroll(b.id);
+    } catch (e: any) { alert("B-roll upload failed: " + e.message); }
+    finally { setBrollBusy(false); }
+  }
+  function patchBrollLocal(id: string, patch: Partial<BrollClip>) {
+    setBrolls((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
+  }
+  async function saveBroll(id: string, patch: Partial<BrollClip>) {
+    patchBrollLocal(id, patch);
+    try { await api.updateBroll(projectId, id, patch); } catch {}
+  }
+  async function delBroll(id: string) {
+    setBrolls((prev) => prev.filter((b) => b.id !== id));
+    if (selBroll === id) setSelBroll(null);
+    try { await api.deleteBroll(projectId, id); } catch {}
+  }
+  function startDragBroll(e: ReactMouseEvent, b: BrollClip) {
+    e.preventDefault(); e.stopPropagation();
+    setSelBroll(b.id);
+    const parent = (e.currentTarget as HTMLElement).offsetParent as HTMLElement | null;
+    if (!parent) return;
+    const rect = parent.getBoundingClientRect();
+    const move = (ev: MouseEvent) => {
+      const x = Math.max(0, Math.min(100, ((ev.clientX - rect.left) / rect.width) * 100));
+      const y = Math.max(0, Math.min(100, ((ev.clientY - rect.top) / rect.height) * 100));
+      patchBrollLocal(b.id, { x_pct: x, y_pct: y });
+    };
+    const up = () => {
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", up);
+      const cur = brollsRef.current.find((v) => v.id === b.id);
+      if (cur) api.updateBroll(projectId, b.id, { x_pct: cur.x_pct, y_pct: cur.y_pct }).catch(() => {});
     };
     document.addEventListener("mousemove", move);
     document.addEventListener("mouseup", up);
@@ -478,6 +530,51 @@ export function EditorPage({ projectId }: { projectId: string }) {
             </>
           )}
 
+          {rail === "broll" && (
+            <>
+              <div className="ed-left-head"><h3>B-roll clips</h3></div>
+              <div className="ed-hint-box">Overlay a second video clip (cutaway or picture-in-picture). It plays over your main video; the main audio is kept. Drag to reposition; burns into the exported MP4.</div>
+              <input ref={brollInputRef} type="file" accept="video/*" hidden
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadBroll(f); e.currentTarget.value = ""; }} />
+              <button style={{ width: "100%" }} onClick={pickBroll} disabled={brollBusy}>
+                {brollBusy ? "Uploading…" : "＋ Upload B-roll clip"}
+              </button>
+              {brolls.length === 0 ? (
+                <div className="ed-cap-empty" style={{ paddingTop: 18 }}>No B-roll yet.</div>
+              ) : (
+                <div className="ed-txt-list">
+                  {brolls.map((b) => (
+                    <div key={b.id} className={"ed-txt-item" + (selBroll === b.id ? " active" : "")}
+                      onClick={() => { setSelBroll(b.id); seek(b.start_ms); }}>
+                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                        <div className="ed-broll-badge">🎞</div>
+                        <div className="np-sub">{fmtT(b.start_ms)} – {fmtT(b.end_ms)} · {Math.round(b.size_pct)}%</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {selBroll && (() => {
+                const b = brolls.find((v) => v.id === selBroll);
+                if (!b) return null;
+                return (
+                  <div className="card ed-txt-editor">
+                    <div className="np-label">Size · {Math.round(b.size_pct)}% {b.size_pct >= 98 ? "(full cover)" : "(picture-in-picture)"}</div>
+                    <input type="range" min={20} max={100} value={b.size_pct} style={{ width: "100%" }}
+                      onChange={(e) => patchBrollLocal(b.id, { size_pct: +e.target.value })}
+                      onMouseUp={(e) => saveBroll(b.id, { size_pct: +(e.target as HTMLInputElement).value })} />
+                    <div className="ed-txt-time">
+                      <button className="secondary" onClick={() => saveBroll(b.id, { start_ms: Math.round(curMs) })}>Start ⟵ playhead</button>
+                      <button className="secondary" onClick={() => saveBroll(b.id, { end_ms: Math.round(curMs) })}>End ⟵ playhead</button>
+                    </div>
+                    <button className="ed-bulk-del" style={{ width: "100%", marginTop: 12 }} onClick={() => delBroll(b.id)}>🗑 Delete B-roll</button>
+                    <div className="np-sub" style={{ marginTop: 8 }}>Drag the clip on the video to reposition it. It starts from its beginning at the window start.</div>
+                  </div>
+                );
+              })()}
+            </>
+          )}
+
           {rail === "tools" && (
             <>
               <div className="ed-left-head"><h3>AI Tools</h3></div>
@@ -614,6 +711,13 @@ export function EditorPage({ projectId }: { projectId: string }) {
                     style={{ left: im.x_pct + "%", top: im.y_pct + "%", width: im.size_pct + "%" }}
                     onMouseDown={(e) => startDragImg(e, im)}
                     onClick={(e) => { e.stopPropagation(); setSelImg(im.id); setRail("images"); }} />
+                ))}
+                {brolls.filter((b) => curMs >= b.start_ms && curMs < b.end_ms).map((b) => (
+                  <video key={b.id} src={b.video_url} muted autoPlay loop playsInline draggable={false}
+                    className={"ed-imgovl" + (selBroll === b.id ? " sel" : "")}
+                    style={{ left: b.x_pct + "%", top: b.y_pct + "%", width: b.size_pct + "%" }}
+                    onMouseDown={(e) => startDragBroll(e, b)}
+                    onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setRail("broll"); }} />
                 ))}
               </>} />
           </div>

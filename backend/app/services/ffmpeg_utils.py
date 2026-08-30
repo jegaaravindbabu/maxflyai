@@ -163,22 +163,28 @@ def audio_enhance_filter(arnndn_model: str | None = None) -> str:
 def render_mp4(video_src: str, ass_path: str, out_path: str, width: int,
                vfilters: list[str] | None = None,
                images: list[dict] | None = None,
+               brolls: list[dict] | None = None,
                audio_filter: str | None = None) -> str:
-    """Full composite render: base video -> vfilters (zoom/colour) -> image overlays
-    -> burned captions, in a single filter_complex pass. `images` items:
-    {path, start_ms, end_ms, x_pct, y_pct, size_pct}."""
+    """Full composite render: base video -> vfilters (zoom/colour) -> B-roll clips
+    -> image overlays -> burned captions, in a single filter_complex pass.
+    `images`/`brolls` items: {path, start_ms, end_ms, x_pct, y_pct, size_pct}.
+    B-roll audio is dropped; the main audio is kept."""
     vfilters = [v for v in (vfilters or []) if v]
     images = images or []
+    brolls = brolls or []
     safe = ass_path.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
 
     inputs = ["-i", video_src]
     for img in images:
         inputs += ["-i", img["path"]]
+    for br in brolls:
+        inputs += ["-i", br["path"]]
 
     parts = []
     pre = ",".join(vfilters) if vfilters else "null"
     parts.append(f"[0:v]{pre}[base]")
     cur = "base"
+    # image overlays (input indices 1..len(images))
     for i, img in enumerate(images):
         pxw = max(16, round(width * float(img.get("size_pct", 40)) / 100.0))
         fx = max(0.0, min(1.0, float(img.get("x_pct", 50)) / 100.0))
@@ -192,6 +198,22 @@ def render_mp4(video_src: str, ass_path: str, out_path: str, width: int,
             f"y='max(0,min(main_h*{fy:.4f},main_h-overlay_h))':"
             f"enable='between(t,{s:.3f},{e:.3f})'[ov{i}]")
         cur = f"ov{i}"
+    # B-roll clips (input indices after images); time-shift so each starts at its window
+    base_idx = 1 + len(images)
+    for j, br in enumerate(brolls):
+        in_idx = base_idx + j
+        pxw = max(16, round(width * float(br.get("size_pct", 100)) / 100.0))
+        fx = max(0.0, min(1.0, float(br.get("x_pct", 0)) / 100.0))
+        fy = max(0.0, min(1.0, float(br.get("y_pct", 0)) / 100.0))
+        s = max(0, int(br.get("start_ms", 0))) / 1000.0
+        e = max(0, int(br.get("end_ms", 3000))) / 1000.0
+        parts.append(f"[{in_idx}:v]scale={pxw}:-1,setpts=PTS-STARTPTS+{s:.3f}/TB[bv{j}]")
+        parts.append(
+            f"[{cur}][bv{j}]overlay="
+            f"x='max(0,min(main_w*{fx:.4f},main_w-overlay_w))':"
+            f"y='max(0,min(main_h*{fy:.4f},main_h-overlay_h))':"
+            f"enable='between(t,{s:.3f},{e:.3f})'[ovb{j}]")
+        cur = f"ovb{j}"
     parts.append(f"[{cur}]subtitles='{safe}'[vout]")
     filter_complex = ";".join(parts)
 
