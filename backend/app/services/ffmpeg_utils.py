@@ -173,14 +173,22 @@ def trim_and_concat(media_path: str, keep: list[dict], out_path: str) -> str:
         parts_v.append(f"[v{i}]")
         parts_a.append(f"[a{i}]")
     concat = "".join(f"{v}{a}" for v, a in zip(parts_v, parts_a))
-    filter_complex = ";".join(filters) + ";" + concat + f"concat=n={len(keep)}:v=1:a=1[v][a]"
+    # Normalise the concatenated video: even dimensions + yuv420p so libx264
+    # accepts sources that are 10-bit / 4:4:4 / odd-sized (e.g. After Effects
+    # exports), and re-time audio so the tracks stay in sync across cuts.
+    filter_complex = (";".join(filters) + ";" + concat +
+                      f"concat=n={len(keep)}:v=1:a=1[vc][ac];"
+                      "[vc]scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p[v];"
+                      "[ac]aresample=async=1:first_pts=0[a]")
     cp = _run([
-        "ffmpeg", "-y", "-i", media_path,
+        "ffmpeg", "-y", "-loglevel", "error", "-i", media_path,
         "-filter_complex", filter_complex,
-        "-map", "[v]", "-map", "[a]", out_path,
+        "-map", "[v]", "-map", "[a]",
+        *_VENC, "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart",
+        out_path,
     ])
     if cp.returncode != 0:
-        raise RuntimeError(f"ffmpeg trim/concat failed: {cp.stderr[-500:]}")
+        raise RuntimeError(f"ffmpeg trim/concat failed: {cp.stderr[-1200:]}")
     return out_path
 
 
