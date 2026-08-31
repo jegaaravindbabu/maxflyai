@@ -163,7 +163,17 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
             out_path = storage.path(key)
             os.makedirs(os.path.dirname(out_path), exist_ok=True)
             vinfo = ffmpeg_utils.video_info(video_src)
-            # auto-zoom prefilter
+            # cap resolution to keep the encode within Render's 512MB memory
+            sw, sh = vinfo["width"], vinfo["height"]
+            longest = max(sw, sh)
+            if longest > 1280:
+                sc = 1280.0 / longest
+                ow = max(2, (round(sw * sc) // 2) * 2)
+                oh = max(2, (round(sh * sc) // 2) * 2)
+                scale_vf = f"scale={ow}:{oh}"
+            else:
+                ow, oh, scale_vf = sw, sh, None
+            # auto-zoom prefilter (against the capped dims)
             zoom_prefilter = None
             zsegs = _load_zoom_segments(db, project_id)
             if zsegs:
@@ -174,13 +184,12 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                     zsegs = [z for z in zsegs if z["end_ms"] > z["start_ms"]]
                 try:
                     zoom_prefilter = autozoom.build_zoom_filter(
-                        zsegs, vinfo["width"], vinfo["height"],
-                        vinfo["fps_num"], vinfo["fps_den"])
+                        zsegs, ow, oh, vinfo["fps_num"], vinfo["fps_den"])
                 except Exception:
                     zoom_prefilter = None
             # colour filter
             color_vf = _load_color_filter(db, project_id)
-            vfilters = [f for f in (zoom_prefilter, color_vf) if f]
+            vfilters = [f for f in (scale_vf, zoom_prefilter, color_vf) if f]
             # image / B-roll overlays
             images = _load_images(db, project_id)
             img_inputs = []
@@ -209,7 +218,7 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                 broll_inputs.append({"path": bpath, "start_ms": s0, "end_ms": e0,
                                      "x_pct": br["x_pct"], "y_pct": br["y_pct"], "size_pct": br["size_pct"]})
             if img_inputs or broll_inputs:
-                ffmpeg_utils.render_mp4(video_src, ass_path, out_path, vinfo["width"],
+                ffmpeg_utils.render_mp4(video_src, ass_path, out_path, ow,
                                         vfilters=vfilters, images=img_inputs,
                                         brolls=broll_inputs, audio_filter=audio_filter)
             else:

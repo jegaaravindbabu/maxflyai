@@ -72,7 +72,7 @@ def burn_captions(media_path: str, ass_path: str, out_path: str,
     safe = ass_path.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
     vf = (video_prefilter + "," if video_prefilter else "") + f"subtitles='{safe}'"
     cmd = ["ffmpeg", "-y", "-i", media_path, "-vf", vf,
-           "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p"]
+           "-threads", "2", "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p"]
     if audio_filter:
         cmd += ["-af", audio_filter]
     cmd += ["-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", out_path]
@@ -222,7 +222,7 @@ def render_mp4(video_src: str, ass_path: str, out_path: str, width: int,
         cmd += ["-af", audio_filter, "-c:a", "aac", "-b:a", "192k"]
     else:
         cmd += ["-c:a", "aac", "-b:a", "192k"]
-    cmd += ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p", "-movflags", "+faststart", out_path]
+    cmd += ["-threads", "2", "-threads", "2", "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p", "-movflags", "+faststart", out_path]
     cp = _run(cmd)
     if cp.returncode != 0:
         raise RuntimeError(f"render_mp4 failed: {cp.stderr[-400:]}")
