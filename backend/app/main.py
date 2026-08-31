@@ -1,5 +1,8 @@
 """maxfly.ai backend — FastAPI app."""
 import os
+import time
+
+_BOOTED = time.time()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -54,8 +57,15 @@ def stock_videos(q: str = ""):
 
 @app.get("/api/health")
 def health():
+    import resource
+    self_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss // 1024
+    child_rss = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss // 1024
     return {
         "ok": True,
+        "commit": (os.environ.get("RENDER_GIT_COMMIT") or "")[:12],
+        "uptime_s": int(time.time() - _BOOTED),
+        "self_rss_mb": self_rss,
+        "child_peak_rss_mb": child_rss,
         "sarvam_key_set": bool(settings.sarvam_api_key),
         "celery_eager": settings.celery_eager,
         "db": settings.database_url.split(":")[0],

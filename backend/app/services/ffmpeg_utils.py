@@ -17,24 +17,58 @@ _VENC = ["-threads", "1", "-c:v", "libx264", "-preset", "veryfast", "-crf", "24"
 _FFMPEG_TIMEOUT = 1500
 
 
+# Kill an ffmpeg encode if its RSS approaches the instance ceiling, so a large
+# source fails with a clear error instead of OOM-killing the whole container
+# (which 502s every user). Overridable via FFMPEG_MEM_LIMIT_MB.
+_MEM_LIMIT_MB = int(os.environ.get("FFMPEG_MEM_LIMIT_MB", "330"))
+
+
+def _proc_rss_mb(pid: int) -> int:
+    try:
+        with open(f"/proc/{pid}/status") as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    return int(line.split()[1]) // 1024
+    except Exception:
+        pass
+    return 0
+
+
 def _run(cmd: list[str], timeout: int | None = _FFMPEG_TIMEOUT) -> subprocess.CompletedProcess:
-    # Never let ffmpeg read from stdin (avoids blocking in server contexts).
-    if cmd and cmd[0] == "ffmpeg" and "-nostdin" not in cmd:
+    is_ffmpeg = bool(cmd) and cmd[0] == "ffmpeg"
+    if is_ffmpeg and "-nostdin" not in cmd:
         cmd = [cmd[0], "-nostdin", *cmd[1:]]
     # Bound decoder memory for large (e.g. 4K) sources: single-thread, slice-based
     # decoding keeps peak RSS well under the 512MB instance during the decode stage.
-    if cmd and cmd[0] == "ffmpeg" and "-i" in cmd and "-thread_type" not in cmd:
+    if is_ffmpeg and "-i" in cmd and "-thread_type" not in cmd:
         i = cmd.index("-i")
         cmd = cmd[:i] + ["-threads", "1", "-thread_type", "slice"] + cmd[i:]
-    try:
+    if not is_ffmpeg:
         return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
-    except subprocess.TimeoutExpired as e:
-        out = e.stdout or ""
-        err = (e.stderr or "")
-        if isinstance(out, bytes): out = out.decode(errors="ignore")
-        if isinstance(err, bytes): err = err.decode(errors="ignore")
-        err += f"\n[ffmpeg timed out after {timeout}s]"
-        return subprocess.CompletedProcess(cmd, 124, out, err)
+
+    # ffmpeg: run under a memory + time watchdog.
+    import time as _t
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            stdin=subprocess.DEVNULL, text=True)
+    killed_mem = False
+    deadline = _t.time() + (timeout or _FFMPEG_TIMEOUT)
+    while proc.poll() is None:
+        if _proc_rss_mb(proc.pid) > _MEM_LIMIT_MB:
+            killed_mem = True
+            proc.kill()
+            break
+        if _t.time() > deadline:
+            proc.kill()
+            out, err = proc.communicate()
+            return subprocess.CompletedProcess(cmd, 124,
+                out or "", (err or "") + f"\n[ffmpeg timed out after {timeout}s]")
+        _t.sleep(0.2)
+    out, err = proc.communicate()
+    if killed_mem:
+        err = (err or "") + (f"\n[ffmpeg exceeded the {_MEM_LIMIT_MB}MB memory budget "
+                             "for this plan — try a lower export resolution]")
+        return subprocess.CompletedProcess(cmd, 137, out or "", err)
+    return subprocess.CompletedProcess(cmd, proc.returncode, out or "", err or "")
 
 
 def probe_duration_ms(media_path: str) -> int | None:
