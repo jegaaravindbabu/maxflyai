@@ -332,6 +332,10 @@ def run_export_job(export_id: str, project_id: str, fmt: str, use_translit: bool
             if exp:
                 exp.status = "error"
                 exp.url = None
+                try:
+                    exp.error = str(e)[:900]
+                except Exception:
+                    pass
                 db.commit()
         finally:
             db.close()

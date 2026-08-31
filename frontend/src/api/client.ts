@@ -329,7 +329,7 @@ export const api = {
   },
 
   async listExports(id: string) {
-    return j<{ id: string; format: string; url: string | null; status: string }[]>(
+    return j<{ id: string; format: string; url: string | null; status: string; error?: string | null }[]>(
       await afetch(`${BASE}/api/projects/${id}/exports`));
   },
 

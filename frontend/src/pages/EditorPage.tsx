@@ -103,7 +103,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [busy, setBusy] = useState(false);
   const [curMs, setCurMs] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const [exports, setExports] = useState<{ fmt: string; url?: string; status: string }[]>([]);
+  const [exports, setExports] = useState<{ fmt: string; url?: string; status: string; error?: string }[]>([]);
   const [rail, setRail] = useState<"captions" | "texts" | "images" | "broll" | "tools" | "zoom" | "filters" | "canvas" | "export">("captions");
   const [rightTab, setRightTab] = useState<"styles" | "settings" | "animation">("styles");
   const [density, setDensity] = useState<"compact" | "roomy">("roomy");
@@ -330,7 +330,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
     document.addEventListener("mousemove", move);
     document.addEventListener("mouseup", up);
   }
-  function upsertExport(fmt: string, patch: { url?: string; status: string }) {
+  function upsertExport(fmt: string, patch: { url?: string; status: string; error?: string }) {
     setExports((prev) => [{ fmt, ...patch }, ...prev.filter((e) => e.fmt !== fmt)]);
   }
   async function doExport(fmt: string) {
@@ -343,7 +343,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
         await new Promise((res) => setTimeout(res, 1500));
         const list = await api.listExports(projectId);
         const row = list.find((x) => x.id === eid);
-        if (row && row.status !== "processing") { upsertExport(fmt, { url: row.url || undefined, status: row.status }); return; }
+        if (row && row.status !== "processing") { upsertExport(fmt, { url: row.url || undefined, status: row.status, error: row.error || undefined }); return; }
       }
       upsertExport(fmt, { status: "error" });
     } catch { upsertExport(fmt, { status: "error" }); }
@@ -943,7 +943,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                       e.status === "ready" && e.url ? (
                         <a key={e.fmt} href={api.mediaUrl(e.url)} target="_blank" rel="noreferrer" className="ed-exp-dl">↓ {e.fmt.toUpperCase()}</a>
                       ) : (
-                        <span key={e.fmt} className={"ed-exp-stat " + (e.status === "error" ? "err" : "")}>{e.fmt.toUpperCase()} {e.status === "error" ? "failed" : "…"}</span>
+                        <span key={e.fmt} className={"ed-exp-stat " + (e.status === "error" ? "err" : "")} title={e.error || ""}>{e.fmt.toUpperCase()} {e.status === "error" ? "failed" : "…"}{e.status === "error" && e.error ? ": " + e.error.slice(0, 140) : ""}</span>
                       )
                     ))}
                   </div>

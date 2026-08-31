@@ -120,6 +120,7 @@ class Export(Base):
     format = Column(String, nullable=False)   # srt|vtt|ass|mp4|fcpxml|edl
     url = Column(String, nullable=True)
     status = Column(String, nullable=False, default="ready")
+    error = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), default=_now)
 
     project = relationship("Project", back_populates="exports")
