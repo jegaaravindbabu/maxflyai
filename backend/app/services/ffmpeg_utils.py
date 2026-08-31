@@ -21,6 +21,11 @@ def _run(cmd: list[str], timeout: int | None = _FFMPEG_TIMEOUT) -> subprocess.Co
     # Never let ffmpeg read from stdin (avoids blocking in server contexts).
     if cmd and cmd[0] == "ffmpeg" and "-nostdin" not in cmd:
         cmd = [cmd[0], "-nostdin", *cmd[1:]]
+    # Bound decoder memory for large (e.g. 4K) sources: single-thread, slice-based
+    # decoding keeps peak RSS well under the 512MB instance during the decode stage.
+    if cmd and cmd[0] == "ffmpeg" and "-i" in cmd and "-thread_type" not in cmd:
+        i = cmd.index("-i")
+        cmd = cmd[:i] + ["-threads", "1", "-thread_type", "slice"] + cmd[i:]
     try:
         return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired as e:
