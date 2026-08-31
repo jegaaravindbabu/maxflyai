@@ -6,8 +6,30 @@ import subprocess
 import tempfile
 
 
-def _run(cmd: list[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, capture_output=True, text=True)
+# Shared low-memory H.264 encode flags. Tuned to keep peak RSS well under
+# Render's 512MB instance (single thread, small lookahead / ref buffers).
+_VENC = ["-threads", "1", "-c:v", "libx264", "-preset", "veryfast", "-crf", "24",
+         "-x264-params", "ref=2:rc-lookahead=10:sync-lookahead=0:bframes=2",
+         "-pix_fmt", "yuv420p", "-max_muxing_queue_size", "1024"]
+
+# Hard wall-clock cap: a hung ffmpeg becomes a clean error instead of an
+# export stuck in "processing" forever.
+_FFMPEG_TIMEOUT = 1500
+
+
+def _run(cmd: list[str], timeout: int | None = _FFMPEG_TIMEOUT) -> subprocess.CompletedProcess:
+    # Never let ffmpeg read from stdin (avoids blocking in server contexts).
+    if cmd and cmd[0] == "ffmpeg" and "-nostdin" not in cmd:
+        cmd = [cmd[0], "-nostdin", *cmd[1:]]
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired as e:
+        out = e.stdout or ""
+        err = (e.stderr or "")
+        if isinstance(out, bytes): out = out.decode(errors="ignore")
+        if isinstance(err, bytes): err = err.decode(errors="ignore")
+        err += f"\n[ffmpeg timed out after {timeout}s]"
+        return subprocess.CompletedProcess(cmd, 124, out, err)
 
 
 def probe_duration_ms(media_path: str) -> int | None:
@@ -71,8 +93,7 @@ def burn_captions(media_path: str, ass_path: str, out_path: str,
     # escape path for the subtitles filter
     safe = ass_path.replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
     vf = (video_prefilter + "," if video_prefilter else "") + f"subtitles='{safe}'"
-    cmd = ["ffmpeg", "-y", "-i", media_path, "-vf", vf,
-           "-threads", "2", "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p"]
+    cmd = ["ffmpeg", "-y", "-i", media_path, "-vf", vf, *_VENC]
     if audio_filter:
         cmd += ["-af", audio_filter]
     cmd += ["-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", out_path]
@@ -222,7 +243,7 @@ def render_mp4(video_src: str, ass_path: str, out_path: str, width: int,
         cmd += ["-af", audio_filter, "-c:a", "aac", "-b:a", "192k"]
     else:
         cmd += ["-c:a", "aac", "-b:a", "192k"]
-    cmd += ["-threads", "2", "-threads", "2", "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p", "-movflags", "+faststart", out_path]
+    cmd += [*_VENC, "-movflags", "+faststart", out_path]
     cp = _run(cmd)
     if cp.returncode != 0:
         raise RuntimeError(f"render_mp4 failed: {cp.stderr[-400:]}")
@@ -253,7 +274,7 @@ def compose_canvas(src: str, out_path: str, w: int, h: int, bg_type: str = "colo
 
     cmd = ["ffmpeg", "-y", *inputs, "-filter_complex", graph,
            "-map", "[v]", "-map", "0:a?", "-c:a", "aac", "-b:a", "192k",
-           "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p", "-movflags", "+faststart", out_path]
+           *_VENC, "-movflags", "+faststart", out_path]
     cp = _run(cmd)
     if cp.returncode != 0:
         raise RuntimeError(f"compose_canvas failed: {cp.stderr[-400:]}")

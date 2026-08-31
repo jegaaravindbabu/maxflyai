@@ -37,3 +37,20 @@ def init_db() -> None:
                 conn.execute(text(stmt))
             except Exception:
                 pass
+    # Any export/job still marked in-progress at boot is orphaned (the
+    # in-process runner does not survive a restart). Mark them errored so the
+    # UI resolves instead of polling a "processing" row forever.
+    _sweep = [
+        ("UPDATE exports SET status='error', "
+         "error=COALESCE(error,'interrupted (server restarted mid-export)') "
+         "WHERE status IN ('processing','exporting')"),
+        ("UPDATE jobs SET status='error', "
+         "error=COALESCE(error,'interrupted (server restarted)') "
+         "WHERE status IN ('queued','running')"),
+    ]
+    with engine.begin() as conn:
+        for stmt in _sweep:
+            try:
+                conn.execute(text(stmt))
+            except Exception:
+                pass

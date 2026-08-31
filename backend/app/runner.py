@@ -18,7 +18,9 @@ from app.config import settings
 
 log = logging.getLogger("maxfly.runner")
 
-_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="maxfly-job")
+# max_workers=1: on a 512MB instance, run one heavy job (transcribe/export) at a
+# time so two ffmpeg encodes never stack and OOM-kill the container.
+_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="maxfly-job")
 
 
 def submit(fn, *args, **kwargs) -> None:

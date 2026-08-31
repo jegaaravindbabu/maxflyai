@@ -51,7 +51,8 @@ def _load_capsettings(db, project_id: str) -> dict | None:
     return (row.payload_json or None) if row else None
 
 
-CANVAS_DIMS = {"9:16": (1080, 1920), "4:5": (1080, 1350), "1:1": (1080, 1080), "16:9": (1920, 1080)}
+# 720-wide canvas keeps the final composite encode within the 512MB instance.
+CANVAS_DIMS = {"9:16": (720, 1280), "4:5": (720, 900), "1:1": (720, 720), "16:9": (1280, 720)}
 
 
 def _load_canvas(db, project_id: str) -> dict | None:
