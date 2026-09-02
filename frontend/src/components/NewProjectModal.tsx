@@ -47,6 +47,9 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
   const [outputMode, setOutputMode] = useState("translit");
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [layout, setLayout] = useState<"single" | "double">("single");
+  const [maxChars, setMaxChars] = useState(30);
+  const [minDur, setMinDur] = useState(0.1);
+  const [gapFrames, setGapFrames] = useState(0);
   const [minutesLeft, setMinutesLeft] = useState<number | null>(null);
   const [generating, setGenerating] = useState(false);
 
@@ -85,9 +88,11 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
       for (const it of done) {
         const id = it.project!.id;
         try {
-          localStorage.setItem(`maxfly:proj:${id}`, JSON.stringify({ layout, outputMode, lang }));
+          localStorage.setItem(`maxfly:proj:${id}`, JSON.stringify({ layout, outputMode, lang, maxChars, minDur, gapFrames }));
         } catch {}
-        try { await api.transcribe(id, lang, outputMode); } catch {}
+        try { await api.transcribe(id, lang, outputMode, {
+          max_chars: maxChars, min_dur_secs: minDur, gap_frames: gapFrames, layout,
+        }); } catch {}
       }
       window.location.hash = `#/project/${done[0].project!.id}`;
       onClose();
@@ -193,7 +198,31 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
           </div>
           {prefsOpen && (
             <div className="np-prefs-body">
-              <p className="np-sub">Choose how captions are laid out on screen. You can fine-tune styling in the editor after upload.</p>
+              <div className="np-pref">
+                <div className="np-pref-head">
+                  <label>Maximum length in characters</label>
+                  <span className="np-pref-val">{maxChars} chars</span>
+                </div>
+                <input type="range" min={10} max={80} step={1} value={maxChars}
+                  onChange={(e) => setMaxChars(Number(e.target.value))} />
+              </div>
+              <div className="np-pref">
+                <div className="np-pref-head">
+                  <label>Minimum duration in seconds</label>
+                  <span className="np-pref-val">{minDur.toFixed(1)} secs</span>
+                </div>
+                <input type="range" min={0} max={5} step={0.1} value={minDur}
+                  onChange={(e) => setMinDur(Number(e.target.value))} />
+              </div>
+              <div className="np-pref">
+                <div className="np-pref-head">
+                  <label>Gap between captions</label>
+                  <span className="np-pref-val">{gapFrames} frames</span>
+                </div>
+                <input type="range" min={0} max={30} step={1} value={gapFrames}
+                  onChange={(e) => setGapFrames(Number(e.target.value))} />
+              </div>
+              <label className="np-pref-mode-label">Mode</label>
             </div>
           )}
         </div>

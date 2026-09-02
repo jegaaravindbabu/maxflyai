@@ -27,39 +27,44 @@ class Cue:
     line_count: int = 1
 
 
-def _wrap_two_lines(text: str) -> tuple[str, int]:
-    """Balance text into at most 2 lines <= MAX_CHARS_PER_LINE."""
+@dataclass
+class CuePrefs:
+    """Caption segmentation preferences (from the New Project modal)."""
+    max_chars: int = MAX_CHARS_PER_LINE   # max characters per line
+    min_dur_ms: int = MIN_CUE_MS          # minimum on-screen duration per cue
+    gap_ms: int = 0                       # blank gap inserted between cues
+    single_word: bool = False             # one word per cue (vs balanced 2 lines)
+
+
+def _wrap_two_lines(text: str, max_chars: int = MAX_CHARS_PER_LINE) -> tuple[str, int]:
+    """Balance text into at most 2 lines <= max_chars."""
     text = " ".join(text.split())
-    if len(text) <= MAX_CHARS_PER_LINE:
+    if len(text) <= max_chars:
         return text, 1
     words = text.split(" ")
-    # find split near the middle that keeps both lines within limit
     best = None
-    running = ""
     for i in range(len(words)):
         running = " ".join(words[: i + 1])
         rest = " ".join(words[i + 1:])
-        if len(running) <= MAX_CHARS_PER_LINE and len(rest) <= MAX_CHARS_PER_LINE:
-            # prefer the most balanced split
+        if len(running) <= max_chars and len(rest) <= max_chars:
             score = abs(len(running) - len(rest))
             if best is None or score < best[0]:
                 best = (score, running, rest)
     if best:
         return best[1] + "\n" + best[2], 2
-    # fallback: hard cut
-    return text[:MAX_CHARS_PER_LINE] + "\n" + text[MAX_CHARS_PER_LINE:MAX_CHARS], 2
+    return text[:max_chars] + "\n" + text[max_chars:max_chars * 2], 2
 
 
-def _split_long_segment(seg: dict) -> list[dict]:
+def _split_long_segment(seg: dict, max_chars_total: int = MAX_CHARS) -> list[dict]:
     """Split a segment whose text is too long or duration too long into pieces."""
     text = " ".join((seg.get("text") or "").split())
     translit = seg.get("translit_text")
     start, end = seg["start_ms"], seg["end_ms"]
     dur = max(end - start, 1)
-    if len(text) <= MAX_CHARS and dur <= MAX_CUE_MS:
+    if len(text) <= max_chars_total and dur <= MAX_CUE_MS:
         return [seg]
 
-    n = max(1, -(-len(text) // MAX_CHARS), -(-dur // MAX_CUE_MS))  # ceil
+    n = max(1, -(-len(text) // max_chars_total), -(-dur // MAX_CUE_MS))  # ceil
     words = text.split(" ")
     if n <= 1 or len(words) <= 1:
         return [seg]
@@ -85,22 +90,63 @@ def _split_long_segment(seg: dict) -> list[dict]:
     return pieces
 
 
-def build_cues_from_segments(segments: list[dict]) -> list[Cue]:
-    """segments: list of dicts with text, translit_text, start_ms, end_ms."""
+def _explode_words(seg: dict, min_dur_ms: int) -> list[dict]:
+    """Split a segment into one cue per word, timing spread proportionally."""
+    text = " ".join((seg.get("text") or "").split())
+    words = text.split(" ") if text else []
+    tr = seg.get("translit_text")
+    tr_words = " ".join(tr.split()).split(" ") if tr else None
+    start, end = int(seg["start_ms"]), int(seg["end_ms"])
+    dur = max(end - start, 1)
+    total = max(len(text), 1)
+    out: list[dict] = []
+    cursor = start
+    for i, w in enumerate(words):
+        frac = max(len(w), 1) / total
+        w_end = min(end, cursor + max(int(dur * frac), min_dur_ms))
+        out.append({
+            "text": w,
+            "translit_text": (tr_words[i] if tr_words and i < len(tr_words) else None),
+            "start_ms": cursor,
+            "end_ms": w_end,
+            "speaker": seg.get("speaker"),
+        })
+        cursor = w_end
+    if out:
+        out[-1]["end_ms"] = end
+    return out
+
+
+def build_cues_from_segments(segments: list[dict], prefs: "CuePrefs | None" = None) -> list[Cue]:
+    """segments: list of dicts with text, translit_text, start_ms, end_ms.
+    `prefs` controls max line length, minimum duration, inter-cue gap and
+    single-word vs balanced two-line layout (New Project modal)."""
+    prefs = prefs or CuePrefs()
+    max_line = max(4, int(prefs.max_chars))
+    max_total = max_line * (1 if prefs.single_word else MAX_LINES)
+    min_dur = max(1, int(prefs.min_dur_ms))
+    gap = max(0, int(prefs.gap_ms))
+
     exploded: list[dict] = []
     for seg in segments:
         if not (seg.get("text") or "").strip():
             continue
-        exploded.extend(_split_long_segment(seg))
+        if prefs.single_word:
+            exploded.extend(_explode_words(seg, min_dur))
+        else:
+            exploded.extend(_split_long_segment(seg, max_total))
 
     cues: list[Cue] = []
     idx = 0
     for seg in exploded:
         start = int(seg["start_ms"])
         end = int(seg["end_ms"])
-        if end - start < MIN_CUE_MS:
-            end = start + MIN_CUE_MS
-        wrapped, lines = _wrap_two_lines(seg["text"])
+        if end - start < min_dur:
+            end = start + min_dur
+        if prefs.single_word:
+            wrapped, lines = seg["text"], 1
+        else:
+            wrapped, lines = _wrap_two_lines(seg["text"], max_line)
         cues.append(Cue(
             idx=idx,
             start_ms=start,
@@ -111,12 +157,13 @@ def build_cues_from_segments(segments: list[dict]) -> list[Cue]:
         ))
         idx += 1
 
-    # prevent overlaps
+    # prevent overlaps and enforce the requested gap between cues
     for i in range(1, len(cues)):
-        if cues[i].start_ms < cues[i - 1].end_ms:
-            cues[i].start_ms = cues[i - 1].end_ms
+        min_start = cues[i - 1].end_ms + gap
+        if cues[i].start_ms < min_start:
+            cues[i].start_ms = min_start
             if cues[i].end_ms <= cues[i].start_ms:
-                cues[i].end_ms = cues[i].start_ms + MIN_CUE_MS
+                cues[i].end_ms = cues[i].start_ms + min_dur
     return cues
 
 

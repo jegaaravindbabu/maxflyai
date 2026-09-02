@@ -33,10 +33,17 @@ def transcribe(project_id: str, body: TranscribeRequest, db: Session = Depends(g
     project.error = None
     db.commit()
 
+    # map modal caption prefs -> builder params
+    min_dur_ms = max(1, int(round(float(body.min_dur_secs) * 1000)))
+    gap_ms = max(0, int(round(int(body.gap_frames) * 1000 / 30)))  # frames @30fps
+    single_word = (body.layout == "single")
+
     if runner.use_celery():
-        result = transcribe_task.delay(project_id, body.language_code, body.mode, body.model)
+        result = transcribe_task.delay(project_id, body.language_code, body.mode, body.model,
+                                       True, body.max_chars, min_dur_ms, gap_ms, single_word)
         return {"status": "transcribing", "task_id": result.id}
-    runner.submit(run_transcription, project_id, body.language_code, body.mode, body.model)
+    runner.submit(run_transcription, project_id, body.language_code, body.mode, body.model,
+                  True, body.max_chars, min_dur_ms, gap_ms, single_word)
     return {"status": "transcribing"}
 
 

@@ -263,11 +263,13 @@ export const api = {
     });
   },
 
-  async transcribe(id: string, language_code: string, mode: string) {
+  async transcribe(id: string, language_code: string, mode: string, prefs?: {
+    max_chars?: number; min_dur_secs?: number; gap_frames?: number; layout?: string;
+  }) {
     return j<any>(await afetch(`${BASE}/api/projects/${id}/transcribe`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ language_code, mode }),
+      body: JSON.stringify({ language_code, mode, ...(prefs || {}) }),
     }));
   },
 

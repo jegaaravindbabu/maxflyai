@@ -10,7 +10,7 @@ from celery import shared_task
 from app.database import SessionLocal
 from app.models import Project, Transcript, Segment, CaptionCue, Job
 from app.services import ffmpeg_utils, sarvam, segmentation, billing
-from app.services.captions import build_cues_from_segments
+from app.services.captions import build_cues_from_segments, CuePrefs
 from app.services.storage import storage
 
 
@@ -37,7 +37,9 @@ def _attach_translit_proportional(segments: list[dict], translit_full: str) -> N
 
 def run_transcription(project_id: str, language_code: str = "unknown",
                       mode: str = "transcribe", model: str = "saaras:v3",
-                      want_translit: bool = True) -> dict:
+                      want_translit: bool = True,
+                      max_chars: int = 42, min_dur_ms: int = 800,
+                      gap_ms: int = 0, single_word: bool = False) -> dict:
     db = SessionLocal()
     job = Job(project_id=project_id, kind="transcribe", status="running")
     db.add(job)
@@ -102,7 +104,9 @@ def run_transcription(project_id: str, language_code: str = "unknown",
 
         # derive + persist cues (regenerable)
         db.query(CaptionCue).filter(CaptionCue.project_id == project_id).delete()
-        cues = build_cues_from_segments(segments)
+        cues = build_cues_from_segments(segments, CuePrefs(
+            max_chars=max_chars, min_dur_ms=min_dur_ms,
+            gap_ms=gap_ms, single_word=single_word))
         for c in cues:
             db.add(CaptionCue(
                 project_id=project_id, idx=c.idx, start_ms=c.start_ms, end_ms=c.end_ms,
@@ -138,5 +142,8 @@ def run_transcription(project_id: str, language_code: str = "unknown",
 @shared_task(name="maxfly.transcribe")
 def transcribe_task(project_id: str, language_code: str = "unknown",
                     mode: str = "transcribe", model: str = "saaras:v3",
-                    want_translit: bool = True) -> dict:
-    return run_transcription(project_id, language_code, mode, model, want_translit)
+                    want_translit: bool = True, max_chars: int = 42,
+                    min_dur_ms: int = 800, gap_ms: int = 0,
+                    single_word: bool = False) -> dict:
+    return run_transcription(project_id, language_code, mode, model, want_translit,
+                             max_chars, min_dur_ms, gap_ms, single_word)

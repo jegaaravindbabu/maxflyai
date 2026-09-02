@@ -135,6 +135,11 @@ class TranscribeRequest(BaseModel):
     language_code: str = "unknown"   # BCP-47 e.g. ta-IN, or "unknown"
     mode: str = "transcribe"         # transcribe|translit|codemix|verbatim|translate
     model: str = "saaras:v3"
+    # caption segmentation preferences (New Project modal)
+    max_chars: int = 42              # max characters per caption line
+    min_dur_secs: float = 0.8        # minimum on-screen duration per cue
+    gap_frames: int = 0              # blank gap between cues (frames @30fps)
+    layout: str = "double"           # "single" (one word) | "double" (two lines)
 
 
 class CaptionEditRequest(BaseModel):
