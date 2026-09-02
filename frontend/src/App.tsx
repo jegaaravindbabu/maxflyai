@@ -5,6 +5,7 @@ import { Sidebar } from "./components/Sidebar";
 import { NewProjectModal } from "./components/NewProjectModal";
 import { HomePage } from "./pages/HomePage";
 import { ProjectsPage } from "./pages/ProjectsPage";
+import { MediaLibraryPage } from "./pages/MediaLibraryPage";
 import { EditorPage } from "./pages/EditorPage";
 import { BillingPage } from "./pages/BillingPage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -44,7 +45,7 @@ function Shell() {
   if (hash === "#/billing") content = <BillingPage />;
   else if (hash === "#/settings") content = <SettingsPage />;
   else if (hash === "#/projects") content = <ProjectsPage onNewProject={openUpload} />;
-  else if (hash === "#/media") content = <MediaPlaceholder />;
+  else if (hash === "#/media") content = <MediaLibraryPage onNewProject={openUpload} />;
   else content = <HomePage onNewProject={openUpload} />;
 
   return (

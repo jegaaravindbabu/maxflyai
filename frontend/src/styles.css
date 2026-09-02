@@ -773,3 +773,15 @@ video.ed-imgovl { object-fit: cover; }
   background: rgba(0,0,0,.55); border: 2px solid rgba(255,255,255,.6); color: #fff; }
 .proj-check.on { background: var(--accent); border-color: var(--accent); }
 button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
+
+/* ---- Media Library ---- */
+.ml-storage { font-size: 12px; color: var(--muted); background: var(--panel); border: 1px solid var(--border);
+  border-radius: 999px; padding: 7px 12px; white-space: nowrap; }
+.ml-filter { display: inline-flex; gap: 4px; background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: 999px; padding: 4px; margin-bottom: 22px; }
+.ml-filter .seg { padding: 6px 16px; border-radius: 999px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.ml-filter .seg.active { background: var(--accent); color: #fff; }
+.ml-badge { position: absolute; top: 10px; left: 10px; font-size: 10px; font-weight: 700; letter-spacing: .05em;
+  padding: 3px 8px; border-radius: 6px; background: rgba(0,0,0,.6); color: #fff; }
+.ml-open { color: var(--accent-2); font-size: 13px; text-decoration: none; white-space: nowrap; padding: 4px 8px; }
+.ml-open:hover { color: var(--text); }
