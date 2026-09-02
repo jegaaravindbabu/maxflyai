@@ -13,8 +13,19 @@ import os
 import shutil
 import tempfile
 import uuid
+import re
 
 import httpx
+
+
+def _safe_filename(filename: str) -> str:
+    """Slugify an upload filename so the storage key has no spaces or other
+    characters that break download URL matching (e.g. 'AE 1.mp4')."""
+    name = os.path.basename(filename or "file")
+    root, ext = os.path.splitext(name)
+    root = re.sub(r"[^A-Za-z0-9._-]+", "_", root).strip("_") or "file"
+    ext = re.sub(r"[^A-Za-z0-9.]+", "", ext)
+    return root + ext
 
 from app.config import settings
 
@@ -63,7 +74,7 @@ class SupabaseStorage:
         return f"{self.base}/storage/v1/object/{self.bucket}/{key}"
 
     def save_upload(self, tmp_path: str, filename: str) -> str:
-        key = f"{uuid.uuid4()}_{filename}"
+        key = f"{uuid.uuid4()}_{_safe_filename(filename)}"
         with open(tmp_path, "rb") as f:
             data = f.read()
         with httpx.Client(timeout=300) as c:
@@ -89,10 +100,17 @@ class SupabaseStorage:
         if os.path.exists(local) and os.path.getsize(local) > 0:
             return local
         os.makedirs(os.path.dirname(local) or _CACHE_DIR, exist_ok=True)
-        with httpx.Client(timeout=300) as c:
+        with httpx.Client(timeout=300, follow_redirects=True) as c:
             r = c.get(self._obj_url(key), headers=self._h)
-        if r.status_code >= 400:
-            raise RuntimeError(f"supabase download failed {r.status_code}: {r.text[:200]}")
+            if r.status_code >= 400:
+                # Legacy keys with spaces/special chars can fail the direct
+                # object GET; retry via a Supabase-signed URL (server builds the
+                # correct path), which is how exports are already served.
+                signed = self.url(key)
+                if signed:
+                    r = c.get(signed)
+            if r.status_code >= 400:
+                raise RuntimeError(f"supabase download failed {r.status_code}: {r.text[:200]}")
         with open(local, "wb") as f:
             f.write(r.content)
         return local
