@@ -17,7 +17,7 @@ async function j<T>(res: Response): Promise<T> {
 }
 
 export const api = {
-  mediaUrl: (key: string) => `${BASE}${key}`,
+  mediaUrl: (key: string) => (/^https?:\/\//.test(key) ? key : `${BASE}${key}`),
 
   async billingMe() {
     return j<{ plan: string; label: string; minutes_cap: number; minutes_used: number;

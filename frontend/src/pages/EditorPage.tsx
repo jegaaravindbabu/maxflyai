@@ -941,7 +941,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   <div className="ed-exp-results">
                     {exports.map((e) => (
                       e.status === "ready" && e.url ? (
-                        <a key={e.fmt} href={api.mediaUrl(e.url)} target="_blank" rel="noreferrer" className="ed-exp-dl">↓ {e.fmt.toUpperCase()}</a>
+                        <a key={e.fmt} href={api.mediaUrl(e.url)} target="_blank" rel="noreferrer" download className="ed-exp-dl">↓ {e.fmt.toUpperCase()}</a>
                       ) : (
                         <span key={e.fmt} className={"ed-exp-stat " + (e.status === "error" ? "err" : "")} title={e.error || ""}>{e.fmt.toUpperCase()} {e.status === "error" ? "failed" : "…"}{e.status === "error" && e.error ? ": " + e.error.slice(0, 140) : ""}</span>
                       )
