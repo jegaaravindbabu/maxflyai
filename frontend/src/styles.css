@@ -478,7 +478,7 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
 .proj-menu-wrap { position: relative; flex: none; }
 .proj-dots { background: transparent; color: var(--muted); font-size: 20px; padding: 4px 10px; border-radius: 8px; }
 .proj-dots:hover { background: var(--panel-2); color: var(--text); }
-.proj-menu { position: absolute; right: 0; top: 100%; margin-top: 6px; z-index: 30;
+.proj-menu { position: absolute; right: 0; bottom: 100%; margin-bottom: 6px; z-index: 30;
   background: #1a1d2b; border: 1px solid var(--border); border-radius: 12px; padding: 6px;
   min-width: 190px; box-shadow: 0 20px 50px rgba(0,0,0,.5); }
 .pm-item { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 8px;
