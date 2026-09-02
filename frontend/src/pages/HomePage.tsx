@@ -21,7 +21,10 @@ function timeAgo(iso?: string | null) {
   return `${d}d ago`;
 }
 
-function ProjectCard({ p, onChanged }: { p: Project; onChanged: () => void }) {
+export function ProjectCard({ p, onChanged, selectable = false, selected = false, onToggleSelect }: {
+  p: Project; onChanged: () => void;
+  selectable?: boolean; selected?: boolean; onToggleSelect?: (id: string) => void;
+}) {
   const [menu, setMenu] = useState(false);
   const [action, setAction] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -34,6 +37,7 @@ function ProjectCard({ p, onChanged }: { p: Project; onChanged: () => void }) {
   }, [menu]);
 
   function open() { window.location.hash = `#/project/${p.id}`; }
+  function primary() { if (selectable) onToggleSelect?.(p.id); else open(); }
 
   async function rename() {
     setMenu(false);
@@ -77,14 +81,15 @@ function ProjectCard({ p, onChanged }: { p: Project; onChanged: () => void }) {
   const subs = p.sub_count ?? 0;
 
   return (
-    <div className="proj-card card" ref={wrapRef}>
-      <div className="proj-thumb" onClick={open}>
+    <div className={"proj-card card" + (selectable ? " selectable" : "") + (selected ? " selected" : "")} ref={wrapRef}>
+      <div className="proj-thumb" onClick={primary}>
         <span className="proj-play">▶</span>
         {subs > 0 && <span className="proj-subs">{subs} subs</span>}
+        {selectable && <span className={"proj-check" + (selected ? " on" : "")}>{selected ? "✓" : ""}</span>}
         {action && <div className="proj-action">{action}</div>}
       </div>
       <div className="proj-meta">
-        <div className="proj-info" onClick={open}>
+        <div className="proj-info" onClick={primary}>
           <div className="proj-name">{p.name}</div>
           <div className="proj-time">{timeAgo(p.created_at)}</div>
         </div>

@@ -753,3 +753,23 @@ video.ed-imgovl { object-fit: cover; }
 .ar-4-5 { width: 20px; height: 25px; }
 .ar-1-1 { width: 24px; height: 24px; }
 .ar-16-9 { width: 30px; height: 17px; }
+
+/* ---- Projects page ---- */
+.pp-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-top: 4px; }
+.pp-title { font-size: 30px; font-weight: 800; margin: 0; }
+.pp-sub { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
+.pp-actions { display: flex; align-items: center; gap: 10px; flex: none; }
+.pp-search { position: relative; margin: 20px 0 22px; max-width: 520px; }
+.pp-search input { width: 100%; box-sizing: border-box; padding: 12px 14px 12px 38px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  color: var(--text); font-size: 14px; outline: none; }
+.pp-search input:focus { border-color: var(--accent); }
+.pp-search-ic { position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); font-size: 16px; pointer-events: none; }
+.proj-card.selectable { cursor: pointer; }
+.proj-card.selected { outline: 2px solid var(--accent); outline-offset: 0; border-radius: 14px; }
+.proj-check { position: absolute; top: 10px; left: 10px; width: 22px; height: 22px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+  background: rgba(0,0,0,.55); border: 2px solid rgba(255,255,255,.6); color: #fff; }
+.proj-check.on { background: var(--accent); border-color: var(--accent); }
+button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
