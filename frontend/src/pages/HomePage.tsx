@@ -131,7 +131,13 @@ export function HomePage({ onNewProject }: { onNewProject: () => void }) {
         <button className="big-btn" onClick={onNewProject}>+ New Project</button>
       </div>
 
-      <h2 className="section-title">Recent Projects</h2>
+      <div className="section-head">
+        <h2 className="section-title">
+          Recent Projects
+          {projects.length > 0 && <span className="section-count">{projects.length}</span>}
+        </h2>
+        <a className="view-all" href="#/projects">View All ›</a>
+      </div>
       <div className="tabs">
         {(["Projects", "Media", "Exports"] as const).map((t) => (
           <div key={t} className={"tab" + (tab === t ? " active" : "")} onClick={() => setTab(t)}>{t}</div>

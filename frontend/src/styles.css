@@ -220,7 +220,13 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
 .tab { padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600;
   color: var(--muted); cursor: pointer; }
 .tab.active { background: var(--panel-2); color: var(--accent); }
-.section-title { font-size: 20px; font-weight: 700; margin: 26px 0 0; }
+.section-title { font-size: 20px; font-weight: 700; margin: 26px 0 0; display: inline-flex; align-items: center; gap: 10px; }
+.section-head { display: flex; align-items: center; justify-content: space-between; }
+.section-count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px;
+  padding: 0 7px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--border);
+  font-size: 12px; font-weight: 600; color: var(--muted); }
+.view-all { color: var(--muted); font-size: 13px; text-decoration: none; white-space: nowrap; margin-top: 26px; }
+.view-all:hover { color: var(--text); }
 .empty { border: 1.5px dashed var(--border); border-radius: 16px; padding: 60px 20px;
   text-align: center; }
 .empty .ic { width: 76px; height: 76px; border-radius: 16px; background: var(--panel-2);
