@@ -26,6 +26,8 @@ async def create_project(file: UploadFile = File(...), name: str = Form(None),
             f.write(chunk)
     try:
         duration_ms = ffmpeg_utils.probe_duration_ms(tmp)
+        try: size_bytes = os.path.getsize(tmp)
+        except Exception: size_bytes = None
         key = storage.save_upload(tmp, file.filename or "upload" + suffix)
     finally:
         if os.path.exists(tmp):
@@ -35,7 +37,7 @@ async def create_project(file: UploadFile = File(...), name: str = Form(None),
         user_id=user,
         name=name or (file.filename or "Untitled"),
         source_media_url=key, source_filename=file.filename,
-        duration_ms=duration_ms, status="uploaded",
+        duration_ms=duration_ms, size_bytes=size_bytes, status="uploaded",
     )
     db.add(project)
     db.commit()

@@ -16,6 +16,13 @@ function fmtDur(ms?: number | null) {
   return `${m}:${String(s % 60).padStart(2, "0")}`;
 }
 
+function fmtSize(bytes?: number | null) {
+  if (!bytes || bytes <= 0) return "";
+  if (bytes >= 1024 * 1024 * 1024) return (bytes / 1073741824).toFixed(1) + " GB";
+  if (bytes >= 1024 * 1024) return Math.round(bytes / 1048576) + " MB";
+  return Math.max(1, Math.round(bytes / 1024)) + " KB";
+}
+
 function timeAgo(iso?: string | null) {
   if (!iso) return "";
   const s = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
@@ -40,6 +47,7 @@ export function MediaLibraryPage({ onNewProject }: { onNewProject: () => void })
 
   const videos = projects.filter((p) => kind(p) === "video").length;
   const audios = projects.length - videos;
+  const usedBytes = projects.reduce((a, p) => a + (p.size_bytes || 0), 0);
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
@@ -79,7 +87,7 @@ export function MediaLibraryPage({ onNewProject }: { onNewProject: () => void })
             </button>
           )}
           <button className="secondary" onClick={toggleSelectMode}>{selectMode ? "Done" : "☑ Select"}</button>
-          <span className="ml-storage">— / {storageGb.toFixed(1)} GB</span>
+          <span className="ml-storage">{fmtSize(usedBytes) || "0 MB"} / {storageGb.toFixed(1)} GB</span>
         </div>
       </div>
 
@@ -120,7 +128,7 @@ export function MediaLibraryPage({ onNewProject }: { onNewProject: () => void })
                 <div className="proj-thumb" onClick={act}>
                   <span className="ml-badge">{k === "audio" ? "AUDIO" : "VIDEO"}</span>
                   <span className="proj-play">{k === "audio" ? "♪" : "▶"}</span>
-                  {p.duration_ms ? <span className="proj-subs">{fmtDur(p.duration_ms)}</span> : null}
+                  {(p.size_bytes || p.duration_ms) ? <span className="proj-subs">{fmtSize(p.size_bytes) || fmtDur(p.duration_ms)}</span> : null}
                   {selectMode && <span className={"proj-check" + (selected ? " on" : "")}>{selected ? "✓" : ""}</span>}
                 </div>
                 <div className="proj-meta">

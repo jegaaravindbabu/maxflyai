@@ -30,6 +30,7 @@ def init_db() -> None:
     from sqlalchemy import text
     _add_cols = [
         "ALTER TABLE exports ADD COLUMN IF NOT EXISTS error TEXT",
+        "ALTER TABLE projects ADD COLUMN IF NOT EXISTS size_bytes BIGINT",
     ]
     with engine.begin() as conn:
         for stmt in _add_cols:

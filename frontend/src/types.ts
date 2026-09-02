@@ -23,6 +23,7 @@ export interface Project {
   source_media_url?: string | null;
   source_filename?: string | null;
   duration_ms?: number | null;
+  size_bytes?: number | null;
   status: string;
   error?: string | null;
   created_at?: string | null;

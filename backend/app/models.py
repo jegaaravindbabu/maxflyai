@@ -33,6 +33,7 @@ class Project(Base):
     source_media_url = Column(String, nullable=True)   # stored media key/url
     source_filename = Column(String, nullable=True)
     duration_ms = Column(Integer, nullable=True)
+    size_bytes = Column(Integer, nullable=True)
     # uploaded | transcribing | ready | exporting | error
     status = Column(String, nullable=False, default="uploaded")
     error = Column(Text, nullable=True)

@@ -35,6 +35,7 @@ class ProjectOut(BaseModel):
     source_media_url: Optional[str] = None
     source_filename: Optional[str] = None
     duration_ms: Optional[int] = None
+    size_bytes: Optional[int] = None
     status: str
     error: Optional[str] = None
     created_at: Optional[datetime] = None
