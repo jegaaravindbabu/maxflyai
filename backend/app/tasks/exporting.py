@@ -161,8 +161,9 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
             with open(ass_path, "w", encoding="utf-8") as f:
                 f.write(ass)
             key = f"exports/{project_id}{suffix}_captioned.mp4"
-            out_path = storage.path(key)
-            os.makedirs(os.path.dirname(out_path), exist_ok=True)
+            # ffmpeg writes to a local temp file; we upload it to storage below.
+            # (storage.path() is a DOWNLOAD helper and 404s on a not-yet-created key.)
+            fd, out_path = tempfile.mkstemp(suffix="_captioned.mp4"); os.close(fd)
             vinfo = ffmpeg_utils.video_info(video_src)
             # cap resolution to keep the encode within Render's 512MB memory
             sw, sh = vinfo["width"], vinfo["height"]
@@ -244,6 +245,11 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                     if os.path.exists(ctmp): os.remove(ctmp)
             if cuts and os.path.exists(video_src):
                 os.remove(video_src)
+            # publish the rendered mp4 to storage (Supabase/R2/local) under `key`
+            with open(out_path, "rb") as _f:
+                storage.write_bytes(key, _f.read())
+            if os.path.exists(out_path):
+                os.remove(out_path)
         elif fmt in ("fcpxml", "edl"):
             src = storage.path(project.source_media_url)
             dur = project.duration_ms or ffmpeg_utils.probe_duration_ms(src) or 0
