@@ -87,6 +87,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const imgInputRef = useRef<HTMLInputElement>(null);
   const upInputRef = useRef<HTMLInputElement>(null);
   const [myMedia, setMyMedia] = useState<Project[]>([]);
+  const [upTab, setUpTab] = useState<"import" | "export">("import");
   const [upBusy, setUpBusy] = useState(false);
   const imagesRef = useRef<ImageOverlay[]>([]);
   imagesRef.current = images;
@@ -584,28 +585,46 @@ export function EditorPage({ projectId }: { projectId: string }) {
         <div className="ed-left">
           {rail === "uploads" && (
             <>
-              <div className="ed-left-head"><h3>Uploads</h3></div>
-              <div className="ed-hint-box">Upload a new video or audio file, or open one of your existing uploads.</div>
+              <div className="ed-left-head"><h3>Media Library</h3></div>
+              <div className="ml-tabs2">
+                <div className={"ml-tab2" + (upTab === "import" ? " active" : "")} onClick={() => setUpTab("import")}>⤒ Import</div>
+                <div className={"ml-tab2" + (upTab === "export" ? " active" : "")} onClick={() => setUpTab("export")}>⤓ Export</div>
+              </div>
               <input ref={upInputRef} type="file" accept="video/*,audio/*" hidden
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadNewVideo(f); e.currentTarget.value = ""; }} />
-              <button style={{ width: "100%" }} onClick={() => upInputRef.current?.click()} disabled={upBusy}>
-                {upBusy ? "Uploading…" : "⤒ Upload new video"}
-              </button>
-              {myMedia.length === 0 ? (
-                <div className="ed-cap-empty" style={{ paddingTop: 18 }}>No uploads yet.</div>
-              ) : (
-                <div className="ed-up-list">
-                  {myMedia.map((m) => (
-                    <div key={m.id} className={"ed-up-item" + (m.id === projectId ? " active" : "")}
-                      onClick={() => { if (m.id !== projectId) window.location.hash = `#/project/${m.id}`; }}>
-                      <div className="ed-up-thumb">▶</div>
-                      <div className="ed-up-meta">
-                        <div className="ed-up-name">{m.name}</div>
-                        <div className="np-sub">{m.id === projectId ? "Current project" : (m.sub_count ? `${m.sub_count} subs` : "Open")}</div>
-                      </div>
+              {upTab === "import" ? (
+                <>
+                  <button className="ml-import" onClick={() => upInputRef.current?.click()} disabled={upBusy}>
+                    {upBusy ? "Uploading…" : "⤒ Import"}
+                  </button>
+                  {myMedia.length === 0 ? (
+                    <div className="ml-empty2">
+                      <div className="ml-empty2-ic">🗎</div>
+                      <p>No media yet. Click Import to add videos, images, or audio.</p>
                     </div>
-                  ))}
-                </div>
+                  ) : (
+                    <div className="ed-up-list">
+                      {myMedia.map((m) => (
+                        <div key={m.id} className={"ed-up-item" + (m.id === projectId ? " active" : "")}
+                          onClick={() => { if (m.id !== projectId) window.location.hash = `#/project/${m.id}`; }}>
+                          <div className="ed-up-thumb">▶</div>
+                          <div className="ed-up-meta">
+                            <div className="ed-up-name">{m.name}</div>
+                            <div className="np-sub">{m.id === projectId ? "Current project" : (m.sub_count ? `${m.sub_count} subs` : "Open")}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <button className="ml-import" onClick={() => setRail("export")}>⤓ Export this project</button>
+                  <div className="ml-empty2">
+                    <div className="ml-empty2-ic">🗎</div>
+                    <p>Export your captioned MP4, or download SRT / VTT / ASS subtitles.</p>
+                  </div>
+                </>
               )}
             </>
           )}

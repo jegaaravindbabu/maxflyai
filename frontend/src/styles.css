@@ -821,3 +821,16 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
   display: flex; align-items: center; justify-content: center; font-size: 16px; flex: none; }
 .ed-up-meta { min-width: 0; }
 .ed-up-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- Editor Media Library (Uploads) Import/Export ---- */
+.ml-tabs2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: 12px; padding: 5px; margin: 12px 0 14px; }
+.ml-tab2 { text-align: center; padding: 9px 0; border-radius: 8px; font-size: 13px; font-weight: 600;
+  color: var(--muted); cursor: pointer; }
+.ml-tab2.active { background: var(--panel); color: var(--text); }
+.ml-import { width: 100%; background: #fff; color: #111; font-weight: 700; border: none;
+  border-radius: 12px; padding: 13px 0; cursor: pointer; }
+.ml-import:disabled { opacity: .6; cursor: default; }
+.ml-empty2 { text-align: center; color: var(--muted); padding: 40px 16px; }
+.ml-empty2-ic { font-size: 34px; opacity: .6; margin-bottom: 14px; }
+.ml-empty2 p { font-size: 13px; max-width: 260px; margin: 0 auto; }
