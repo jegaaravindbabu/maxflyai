@@ -114,6 +114,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [exports, setExports] = useState<{ fmt: string; url?: string; status: string; error?: string }[]>([]);
   const [rail, setRail] = useState<"uploads" | "captions" | "texts" | "images" | "broll" | "tools" | "zoom" | "filters" | "canvas" | "export">("captions");
   const [rightTab, setRightTab] = useState<"styles" | "settings" | "animation">("styles");
+  const [topTab, setTopTab] = useState<"video" | "audio" | "text">("text");
+  const [playRate, setPlayRate] = useState(1);
+  const [audioVol, setAudioVol] = useState(1);
   const [density, setDensity] = useState<"compact" | "roomy">("roomy");
   type CueSnap = { start_ms: number; end_ms: number; text: string; translit_text: string | null; line_count: number };
   const [undoStack, setUndoStack] = useState<CueSnap[][]>([]);
@@ -1071,19 +1074,58 @@ export function EditorPage({ projectId }: { projectId: string }) {
         {/* right panel */}
         <div className="ed-right">
           <div className="ed-rt-tabs">
-            <div className="ed-rt-tab">Video</div>
-            <div className="ed-rt-tab">Audio</div>
-            <div className="ed-rt-tab active">Text</div>
+            <div className={"ed-rt-tab" + (topTab === "video" ? " active" : "")} onClick={() => setTopTab("video")}>Video</div>
+            <div className={"ed-rt-tab" + (topTab === "audio" ? " active" : "")} onClick={() => setTopTab("audio")}>Audio</div>
+            <div className={"ed-rt-tab" + (topTab === "text" ? " active" : "")} onClick={() => setTopTab("text")}>Text</div>
           </div>
-          <div className="ed-rt-sub">
-            {(["styles", "settings", "animation"] as const).map((t) => (
-              <div key={t} className={"ed-rt-subtab" + (rightTab === t ? " active" : "")} onClick={() => setRightTab(t)}>
-                {t === "styles" ? "Styles" : t === "settings" ? "Caption settings" : "Animation"}
-              </div>
-            ))}
-          </div>
+          {topTab === "text" && (
+            <div className="ed-rt-sub">
+              {(["styles", "settings", "animation"] as const).map((t) => (
+                <div key={t} className={"ed-rt-subtab" + (rightTab === t ? " active" : "")} onClick={() => setRightTab(t)}>
+                  {t === "styles" ? "Styles" : t === "settings" ? "Caption settings" : "Animation"}
+                </div>
+              ))}
+            </div>
+          )}
 
-          {rightTab === "styles" && (
+          {topTab === "video" && (
+            <div className="ed-rt-body">
+              <div className="ed-anim-lbl">PLAYBACK SPEED</div>
+              <div className="ed-cs-slider">
+                <div className="ed-cs-slabel"><span>Speed</span><span>{playRate.toFixed(2)}x</span></div>
+                <input type="range" min={0.25} max={2} step={0.05} value={playRate}
+                  onChange={(e) => { const v = +e.target.value; setPlayRate(v); if (videoRef.current) videoRef.current.playbackRate = v; }} />
+                <div className="ed-cs-slabel" style={{ color: "var(--muted)" }}><span>0.25x</span><span>2x</span></div>
+              </div>
+              <div className="ed-hint-box" style={{ marginTop: 16 }}>
+                Preview speed for scrubbing. For the look of the video use <b>Filters</b> (colour grading &amp; LUTs) and <b>Auto Zoom</b> (punch-ins) in the left rail; change the source with <b>Replace</b> above the preview.
+              </div>
+            </div>
+          )}
+
+          {topTab === "audio" && (
+            <div className="ed-rt-body">
+              <div className="ed-anim-lbl">VOLUME</div>
+              <div className="ed-cs-slider">
+                <div className="ed-cs-slabel"><span>Level</span><span>{Math.round(audioVol * 100)}%</span></div>
+                <input type="range" min={0} max={2} step={0.05} value={audioVol}
+                  onChange={(e) => { const v = +e.target.value; setAudioVol(v); if (videoRef.current) videoRef.current.volume = Math.min(1, v); }} />
+                <div className="ed-cs-slabel" style={{ color: "var(--muted)" }}><span>mute</span><span>200%</span></div>
+              </div>
+              <div className="ed-anim-toggle" style={{ marginTop: 20 }}>
+                <div>
+                  <div className="ed-anim-title">Audio enhance</div>
+                  <div className="np-sub">Clean background noise with AI — applied when you export.</div>
+                </div>
+                <label className="ed-switch">
+                  <input type="checkbox" checked={enhanceAudio} onChange={(e) => setEnhanceAudio(e.target.checked)} />
+                  <span className="ed-switch-track" />
+                </label>
+              </div>
+            </div>
+          )}
+
+          {topTab === "text" && rightTab === "styles" && (
             <div className="ed-rt-body">
               <div className="ed-sub2">
                 {(["lines", "words", "saved"] as const).map((t) => (
@@ -1152,7 +1194,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             </div>
           )}
 
-          {rightTab === "settings" && (
+          {topTab === "text" && rightTab === "settings" && (
             <div className="ed-rt-body">
               <div className="ed-cs-title">Caption settings</div>
               <div className="ed-cs-row"><span>Font</span>
@@ -1206,7 +1248,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             </div>
           )}
 
-          {rightTab === "animation" && (
+          {topTab === "text" && rightTab === "animation" && (
             <div className="ed-rt-body">
               <div className="ed-anim-toggle">
                 <div>
