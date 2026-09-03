@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { api } from "../api/client";
-import type { ProjectDetail, Overlay, ImageOverlay, BrollClip, Cue } from "../types";
+import type { ProjectDetail, Overlay, ImageOverlay, BrollClip, Cue, Project } from "../types";
 import { VideoPreview } from "../components/VideoPreview";
 import { CaptionOverlay } from "../components/CaptionOverlay";
 import { Waveform } from "../components/Waveform";
@@ -38,14 +38,18 @@ const ANIM_PRESETS: [string, string][] = [
   ["bounce", "Bounce"], ["rotate", "Rotate"], ["flip", "Flip"],
 ];
 
+// Rail order mirrors HyproAI: Uploads, Texts, Videos, Filters, Captions, Auto Zoom, Images
+// (maxfly uploads via the New Project modal, so there is no separate Uploads panel;
+//  "Videos" maps to B-roll clips. AI Tools / Canvas / Export are maxfly extras.)
 const RAILS = [
-  { id: "captions", icon: "▤", label: "Captions" },
+  { id: "uploads", icon: "⤒", label: "Uploads" },
   { id: "texts", icon: "T", label: "Texts" },
-  { id: "images", icon: "🖼", label: "Images" },
-  { id: "broll", icon: "🎞", label: "B-roll" },
-  { id: "tools", icon: "✨", label: "AI Tools" },
-  { id: "zoom", icon: "⊕", label: "Auto Zoom" },
+  { id: "broll", icon: "🎞", label: "Videos" },
   { id: "filters", icon: "◑", label: "Filters" },
+  { id: "captions", icon: "▤", label: "Captions" },
+  { id: "zoom", icon: "⊕", label: "Auto Zoom" },
+  { id: "images", icon: "🖼", label: "Images" },
+  { id: "tools", icon: "✨", label: "AI Tools" },
   { id: "canvas", icon: "▭", label: "Canvas" },
   { id: "export", icon: "⬇", label: "Export" },
 ];
@@ -81,6 +85,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [selImg, setSelImg] = useState<string | null>(null);
   const [imgBusy, setImgBusy] = useState(false);
   const imgInputRef = useRef<HTMLInputElement>(null);
+  const upInputRef = useRef<HTMLInputElement>(null);
+  const [myMedia, setMyMedia] = useState<Project[]>([]);
+  const [upBusy, setUpBusy] = useState(false);
   const imagesRef = useRef<ImageOverlay[]>([]);
   imagesRef.current = images;
   const [stockQ, setStockQ] = useState("");
@@ -104,7 +111,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [curMs, setCurMs] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [exports, setExports] = useState<{ fmt: string; url?: string; status: string; error?: string }[]>([]);
-  const [rail, setRail] = useState<"captions" | "texts" | "images" | "broll" | "tools" | "zoom" | "filters" | "canvas" | "export">("captions");
+  const [rail, setRail] = useState<"uploads" | "captions" | "texts" | "images" | "broll" | "tools" | "zoom" | "filters" | "canvas" | "export">("captions");
   const [rightTab, setRightTab] = useState<"styles" | "settings" | "animation">("styles");
   const [density, setDensity] = useState<"compact" | "roomy">("roomy");
   type CueSnap = { start_ms: number; end_ms: number; text: string; translit_text: string | null; line_count: number };
@@ -370,6 +377,17 @@ export function EditorPage({ projectId }: { projectId: string }) {
     setCurFilter(name);
     try { await api.setFilter(projectId, name); } catch {}
   }
+  useEffect(() => { api.listProjects().then(setMyMedia).catch(() => {}); }, []);
+  async function uploadNewVideo(file: File) {
+    setUpBusy(true);
+    try {
+      const np = await api.upload(file);
+      try { await api.transcribe(np.id, "ta-IN", "translit"); } catch {}
+      window.location.hash = `#/project/${np.id}`;
+    } catch (e: any) { alert("Upload failed: " + (e?.message || "")); }
+    finally { setUpBusy(false); }
+  }
+
   function pickImage() { imgInputRef.current?.click(); }
   async function uploadImage(file: File) {
     setImgBusy(true);
@@ -564,6 +582,34 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
         {/* left panel */}
         <div className="ed-left">
+          {rail === "uploads" && (
+            <>
+              <div className="ed-left-head"><h3>Uploads</h3></div>
+              <div className="ed-hint-box">Upload a new video or audio file, or open one of your existing uploads.</div>
+              <input ref={upInputRef} type="file" accept="video/*,audio/*" hidden
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadNewVideo(f); e.currentTarget.value = ""; }} />
+              <button style={{ width: "100%" }} onClick={() => upInputRef.current?.click()} disabled={upBusy}>
+                {upBusy ? "Uploading…" : "⤒ Upload new video"}
+              </button>
+              {myMedia.length === 0 ? (
+                <div className="ed-cap-empty" style={{ paddingTop: 18 }}>No uploads yet.</div>
+              ) : (
+                <div className="ed-up-list">
+                  {myMedia.map((m) => (
+                    <div key={m.id} className={"ed-up-item" + (m.id === projectId ? " active" : "")}
+                      onClick={() => { if (m.id !== projectId) window.location.hash = `#/project/${m.id}`; }}>
+                      <div className="ed-up-thumb">▶</div>
+                      <div className="ed-up-meta">
+                        <div className="ed-up-name">{m.name}</div>
+                        <div className="np-sub">{m.id === projectId ? "Current project" : (m.sub_count ? `${m.sub_count} subs` : "Open")}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
           {rail === "captions" && (
             <>
               <div className="ed-left-head">
