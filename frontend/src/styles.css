@@ -204,7 +204,9 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
   display: grid; place-items: center; font-weight: 700; }
 .sb-account .who { font-size: 13px; font-weight: 600; line-height: 1.2; }
 .sb-account .who small { color: var(--muted); font-weight: 400; }
-.sb-logout { margin-left: auto; color: var(--muted); cursor: pointer; background: none; border: 0; padding: 6px; }
+.sb-signout { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin: 8px 0 4px; padding: 10px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--border); color: var(--text); font-size: 13px; font-weight: 700; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+.sb-signout:hover { background: rgba(239,68,68,.12); border-color: var(--accent); color: var(--accent-2); }
+.sb-signout .ic { font-size: 15px; }
 
 /* dashboard home */
 .hero { background: radial-gradient(1200px 200px at 0% 0%, rgba(239,68,68,.12), transparent),
@@ -241,7 +243,7 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
   padding: 14px 0; border-bottom: 1px solid var(--border); }
 @media (max-width: 780px) {
   .sidebar { width: 64px; }
-  .sb-logo .name, .sb-item span:not(.ic), .sb-usage, .sb-promo, .sb-account .who, .sb-new span { display: none; }
+  .sb-logo .name, .sb-item span:not(.ic), .sb-usage, .sb-promo, .sb-account .who, .sb-new span, .sb-signout span:not(.ic) { display: none; }
 }
 
 .uploading-bar { background: var(--panel-2); border: 1px solid var(--accent); color: var(--accent);

@@ -62,10 +62,12 @@ export function Sidebar({ route, onNewProject }: Props) {
       <div className="sb-account">
         <div className="sb-avatar">{name[0]?.toUpperCase() || "G"}</div>
         <div className="who">{name}<br /><small>{use_?.label || "Free"} Plan</small></div>
-        {authEnabled && email && (
-          <button className="sb-logout" title="Sign out" onClick={() => signOut()}>⎋</button>
-        )}
       </div>
+      {authEnabled && email && (
+        <button className="sb-signout" onClick={() => signOut()}>
+          <span className="ic">⏏</span><span>Sign out</span>
+        </button>
+      )}
     </aside>
   );
 }
