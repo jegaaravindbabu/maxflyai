@@ -7,6 +7,9 @@ Supabase auth. Verifies the access token from the Authorization header.
     * Legacy projects sign HS256 -> verified with SUPABASE_JWT_SECRET.
 
 Returns the Supabase user id (the token's `sub`).
+
+Admin: emails listed in ADMIN_EMAILS get superadmin access -- they bypass the
+per-user project filter and ownership guard, so they see & manage every project.
 """
 from __future__ import annotations
 
@@ -36,9 +39,12 @@ def _verify(token: str) -> dict:
                       audience="authenticated")
 
 
-def current_user(request: Request) -> str | None:
+def claims(request: Request) -> dict | None:
+    """Verify the bearer token once per request and return its payload.
+
+    Returns None when auth is disabled (dev / open mode)."""
     if not settings.auth_enabled:
-        return None  # dev / auth off
+        return None
 
     auth = request.headers.get("authorization", "")
     if not auth.lower().startswith("bearer "):
@@ -54,13 +60,25 @@ def current_user(request: Request) -> str | None:
         payload = _verify(token)
     except Exception as e:
         raise HTTPException(401, f"invalid token: {e}")
-    sub = payload.get("sub")
-    if not sub:
+    if not payload.get("sub"):
         raise HTTPException(401, "token has no subject")
-    return sub
+    return payload
+
+
+def current_user(payload: dict | None = Depends(claims)) -> str | None:
+    """Supabase user id (sub), or None when auth is disabled."""
+    return payload.get("sub") if payload else None
 
 
 def require_user(user: str | None = Depends(current_user)) -> str:
     if user is None:
         return "dev"   # auth disabled
     return user
+
+
+def is_admin(payload: dict | None = Depends(claims)) -> bool:
+    """True when the signed-in user's email is on the ADMIN_EMAILS allowlist."""
+    if payload is None:
+        return False   # auth off -> project list is already unfiltered
+    email = (payload.get("email") or "").strip().lower()
+    return bool(email) and email in settings.admin_email_list

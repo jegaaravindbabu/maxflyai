@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     supabase_bucket: str = "media"
     supabase_jwt_secret: str = ""
     auth_enabled: bool = False   # require Supabase login when True
+    admin_emails: str = ""   # comma-separated superadmin emails (see all projects)
 
     r2_account_id: str = ""
     r2_access_key_id: str = ""
@@ -36,6 +37,10 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def admin_email_list(self) -> list[str]:
+        return [e.strip().lower() for e in self.admin_emails.split(",") if e.strip()]
 
     @property
     def celery_eager(self) -> bool:

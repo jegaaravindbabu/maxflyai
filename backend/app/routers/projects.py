@@ -6,7 +6,7 @@ from app.database import get_db
 from app.deps import owned_project
 from app.models import Project, Segment, Transcript, CaptionCue, Job, TextOverlay, ImageOverlay, BrollClip
 from app.schemas import ProjectOut, ProjectDetail, SegmentOut, CueOut, OverlayOut, OverlayIn, OverlayPatch, ImageOut, ImagePatch, BrollOut, BrollPatch
-from app.services.auth import current_user
+from app.services.auth import current_user, is_admin
 from app.services.storage import storage
 import os, tempfile
 import httpx
@@ -15,9 +15,10 @@ router = APIRouter(prefix="/api/projects", tags=["projects"])
 
 
 @router.get("", response_model=list[ProjectOut])
-def list_projects(db: Session = Depends(get_db), user: str | None = Depends(current_user)):
+def list_projects(db: Session = Depends(get_db), user: str | None = Depends(current_user),
+                  admin: bool = Depends(is_admin)):
     q = db.query(Project)
-    if user is not None:
+    if user is not None and not admin:
         q = q.filter(Project.user_id == user)
     projects = q.order_by(Project.created_at.desc()).all()
     if projects:
