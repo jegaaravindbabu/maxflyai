@@ -144,6 +144,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   useEffect(() => {
     api.getFilter(projectId).then((r) => setCurFilter(r.name)).catch(() => {});
     api.listImages(projectId).then(setImages).catch(() => {});
+    api.listProjects().then(setMyMedia).catch(() => {});
     api.listBrolls(projectId).then(setBrolls).catch(() => {});
     api.getCaptionSettings(projectId).then((r) => setCapSettings(r || {})).catch(() => {});
     api.listSavedStyles(projectId).then(setSavedStyles).catch(() => {});
@@ -377,7 +378,6 @@ export function EditorPage({ projectId }: { projectId: string }) {
     setCurFilter(name);
     try { await api.setFilter(projectId, name); } catch {}
   }
-  useEffect(() => { api.listProjects().then(setMyMedia).catch(() => {}); }, []);
   async function uploadNewVideo(file: File) {
     setUpBusy(true);
     try {
