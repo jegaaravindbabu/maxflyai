@@ -349,7 +349,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
     const style = animOn ? capStyle : "classic";
     upsertExport(fmt, { status: "processing" });
     try {
-      const r = await api.exportSub(projectId, fmt, showTranslit, true, style, enhanceAudio);
+      const r = await api.exportSub(projectId, fmt, showTranslit, true, style, enhanceAudio, audioVol, playRate);
       const eid = r.export_id;
       for (let i = 0; i < 120; i++) {
         await new Promise((res) => setTimeout(res, 1500));

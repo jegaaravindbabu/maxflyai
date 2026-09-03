@@ -20,7 +20,7 @@ def export(project_id: str, body: ExportRequest, db: Session = Depends(get_db),
     db.commit()
     db.refresh(exp)
     runner.submit(run_export_job, exp.id, project_id, body.format, body.use_translit,
-                  body.apply_cuts, body.style, body.enhance_audio)
+                  body.apply_cuts, body.style, body.enhance_audio, body.volume, body.speed)
     return {"export_id": exp.id, "status": "processing", "format": body.format}
 
 

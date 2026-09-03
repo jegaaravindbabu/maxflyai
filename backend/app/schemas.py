@@ -154,6 +154,8 @@ class ExportRequest(BaseModel):
     apply_cuts: bool = True   # apply enabled silence/manual cuts (ripple-delete)
     style: str = "classic"    # caption animation preset (ass/mp4)
     enhance_audio: bool = False   # "studio" voice cleanup on the exported MP4
+    volume: float = 1.0       # audio level multiplier (mp4)
+    speed: float = 1.0        # playback speed multiplier (mp4)
 
 
 class JobOut(BaseModel):

@@ -192,6 +192,30 @@ def trim_and_concat(media_path: str, keep: list[dict], out_path: str) -> str:
     return out_path
 
 
+def _atempo_chain(speed: float) -> str:
+    """ffmpeg atempo only accepts 0.5-2.0 per instance; chain to reach any factor."""
+    parts = []
+    r = float(speed)
+    while r > 2.0 + 1e-6:
+        parts.append("atempo=2.0"); r /= 2.0
+    while r < 0.5 - 1e-6:
+        parts.append("atempo=0.5"); r /= 0.5
+    parts.append(f"atempo={r:.5f}")
+    return ",".join(parts)
+
+
+def speed_video(src: str, out_path: str, speed: float) -> str:
+    """Re-time the whole clip by `speed` (video setpts + audio atempo)."""
+    sp = max(0.1, float(speed))
+    fc = f"[0:v]setpts=PTS/{sp:.5f}[v];[0:a]{_atempo_chain(sp)}[a]"
+    cmd = ["ffmpeg", "-y", "-i", src, "-filter_complex", fc, "-map", "[v]", "-map", "[a]",
+           *_VENC, "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", out_path]
+    cp = _run(cmd)
+    if cp.returncode != 0:
+        raise RuntimeError(f"ffmpeg speed change failed: {cp.stderr[-400:]}")
+    return out_path
+
+
 def video_info(media_path: str) -> dict:
     """Probe fps (as num/den), width, height for timeline export."""
     cp = _run(["ffprobe", "-v", "quiet", "-select_streams", "v:0",

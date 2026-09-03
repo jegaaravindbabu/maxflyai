@@ -111,7 +111,8 @@ def _load_enabled_cuts(db, project_id: str) -> list[dict]:
 
 def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                apply_cuts: bool = True, style: str = "classic",
-               enhance_audio: bool = False, export_id: str | None = None) -> dict:
+               enhance_audio: bool = False, volume: float = 1.0, speed: float = 1.0,
+               export_id: str | None = None) -> dict:
     db = SessionLocal()
     try:
         project = db.get(Project, project_id)
@@ -144,15 +145,32 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                 video_src = trimmed
             else:
                 video_src = src
+            # playback speed: bake into the source; retime everything by 1/speed
+            sp = max(0.1, float(speed))
+            vol = max(0.0, float(volume))
+            fast = abs(sp - 1.0) > 1e-3
+            if fast:
+                fd, sped = tempfile.mkstemp(suffix=".mp4"); os.close(fd)
+                ffmpeg_utils.speed_video(video_src, sped, sp)
+                video_src = sped
+            def _rt(ms):
+                return int(round(ms / sp)) if fast else int(ms)
+            if fast:
+                cues = [{**c, "start_ms": _rt(c["start_ms"]), "end_ms": _rt(c["end_ms"])} for c in cues]
             # 2. burn the (remapped) captions
-            audio_filter = (ffmpeg_utils.audio_enhance_filter(settings.arnndn_model_path or None)
-                            if enhance_audio else None)
+            _af = []
+            if enhance_audio:
+                _ef = ffmpeg_utils.audio_enhance_filter(settings.arnndn_model_path or None)
+                if _ef: _af.append(_ef)
+            if abs(vol - 1.0) > 1e-3:
+                _af.append(f"volume={vol:.3f}")
+            audio_filter = ",".join(_af) if _af else None
             ass = build_ass(cues, style, use_translit, _load_capsettings(db, project_id))
             overlays = _load_overlays(db, project_id)
             if overlays:
                 for o in overlays:
-                    o["start_ms"] = timeline.remap_ms(o["start_ms"], cuts) if cuts else o["start_ms"]
-                    o["end_ms"] = timeline.remap_ms(o["end_ms"], cuts) if cuts else o["end_ms"]
+                    o["start_ms"] = _rt(timeline.remap_ms(o["start_ms"], cuts) if cuts else o["start_ms"])
+                    o["end_ms"] = _rt(timeline.remap_ms(o["end_ms"], cuts) if cuts else o["end_ms"])
                 overlays = [o for o in overlays if o["end_ms"] > o["start_ms"]]
                 ev = build_overlay_events(overlays)
                 if ev:
@@ -179,10 +197,11 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
             zoom_prefilter = None
             zsegs = _load_zoom_segments(db, project_id)
             if zsegs:
-                if cuts:
+                if cuts or fast:
                     for z in zsegs:
-                        z["start_ms"] = timeline.remap_ms(z["start_ms"], cuts)
-                        z["end_ms"] = timeline.remap_ms(z["end_ms"], cuts)
+                        st = timeline.remap_ms(z["start_ms"], cuts) if cuts else z["start_ms"]
+                        en = timeline.remap_ms(z["end_ms"], cuts) if cuts else z["end_ms"]
+                        z["start_ms"] = _rt(st); z["end_ms"] = _rt(en)
                     zsegs = [z for z in zsegs if z["end_ms"] > z["start_ms"]]
                 try:
                     zoom_prefilter = autozoom.build_zoom_filter(
@@ -196,8 +215,8 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
             images = _load_images(db, project_id)
             img_inputs = []
             for im in images:
-                s0 = timeline.remap_ms(im["start_ms"], cuts) if cuts else im["start_ms"]
-                e0 = timeline.remap_ms(im["end_ms"], cuts) if cuts else im["end_ms"]
+                s0 = _rt(timeline.remap_ms(im["start_ms"], cuts) if cuts else im["start_ms"])
+                e0 = _rt(timeline.remap_ms(im["end_ms"], cuts) if cuts else im["end_ms"])
                 if e0 <= s0:
                     continue
                 try:
@@ -209,8 +228,8 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
             broll_rows = _load_brolls(db, project_id)
             broll_inputs = []
             for br in broll_rows:
-                s0 = timeline.remap_ms(br["start_ms"], cuts) if cuts else br["start_ms"]
-                e0 = timeline.remap_ms(br["end_ms"], cuts) if cuts else br["end_ms"]
+                s0 = _rt(timeline.remap_ms(br["start_ms"], cuts) if cuts else br["start_ms"])
+                e0 = _rt(timeline.remap_ms(br["end_ms"], cuts) if cuts else br["end_ms"])
                 if e0 <= s0:
                     continue
                 try:
@@ -336,11 +355,12 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
 
 
 def run_export_job(export_id: str, project_id: str, fmt: str, use_translit: bool,
-                   apply_cuts: bool, style: str, enhance_audio: bool) -> None:
+                   apply_cuts: bool, style: str, enhance_audio: bool,
+                   volume: float = 1.0, speed: float = 1.0) -> None:
     """Background entry: run the export, mark the Export row error on failure."""
     try:
         run_export(project_id, fmt, use_translit, apply_cuts, style, enhance_audio,
-                   export_id=export_id)
+                   volume, speed, export_id=export_id)
     except Exception as e:
         db = SessionLocal()
         try:
