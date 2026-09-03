@@ -876,3 +876,42 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .pr-chip:hover { border-color: var(--accent); transform: translateY(-2px); }
 .pr-chip-q { font-size: 15px; font-weight: 800; }
 .pr-chip-p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* ---------- Auth (split login) ---------- */
+.auth-split { position: fixed; inset: 0; display: grid; grid-template-columns: 1fr 1fr; background: var(--bg); z-index: 50; overflow: auto; }
+.auth-left { display: flex; flex-direction: column; justify-content: center; padding: 48px 6vw; background: radial-gradient(120% 90% at 0% 0%, #16101a 0%, var(--bg) 60%); }
+.auth-logo { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
+.auth-logo-mark { display: inline-flex; align-items: center; justify-content: center; width: 58px; height: 58px; border-radius: 14px; background: var(--grad); color: var(--on-accent); font-size: 20px; letter-spacing: -3px; box-shadow: 0 10px 30px -10px var(--accent); }
+.auth-wordmark { font-size: 40px; font-weight: 800; letter-spacing: -1px; }
+.auth-wordmark span { color: var(--accent); }
+.auth-tagline { color: var(--muted); font-size: 18px; line-height: 1.6; max-width: 460px; margin: 0 0 34px; }
+.auth-feats { display: flex; flex-direction: column; gap: 14px; max-width: 500px; }
+.auth-feat { display: flex; align-items: center; gap: 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; }
+.auth-feat-ic { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 10px; background: var(--panel-2); font-size: 20px; flex-shrink: 0; }
+.auth-feat-title { font-size: 16px; font-weight: 700; }
+.auth-feat-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.auth-right { display: flex; align-items: center; justify-content: center; padding: 40px 5vw; }
+.auth-formcard { width: 100%; max-width: 420px; background: var(--panel); border: 1px solid var(--border); border-radius: 20px; padding: 34px 30px; }
+.auth-welcome { font-size: 30px; font-weight: 800; text-align: center; margin: 0 0 6px; }
+.auth-welcome-sub { text-align: center; color: var(--muted); font-size: 14px; margin: 0 0 22px; }
+.brand-inline { font-weight: 800; color: var(--text); }
+.brand-inline span { color: var(--accent); }
+.auth-google-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; background: #fff; color: #1a1a1a; border: none; border-radius: 12px; padding: 13px; font-size: 15px; font-weight: 700; cursor: pointer; transition: opacity .15s; }
+.auth-google-btn:hover { opacity: .9; }
+.auth-google-btn .g-ic { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: conic-gradient(#ea4335 0 25%, #fbbc05 0 50%, #34a853 0 75%, #4285f4 0); color: #fff; font-weight: 800; font-size: 12px; }
+.auth-divider { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 11px; letter-spacing: 1px; margin: 20px 0; }
+.auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.auth-form2 { display: flex; flex-direction: column; }
+.auth-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+.auth-form2 input { width: 100%; padding: 13px 14px; margin-bottom: 16px; border-radius: 12px; }
+.auth-forgot { align-self: flex-end; font-size: 13px; margin: -6px 0 14px; }
+.auth-submit { width: 100%; padding: 14px; border-radius: 999px; border: none; background: var(--grad); color: var(--on-accent); font-size: 16px; font-weight: 800; cursor: pointer; transition: opacity .15s; }
+.auth-submit:hover:not(:disabled) { opacity: .92; }
+.auth-submit:disabled { opacity: .6; cursor: default; }
+.auth-switch2 { text-align: center; font-size: 14px; color: var(--muted); margin: 18px 0 0; }
+.auth-terms { text-align: center; font-size: 11px; color: var(--muted); margin: 20px 0 0; opacity: .7; }
+@media (max-width: 860px) {
+  .auth-split { grid-template-columns: 1fr; }
+  .auth-left { display: none; }
+  .auth-right { padding: 24px 18px; min-height: 100vh; }
+}
