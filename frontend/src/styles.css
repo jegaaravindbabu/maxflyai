@@ -834,3 +834,7 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .ml-empty2 { text-align: center; color: var(--muted); padding: 40px 16px; }
 .ml-empty2-ic { font-size: 34px; opacity: .6; margin-bottom: 14px; }
 .ml-empty2 p { font-size: 13px; max-width: 260px; margin: 0 auto; }
+
+/* 5 caption sub-tabs — allow wrap so they fit */
+.ed-rt-sub { flex-wrap: wrap; }
+.ed-rt-subtab { white-space: nowrap; }

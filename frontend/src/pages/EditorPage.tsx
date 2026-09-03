@@ -113,7 +113,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [playing, setPlaying] = useState(false);
   const [exports, setExports] = useState<{ fmt: string; url?: string; status: string; error?: string }[]>([]);
   const [rail, setRail] = useState<"uploads" | "captions" | "texts" | "images" | "broll" | "tools" | "zoom" | "filters" | "canvas" | "export">("captions");
-  const [rightTab, setRightTab] = useState<"styles" | "settings" | "animation">("styles");
+  const [rightTab, setRightTab] = useState<"styles" | "font" | "animation" | "outline" | "shadow">("styles");
   const [topTab, setTopTab] = useState<"video" | "audio" | "text">("text");
   const [playRate, setPlayRate] = useState(1);
   const [audioVol, setAudioVol] = useState(1);
@@ -1080,9 +1080,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
           </div>
           {topTab === "text" && (
             <div className="ed-rt-sub">
-              {(["styles", "settings", "animation"] as const).map((t) => (
+              {(["styles", "font", "animation", "outline", "shadow"] as const).map((t) => (
                 <div key={t} className={"ed-rt-subtab" + (rightTab === t ? " active" : "")} onClick={() => setRightTab(t)}>
-                  {t === "styles" ? "Styles" : t === "settings" ? "Caption settings" : "Animation"}
+                  {t === "styles" ? "Styles" : t === "font" ? "Font & colour" : t === "animation" ? "Animation" : t === "outline" ? "Outline" : "Shadow"}
                 </div>
               ))}
             </div>
@@ -1194,9 +1194,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
             </div>
           )}
 
-          {topTab === "text" && rightTab === "settings" && (
+          {topTab === "text" && rightTab === "font" && (
             <div className="ed-rt-body">
-              <div className="ed-cs-title">Caption settings</div>
+              <div className="ed-cs-title">Font &amp; colour</div>
               <div className="ed-cs-row"><span>Font</span>
                 <select value={capSettings.font || ""} onChange={(e) => saveCapSetting({ font: e.target.value })}>
                   {CS_FONTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -1214,29 +1214,12 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   onChange={(e) => setCapSettings((pr) => ({ ...pr, spacing: +e.target.value }))}
                   onMouseUp={(e) => saveCapSetting({ spacing: +(e.target as HTMLInputElement).value })} />
               </div>
-              <div className="ed-anim-lbl" style={{ marginTop: 16 }}>EFFECTS</div>
-              <div className="ed-cs-effects">
-                {([["Outline", "outline"], ["Glow", "glow"], ["Shadow", "shadow"]] as [string, string][]).map(([lb, key]) => {
-                  const on = key === "glow" ? !!capSettings.glow
-                    : key === "outline" ? (capSettings.outline_w ?? 3) > 0
-                    : (capSettings.shadow ?? 1) > 0;
-                  return (
-                    <div key={key} className={"ed-cs-chip" + (on ? " on" : "")} onClick={() => {
-                      if (key === "glow") saveCapSetting({ glow: !on });
-                      else if (key === "outline") saveCapSetting({ outline_w: on ? 0 : 4 });
-                      else saveCapSetting({ shadow: on ? 0 : 3 });
-                    }}>{lb}</div>
-                  );
-                })}
-              </div>
+              <div className="np-sub" style={{ marginTop: 10 }}>Caption colours come from the <b>Styles</b> tab — pick a preset or a colour swatch there, then Apply all.</div>
               <div className="ed-cs-divider" />
+              <div className="ed-anim-lbl">TRANSCRIPTION</div>
               <label className="ed-setting">
                 <span>Show romanized (Thanglish)</span>
                 <input type="checkbox" checked={showTranslit} onChange={(e) => setShowTranslit(e.target.checked)} />
-              </label>
-              <label className="ed-setting">
-                <span>Enhance audio on export</span>
-                <input type="checkbox" checked={enhanceAudio} onChange={(e) => setEnhanceAudio(e.target.checked)} />
               </label>
               <div className="np-label" style={{ marginTop: 14 }}>Language</div>
               <select value={lang} onChange={(e) => setLang(e.target.value)} style={{ width: "100%" }}>
@@ -1245,6 +1228,63 @@ export function EditorPage({ projectId }: { projectId: string }) {
               <button style={{ width: "100%", marginTop: 12 }} onClick={runTranscribe} disabled={busy || transcribing}>
                 {transcribing ? "Transcribing…" : "Re-transcribe"}
               </button>
+            </div>
+          )}
+
+          {topTab === "text" && rightTab === "outline" && (
+            <div className="ed-rt-body">
+              <div className="ed-cs-title">Outline</div>
+              <div className="ed-anim-toggle">
+                <div>
+                  <div className="ed-anim-title">Outline</div>
+                  <div className="np-sub">A stroke around each letter for readability.</div>
+                </div>
+                <label className="ed-switch">
+                  <input type="checkbox" checked={(capSettings.outline_w ?? 3) > 0}
+                    onChange={(e) => saveCapSetting({ outline_w: e.target.checked ? 4 : 0 })} />
+                  <span className="ed-switch-track" />
+                </label>
+              </div>
+              <div className="ed-cs-slider" style={{ marginTop: 16 }}>
+                <div className="ed-cs-slabel"><span>Thickness</span><span>{capSettings.outline_w ?? 3}px</span></div>
+                <input type="range" min={0} max={12} step={1} value={capSettings.outline_w ?? 3}
+                  onChange={(e) => setCapSettings((pr) => ({ ...pr, outline_w: +e.target.value }))}
+                  onMouseUp={(e) => saveCapSetting({ outline_w: +(e.target as HTMLInputElement).value })} />
+              </div>
+            </div>
+          )}
+
+          {topTab === "text" && rightTab === "shadow" && (
+            <div className="ed-rt-body">
+              <div className="ed-cs-title">Shadow</div>
+              <div className="ed-anim-toggle">
+                <div>
+                  <div className="ed-anim-title">Drop shadow</div>
+                  <div className="np-sub">A soft shadow cast behind the text.</div>
+                </div>
+                <label className="ed-switch">
+                  <input type="checkbox" checked={(capSettings.shadow ?? 1) > 0}
+                    onChange={(e) => saveCapSetting({ shadow: e.target.checked ? 3 : 0 })} />
+                  <span className="ed-switch-track" />
+                </label>
+              </div>
+              <div className="ed-cs-slider" style={{ marginTop: 16 }}>
+                <div className="ed-cs-slabel"><span>Depth</span><span>{capSettings.shadow ?? 1}px</span></div>
+                <input type="range" min={0} max={12} step={1} value={capSettings.shadow ?? 1}
+                  onChange={(e) => setCapSettings((pr) => ({ ...pr, shadow: +e.target.value }))}
+                  onMouseUp={(e) => saveCapSetting({ shadow: +(e.target as HTMLInputElement).value })} />
+              </div>
+              <div className="ed-anim-toggle" style={{ marginTop: 20 }}>
+                <div>
+                  <div className="ed-anim-title">Glow</div>
+                  <div className="np-sub">A luminous halo around the text.</div>
+                </div>
+                <label className="ed-switch">
+                  <input type="checkbox" checked={!!capSettings.glow}
+                    onChange={(e) => saveCapSetting({ glow: e.target.checked })} />
+                  <span className="ed-switch-track" />
+                </label>
+              </div>
             </div>
           )}
 
