@@ -130,7 +130,8 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
 @keyframes capBounce { 0% { transform: scale(1.15) } 45% { transform: scale(.94) } 100% { transform: scale(1) } }
 
 /* word-by-word */
-.capword { color: #fff; transition: color .08s, background .08s; }
+.capword { display: inline-block; color: #fff; transition: color .08s, background .08s; }
+.capword-move { will-change: transform, opacity; }
 .cap-karaoke .capword-on, .cap-karaoke .capword-passed { color: #ff5a3c; }
 .cap-highlight .capword-on { background: #ffe11a; color: #000; border-radius: 4px; padding: 0 3px; }
 

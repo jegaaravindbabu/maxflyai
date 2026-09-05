@@ -119,6 +119,51 @@ def _karaoke_text(text: str, dur_ms: int) -> str:
     return "".join(out).strip()
 
 
+# Motion presets that animate each word in individually (word scope).
+_WORD_MOTION = {"fade", "slide_up", "slide_down", "slide_left", "slide_right",
+                "pop", "bounce", "rotate", "flip"}
+
+
+def _word_tag(anim: str, ti: int, D: int) -> str:
+    """ASS override for one word's entrance starting at `ti` ms over `D` ms."""
+    t2 = ti + D
+    if anim == "pop":
+        return (f"{{\\fscx45\\fscy45\\alpha&HFF&"
+                f"\\t({ti},{t2},\\fscx100\\fscy100\\alpha&H00&)}}")
+    if anim == "bounce":
+        d1 = ti + int(D * 0.55)
+        return (f"{{\\fscx45\\fscy45\\alpha&HFF&"
+                f"\\t({ti},{d1},\\fscx112\\fscy112\\alpha&H00&)"
+                f"\\t({d1},{t2},\\fscx100\\fscy100)}}")
+    if anim == "rotate":
+        return f"{{\\frz-14\\alpha&HFF&\\t({ti},{t2},\\frz0\\alpha&H00&)}}"
+    if anim == "flip":
+        return f"{{\\fry90\\alpha&HFF&\\t({ti},{t2},\\fry0\\alpha&H00&)}}"
+    # fade + all slide_* fall back to a clean per-word fade-in
+    return f"{{\\alpha&HFF&\\t({ti},{t2},\\alpha&H00&)}}"
+
+
+def _word_anim_text(text: str, dur_ms: int, anim: str, speed: float = 1.0) -> str:
+    """Each word animates in on its own, timed across the cue duration."""
+    plain = text.replace("\n", " \\N ")
+    words = [w for w in plain.split(" ") if w != ""]
+    real = [w for w in words if w != "\\N"]
+    if not real:
+        return text.replace("\n", "\\N")
+    total_chars = sum(len(w) for w in real) or 1
+    D = max(80, int(220 / max(0.3, speed)))
+    out = []
+    used = 0
+    for w in words:
+        if w == "\\N":
+            out.append("\\N")
+            continue
+        ti = int(dur_ms * used / total_chars)
+        used += len(w)
+        out.append(_word_tag(anim, ti, D) + w + " ")
+    return "".join(out).strip()
+
+
 def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False,
               settings: dict | None = None) -> str:
     p = dict(PRESETS.get(style, PRESETS[DEFAULT]))   # copy so overrides don't mutate presets
@@ -152,10 +197,12 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
         if p.get("upper"):
             txt = txt.upper()
         dur = max(c["end_ms"] - c["start_ms"], 1)
-        word_mode = scope == "word" or (anim == "karaoke")
-        if word_mode:
+        if anim == "karaoke":
             body = _karaoke_text(txt, dur)
             prefix = glow_tag + "{\\fad(80,80)}"
+        elif scope == "word" and anim in _WORD_MOTION:
+            body = _word_anim_text(txt, dur, anim, speed)
+            prefix = glow_tag
         else:
             body = txt.replace("\n", "\\N")
             prefix = glow_tag + _anim_prefix(anim, dur, speed)
