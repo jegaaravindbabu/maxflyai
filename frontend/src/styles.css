@@ -1094,3 +1094,16 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .rtk-sens-val { color: var(--accent-2); font-weight: 700; }
 .rtk-sens input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; }
 .rtk-sens-ends { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--muted); margin-top: 4px; }
+
+/* filler remover rows (reuse .rtk-* shell) */
+.flr-list { display: flex; flex-direction: column; gap: 5px; }
+.flr-row { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 8px; background: var(--panel-2); cursor: pointer; transition: background .12s; }
+.flr-row:hover { background: #23273a; }
+.flr-row.on { background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.3); padding: 6px 8px; }
+.flr-row input { accent-color: var(--accent); }
+.flr-row .spacer { flex: 1; }
+.flr-word { font-size: 13px; font-weight: 600; }
+.flr-time { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; cursor: pointer; }
+.flr-time:hover { color: var(--accent-2); }
+.flr-dur { font-size: 11px; color: var(--accent-2); font-variant-numeric: tabular-nums; }
+.rtk-title { font-size: 14px; font-weight: 800; }
