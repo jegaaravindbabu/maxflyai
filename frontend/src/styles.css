@@ -1108,3 +1108,11 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .flr-time:hover { color: var(--accent-2); }
 .flr-dur { font-size: 11px; color: var(--accent-2); font-variant-numeric: tabular-nums; }
 .rtk-title { font-size: 14px; font-weight: 800; }
+
+/* NLE export rows */
+.ed-nle { display: flex; flex-direction: column; gap: 8px; }
+.ed-nle-row { display: flex; align-items: center; gap: 10px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.ed-nle-info { flex: 1; min-width: 0; }
+.ed-nle-t { font-size: 13px; font-weight: 700; }
+.ed-nle-s { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.ed-nle-row button { flex-shrink: 0; }

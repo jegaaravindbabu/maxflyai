@@ -320,7 +320,8 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                     + ("  music.wav     - instrumental (vocals removed)\n" if music_name else "")
                     + "  captions.srt  - subtitles\n"
                     "  captions.ass  - styled subtitles\n"
-                    "  timeline.fcpxml - open in Premiere Pro / DaVinci Resolve / Final Cut\n\n"
+                    "  timeline.fcpxml - DaVinci Resolve / Final Cut: video + editable caption titles\n\n"
+                    "Premiere Pro: import captions.srt as a caption track (FCPXML title import is limited).\n"
                     "Keep all files in the same folder so the timeline relinks the media.\n")
                 with open(os.path.join(work, "README.txt"), "w", encoding="utf-8") as fh:
                     fh.write(readme)

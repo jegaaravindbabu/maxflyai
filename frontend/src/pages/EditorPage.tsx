@@ -1006,12 +1006,37 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 </div>
                 <div className="np-label" style={{ marginTop: 14 }}>Video</div>
                 <button style={{ width: "100%" }} onClick={() => doExport("mp4")}>Export MP4 (burned-in)</button>
-                <div className="np-label" style={{ marginTop: 14 }}>Editing timeline</div>
-                <div className="ed-exp-btns">
-                  <button className="secondary" onClick={() => doExport("fcpxml")}>FCPXML</button>
-                  <button className="secondary" onClick={() => doExport("edl")}>EDL</button>
+                <div className="np-label" style={{ marginTop: 16 }}>Export to your editor (NLE)</div>
+                <div className="ed-nle">
+                  <div className="ed-nle-row">
+                    <div className="ed-nle-info">
+                      <div className="ed-nle-t">DaVinci Resolve / Final Cut</div>
+                      <div className="ed-nle-s">Video + captions as editable text, cuts applied</div>
+                    </div>
+                    <button className="secondary" onClick={() => doExport("fcpxml")}>FCPXML</button>
+                  </div>
+                  <div className="ed-nle-row">
+                    <div className="ed-nle-info">
+                      <div className="ed-nle-t">Premiere Pro</div>
+                      <div className="ed-nle-s">Import SRT as an editable caption track</div>
+                    </div>
+                    <button className="secondary" onClick={() => doExport("srt")}>SRT</button>
+                  </div>
+                  <div className="ed-nle-row">
+                    <div className="ed-nle-info">
+                      <div className="ed-nle-t">Cut list — any editor</div>
+                      <div className="ed-nle-s">CMX3600 EDL of the silence / retake cuts</div>
+                    </div>
+                    <button className="secondary" onClick={() => doExport("edl")}>EDL</button>
+                  </div>
+                  <div className="ed-nle-row">
+                    <div className="ed-nle-info">
+                      <div className="ed-nle-t">Full project (.zip)</div>
+                      <div className="ed-nle-s">Video, voice + music stems, captions & timeline</div>
+                    </div>
+                    <button className="secondary" onClick={() => doExport("bundle")}>ZIP</button>
+                  </div>
                 </div>
-                <button className="secondary" style={{ width: "100%", marginTop: 8 }} onClick={() => doExport("bundle")}>Multi-track .zip</button>
                 {exports.length > 0 && (
                   <div className="ed-exp-results">
                     {exports.map((e) => (
