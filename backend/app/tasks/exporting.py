@@ -62,14 +62,40 @@ def _load_canvas(db, project_id: str) -> dict | None:
     return (row.payload_json or None) if row else None
 
 
-def _load_color_filter(db, project_id: str) -> str | None:
-    row = (db.query(Edit)
-             .filter(Edit.project_id == project_id, Edit.enabled == True,  # noqa: E712
-                     Edit.type == "filter").order_by(Edit.created_at.desc()).first())
-    if not row:
-        return None
-    p = row.payload_json or {}
-    return filters.combined_vf(p.get("name"), p.get("adjust"))
+def _load_color_filter(db, project_id: str, cuts=None, sp: float = 1.0) -> str | None:
+    """Whole-video grade + any time-ranged filter layers.
+
+    Layer ranges are original-ms; they are remapped through the silence/retake
+    cuts and the playback-speed factor to output-timeline seconds so the grade
+    lands on the right frames after editing."""
+    chain: list[str] = []
+    # global grade (whole video, newest wins)
+    g = (db.query(Edit)
+           .filter(Edit.project_id == project_id, Edit.enabled == True,  # noqa: E712
+                   Edit.type == "filter").order_by(Edit.created_at.desc()).first())
+    if g:
+        gp = g.payload_json or {}
+        vf = filters.combined_vf(gp.get("name"), gp.get("adjust"))
+        if vf:
+            chain.append(vf)
+    # ranged layers
+    def out_s(ms: int) -> float:
+        m = timeline.remap_ms(int(ms), cuts) if cuts else int(ms)
+        return (m / sp) / 1000.0 if sp else m / 1000.0
+    layers = (db.query(Edit)
+                .filter(Edit.project_id == project_id, Edit.enabled == True,  # noqa: E712
+                        Edit.type == "filter_layer").order_by(Edit.created_at).all())
+    for row in layers:
+        lp = row.payload_json or {}
+        vf = filters.combined_vf(lp.get("name"), lp.get("adjust"))
+        if not vf:
+            continue
+        s0 = out_s(lp.get("start_ms", 0))
+        e0 = out_s(lp.get("end_ms", 0))
+        if e0 <= s0:
+            continue
+        chain.append(filters.with_enable(vf, s0, e0))
+    return ",".join(chain) if chain else None
 
 
 def _load_images(db, project_id: str) -> list[dict]:
@@ -209,7 +235,7 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                 except Exception:
                     zoom_prefilter = None
             # colour filter
-            color_vf = _load_color_filter(db, project_id)
+            color_vf = _load_color_filter(db, project_id, cuts=cuts, sp=sp)
             vfilters = [f for f in (scale_vf, zoom_prefilter, color_vf) if f]
             # image / B-roll overlays
             images = _load_images(db, project_id)

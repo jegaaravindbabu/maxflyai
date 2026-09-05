@@ -15,7 +15,7 @@ FILTER_PRESETS: dict[str, dict] = {
     "vivid":     {"label": "Vivid HD",      "group": "Clarity boost",  "vf": "eq=saturation=1.40:contrast=1.12"},
     "bright":    {"label": "Bright",        "group": "Clarity boost",  "vf": "eq=brightness=0.06:contrast=1.05:saturation=1.05"},
     "contrast":  {"label": "Punch",         "group": "Clarity boost",  "vf": "eq=contrast=1.30:saturation=1.08"},
-    "sharp":     {"label": "Crisp",         "group": "Clarity boost",  "vf": "eq=contrast=1.12:saturation=1.12,unsharp=5:5:0.8"},
+    "sharp":     {"label": "Crisp",         "group": "Clarity boost",  "vf": "eq=contrast=1.14:saturation=1.14"},
     # Creative grades — mood & colour
     "warm":      {"label": "Warm",          "group": "Creative grades","vf": "eq=gamma_r=1.06:gamma_b=0.94:saturation=1.10"},
     "cool":      {"label": "Cool",          "group": "Creative grades","vf": "eq=gamma_r=0.94:gamma_b=1.08:saturation=1.05"},
@@ -86,3 +86,12 @@ def combined_vf(name: str, adjust: dict | None) -> str | None:
     adj = adjust_string(adjust)
     chain = [x for x in (preset, adj) if x]
     return ",".join(chain) if chain else None
+
+
+def with_enable(vf: str | None, start_s: float, end_s: float) -> str | None:
+    """Append an `enable` timeline gate to every filter in `vf` so the grade
+    only applies between start_s and end_s (output-timeline seconds)."""
+    if not vf:
+        return None
+    gate = f":enable='between(t,{start_s:.3f},{end_s:.3f})'"
+    return ",".join(part + gate for part in vf.split(","))

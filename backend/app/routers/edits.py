@@ -221,6 +221,93 @@ def set_filter(project_id: str, body: FilterIn, db: Session = Depends(get_db),
     return {"name": body.name, **adjust}
 
 
+class FilterLayerIn(BaseModel):
+    name: str = "none"
+    brightness: int = 0
+    contrast: int = 0
+    saturation: int = 0
+    warmth: int = 0
+    start_ms: int = 0
+    end_ms: int = 3000
+
+
+class FilterLayerPatch(BaseModel):
+    name: str | None = None
+    brightness: int | None = None
+    contrast: int | None = None
+    saturation: int | None = None
+    warmth: int | None = None
+    start_ms: int | None = None
+    end_ms: int | None = None
+
+
+def _layer_out(e: Edit) -> dict:
+    p = e.payload_json or {}
+    a = p.get("adjust", {}) or {}
+    return {"id": e.id, "name": p.get("name", "none"),
+            "brightness": int(a.get("brightness", 0)), "contrast": int(a.get("contrast", 0)),
+            "saturation": int(a.get("saturation", 0)), "warmth": int(a.get("warmth", 0)),
+            "start_ms": int(p.get("start_ms", 0)), "end_ms": int(p.get("end_ms", 0))}
+
+
+@router.get("/{project_id}/filter-layers")
+def list_filter_layers(project_id: str, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    rows = (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "filter_layer")
+              .order_by(Edit.created_at).all())
+    return {"layers": [_layer_out(r) for r in rows]}
+
+
+@router.post("/{project_id}/filter-layers")
+def add_filter_layer(project_id: str, body: FilterLayerIn, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    e = Edit(project_id=project_id, type="filter_layer", enabled=True, payload_json={
+        "name": body.name,
+        "adjust": {"brightness": body.brightness, "contrast": body.contrast,
+                   "saturation": body.saturation, "warmth": body.warmth},
+        "start_ms": body.start_ms, "end_ms": max(body.end_ms, body.start_ms + 200)})
+    db.add(e)
+    db.commit()
+    db.refresh(e)
+    return _layer_out(e)
+
+
+@router.patch("/{project_id}/filter-layers/{layer_id}")
+def update_filter_layer(project_id: str, layer_id: str, body: FilterLayerPatch,
+    db: Session = Depends(get_db), _owner: Project = Depends(owned_project)):
+    e = db.get(Edit, layer_id)
+    if e is None or e.project_id != project_id or e.type != "filter_layer":
+        raise HTTPException(404, "layer not found")
+    p = dict(e.payload_json or {})
+    a = dict(p.get("adjust", {}) or {})
+    if body.name is not None: p["name"] = body.name
+    for k in ("brightness", "contrast", "saturation", "warmth"):
+        v = getattr(body, k)
+        if v is not None: a[k] = int(v)
+    p["adjust"] = a
+    if body.start_ms is not None: p["start_ms"] = int(body.start_ms)
+    if body.end_ms is not None: p["end_ms"] = int(body.end_ms)
+    if p.get("end_ms", 0) <= p.get("start_ms", 0):
+        p["end_ms"] = p.get("start_ms", 0) + 200
+    e.payload_json = p
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(e, "payload_json")
+    db.commit()
+    db.refresh(e)
+    return _layer_out(e)
+
+
+@router.delete("/{project_id}/filter-layers/{layer_id}")
+def delete_filter_layer(project_id: str, layer_id: str, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    e = db.get(Edit, layer_id)
+    if e is None or e.project_id != project_id or e.type != "filter_layer":
+        raise HTTPException(404, "layer not found")
+    db.delete(e)
+    db.commit()
+    return {"ok": True}
+
+
 class CapSettingsIn(BaseModel):
     font: str | None = None
     bold: int | None = None

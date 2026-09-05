@@ -54,6 +54,7 @@ const FILTER_CSS: Record<string, string> = {
 };
 
 interface Adjust { brightness: number; contrast: number; saturation: number; warmth: number; }
+interface FilterLayer extends Adjust { id: string; name: string; start_ms: number; end_ms: number; }
 
 function cssForFilter(name: string, a: Adjust): string {
   const parts: string[] = [];
@@ -118,6 +119,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [filterGroups, setFilterGroups] = useState<{ name: string; sub: string }[]>([]);
   const [curFilter, setCurFilter] = useState("none");
   const [adjust, setAdjust] = useState<Adjust>({ brightness: 0, contrast: 0, saturation: 0, warmth: 0 });
+  const [filterLayers, setFilterLayers] = useState<FilterLayer[]>([]);
+  const [selLayer, setSelLayer] = useState<string | null>(null);
   const [images, setImages] = useState<ImageOverlay[]>([]);
   const [selImg, setSelImg] = useState<string | null>(null);
   const [imgBusy, setImgBusy] = useState(false);
@@ -184,6 +187,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   useEffect(() => { api.filterPresets().then((r) => { setFilterList(r.filters); setFilterGroups(r.groups || []); }).catch(() => {}); }, []);
   useEffect(() => {
     api.getFilter(projectId).then((r) => { setCurFilter(r.name); setAdjust({ brightness: r.brightness, contrast: r.contrast, saturation: r.saturation, warmth: r.warmth }); }).catch(() => {});
+    api.listFilterLayers(projectId).then((r) => setFilterLayers(r.layers)).catch(() => {});
     api.listImages(projectId).then(setImages).catch(() => {});
     api.listProjects().then(setMyMedia).catch(() => {});
     api.listBrolls(projectId).then(setBrolls).catch(() => {});
@@ -238,6 +242,10 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const wordStyles = styles.filter((x) => WORD_STYLES.includes(x.id));
   const overlayText = activeCue ? (showTranslit && activeCue.translit_text ? activeCue.translit_text : activeCue.text) : "";
   const effStyle = animOn ? capStyle : "classic";
+  const activeLayer = filterLayers.find((l) => curMs >= l.start_ms && curMs < l.end_ms);
+  const filterPreviewCss = selLayer
+    ? cssForFilter(curFilter, adjust)
+    : activeLayer ? cssForFilter(activeLayer.name, activeLayer) : cssForFilter(curFilter, adjust);
   const wordMode = WORD_STYLES.includes(capStyle);
   const mediaSrc = proj.media_url ? (proj.media_url.startsWith("http") ? proj.media_url : api.mediaUrl(proj.media_url)) : "";
 
@@ -415,19 +423,62 @@ export function EditorPage({ projectId }: { projectId: string }) {
     try { await api.deleteEdit(projectId, id); } catch {}
   }
 
+  const gradeLabel = (name: string) => filterList.find((f) => f.id === name)?.label || name;
+
   async function applyFilter(name: string) {
     setCurFilter(name);
+    if (selLayer) { await patchLayer(selLayer, { name }); return; }
     try { await api.setFilter(projectId, name, adjust); } catch {}
   }
   function changeAdjust(key: keyof Adjust, val: number) {
     setAdjust((prev) => ({ ...prev, [key]: val }));   // live CSS preview
   }
   function saveAdjust(next?: Adjust) {
-    api.setFilter(projectId, curFilter, next || adjust).catch(() => {});
+    const a = next || adjust;
+    if (selLayer) { patchLayer(selLayer, a); return; }
+    api.setFilter(projectId, curFilter, a).catch(() => {});
   }
   function resetAdjust() {
     const zero: Adjust = { brightness: 0, contrast: 0, saturation: 0, warmth: 0 };
-    setAdjust(zero); api.setFilter(projectId, curFilter, zero).catch(() => {});
+    setAdjust(zero);
+    if (selLayer) { patchLayer(selLayer, zero); return; }
+    api.setFilter(projectId, curFilter, zero).catch(() => {});
+  }
+
+  // ---- filter layers (grade only part of the timeline) ----
+  async function patchLayer(id: string, patch: any) {
+    setFilterLayers((prev) => prev.map((l) => l.id === id ? { ...l, ...patch } : l));
+    try { await api.patchFilterLayer(projectId, id, patch); } catch {}
+  }
+  async function addLayer() {
+    const start = Math.round(curMs);
+    const end = Math.min(dur, start + 3000);
+    const name = curFilter !== "none" ? curFilter : "vivid";
+    try {
+      const l = await api.addFilterLayer(projectId, { name, ...adjust, start_ms: start, end_ms: end });
+      setFilterLayers((prev) => [...prev, l]);
+      selectLayer(l.id, l);
+    } catch {}
+  }
+  function selectLayer(id: string, layer?: FilterLayer) {
+    const l = layer || filterLayers.find((x) => x.id === id);
+    if (!l) return;
+    setSelLayer(id);
+    setCurFilter(l.name);
+    setAdjust({ brightness: l.brightness, contrast: l.contrast, saturation: l.saturation, warmth: l.warmth });
+  }
+  function deselectLayer() {
+    setSelLayer(null);
+    api.getFilter(projectId).then((r) => { setCurFilter(r.name); setAdjust({ brightness: r.brightness, contrast: r.contrast, saturation: r.saturation, warmth: r.warmth }); }).catch(() => {});
+  }
+  function setLayerEdge(id: string, which: "start" | "end") {
+    const t = Math.round(curMs);
+    patchLayer(id, which === "start" ? { start_ms: t } : { end_ms: t });
+  }
+  async function deleteLayer(id: string) {
+    try { await api.deleteFilterLayer(projectId, id); } catch {}
+    setFilterLayers((prev) => prev.filter((l) => l.id !== id));
+    if (selLayer === id) deselectLayer();
   }
   async function uploadNewVideo(file: File) {
     setUpBusy(true);
@@ -1022,6 +1073,32 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   </div>
                 ))}
               </div>
+
+              <div className="ed-filt-layers">
+                <div className="ed-filt-ghead">Filter layers
+                  {!selLayer && <button className="ed-filt-reset" onClick={addLayer}>+ Apply as layer</button>}
+                </div>
+                {selLayer ? (
+                  <div className="ed-layer-edit">
+                    <div className="np-sub">Editing this layer — move the playhead, then set its edges.</div>
+                    <div className="ed-layer-edges">
+                      <button className="secondary" onClick={() => setLayerEdge(selLayer, "start")}>⇤ Start = playhead</button>
+                      <button className="secondary" onClick={() => setLayerEdge(selLayer, "end")}>End = playhead ⇥</button>
+                    </div>
+                    <button className="secondary" style={{ width: "100%", marginTop: 8 }} onClick={deselectLayer}>Done editing</button>
+                  </div>
+                ) : (
+                  <div className="np-sub">Grade only part of the video: pick a look above, then <b>Apply as layer</b>. It drops a clip on the timeline from the playhead.</div>
+                )}
+                {filterLayers.map((l) => (
+                  <div key={l.id} className={"ed-layer-row" + (selLayer === l.id ? " sel" : "")} onClick={() => selectLayer(l.id)}>
+                    <span className="ed-layer-swatch"><span className={"ed-filt-prev ed-filt-" + l.name} /></span>
+                    <span className="ed-layer-name">{gradeLabel(l.name)}</span>
+                    <span className="ed-layer-range">{fmtT(l.start_ms)}–{fmtT(l.end_ms)}</span>
+                    <button className="ed-layer-del" title="Delete layer" onClick={(e) => { e.stopPropagation(); deleteLayer(l.id); }}>×</button>
+                  </div>
+                ))}
+              </div>
             </>
           )}
 
@@ -1140,7 +1217,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 background: canvas.bg_type === "image" && canvas.image_url ? `center/cover no-repeat url("${canvas.image_url}")`
                   : canvas.bg_type === "blur" ? "#0a0c13" : (canvas.color || "#000000"),
               } : undefined}>
-            <VideoPreview ref={videoRef} src={mediaSrc} filterCss={cssForFilter(curFilter, adjust)}
+            <VideoPreview ref={videoRef} src={mediaSrc} filterCss={filterPreviewCss}
               overlay={<>
                 {activeCue && overlayText ? (
                   <CaptionOverlay text={overlayText} styleId={effStyle} cue={activeCue} curMs={curMs} keyId={activeIdx} settings={capSettings} />
@@ -1554,6 +1631,20 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   <div key={b.id} className={"ed-tl-block ed-tl-broll" + (selBroll === b.id ? " sel" : "")}
                     style={{ left: `${(b.start_ms / dur) * 100}%`, width: `${Math.max(((b.end_ms - b.start_ms) / dur) * 100, 1.2)}%` }}
                     onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setRail("broll"); seek(b.start_ms); }}>🎞 B-roll</div>
+                ))}
+              </div>
+            )}
+
+            {filterLayers.length > 0 && (
+              <div className="ed-lane" onClick={scrub}>
+                <span className="ed-lane-label">Filters</span>
+                {filterLayers.map((l) => (
+                  <div key={l.id} className={"ed-tl-block ed-tl-filter" + (selLayer === l.id ? " sel" : "")}
+                    style={{ left: `${(l.start_ms / dur) * 100}%`, width: `${Math.max(((l.end_ms - l.start_ms) / dur) * 100, 1.2)}%` }}
+                    title={gradeLabel(l.name)}
+                    onClick={(e) => { e.stopPropagation(); setRail("filters"); selectLayer(l.id); seek(l.start_ms); }}>
+                    ◑ {gradeLabel(l.name)}
+                  </div>
                 ))}
               </div>
             )}

@@ -1131,3 +1131,19 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .ed-filt-adjust .ed-filt-ghead { justify-content: space-between; margin-bottom: 2px; }
 .ed-filt-reset { background: none; border: none; color: var(--accent-2); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; }
 .ed-filt-reset:hover { text-decoration: underline; }
+
+/* ---- Filter layers ---- */
+.ed-filt-layers { border-top: 1px solid var(--border); padding-top: 14px; margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.ed-layer-edit { background: var(--panel); border: 1px solid var(--accent); border-radius: 10px; padding: 10px 12px; }
+.ed-layer-edges { display: flex; gap: 8px; margin-top: 8px; }
+.ed-layer-edges button { flex: 1; font-size: 12px; padding: 8px 6px; }
+.ed-layer-row { display: flex; align-items: center; gap: 8px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; cursor: pointer; }
+.ed-layer-row.sel { border-color: var(--accent); }
+.ed-layer-row:hover { border-color: #3a3f57; }
+.ed-layer-swatch .ed-filt-prev { height: 26px; width: 40px; margin: 0; border-radius: 5px; }
+.ed-layer-name { font-size: 13px; font-weight: 600; }
+.ed-layer-range { margin-left: auto; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ed-layer-del { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 0 2px; line-height: 1; }
+.ed-layer-del:hover { color: var(--accent); }
+.ed-tl-filter { background: linear-gradient(90deg, rgba(239,68,68,.35), rgba(245,158,11,.35)); border: 1px solid var(--accent); color: #fff; }
+.ed-tl-filter.sel { box-shadow: 0 0 0 1px var(--accent); }

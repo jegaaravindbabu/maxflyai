@@ -125,6 +125,23 @@ export const api = {
     }));
   },
 
+  async listFilterLayers(id: string) {
+    return j<{ layers: { id: string; name: string; brightness: number; contrast: number;
+      saturation: number; warmth: number; start_ms: number; end_ms: number }[] }>(
+      await afetch(`${BASE}/api/projects/${id}/filter-layers`));
+  },
+  async addFilterLayer(id: string, body: any) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/filter-layers`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }));
+  },
+  async patchFilterLayer(id: string, layerId: string, body: any) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/filter-layers/${layerId}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }));
+  },
+  async deleteFilterLayer(id: string, layerId: string) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/filter-layers/${layerId}`, { method: "DELETE" }));
+  },
+
   async listImages(id: string) {
     return j<ImageOverlay[]>(await afetch(`${BASE}/api/projects/${id}/images`));
   },
