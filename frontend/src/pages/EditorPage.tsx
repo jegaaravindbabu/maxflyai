@@ -1579,9 +1579,19 @@ export function EditorPage({ projectId }: { projectId: string }) {
             <button className="ed-tb-selbtn" onClick={() => setSelected(new Set())}>None</button>
           </div>
         </div>
-        <div className="ed-tl2">
+        <div className="ed-tl-body">
+          <div className="ed-tl-gutter">
+            <div className="ed-th-ruler" />
+            <div className="ed-th"><span className="ed-th-ic">≡</span></div>
+            {overlays.length > 0 && <div className="ed-th"><span className="ed-th-ic">T</span></div>}
+            {images.length > 0 && <div className="ed-th"><span className="ed-th-ic">▤</span></div>}
+            {brolls.length > 0 && <div className="ed-th"><span className="ed-th-ic">▦</span></div>}
+            {filterLayers.length > 0 && <div className="ed-th"><span className="ed-th-ic">◑</span></div>}
+            <div className="ed-th ed-th-media"><span className="ed-th-ic">▶</span></div>
+          </div>
+          <div className="ed-tl2">
           <div className="ed-tl2-inner" style={{ width: TLW }}>
-            <div className="ed-ph" style={{ left: `${(curMs / dur) * 100}%` }} />
+            <div className="ed-ph" style={{ left: `${(curMs / dur) * 100}%` }}><span className="ed-ph-knob" /></div>
             <div className="ed-tl2-ruler" onClick={scrub}>
               {tlTicks.map((t) => (
                 <span key={t} className="ed-tick" style={{ left: `${(t / dur) * 100}%` }}>{fmtT(t)}</span>
@@ -1589,20 +1599,21 @@ export function EditorPage({ projectId }: { projectId: string }) {
             </div>
 
             <div className="ed-lane" onClick={scrub}>
-              <span className="ed-lane-label">Captions</span>
-              {cues.map((c) => (
+              {cues.map((c) => {
+                const w = ((c.end_ms - c.start_ms) / dur) * 100;
+                return (
                 <div key={c.idx} className={"ed-tl-pill" + (c.idx === activeIdx ? " active" : "")}
-                  style={{ left: `${(c.start_ms / dur) * 100}%`, width: `${Math.max(((c.end_ms - c.start_ms) / dur) * 100, 1.2)}%` }}
+                  style={{ left: `${(c.start_ms / dur) * 100}%`, width: `${Math.max(w, 0.7)}%` }}
                   title={c.text}
                   onClick={(e) => { e.stopPropagation(); setRail("captions"); seek(c.start_ms); }}>
-                  {(showTranslit && c.translit_text ? c.translit_text : c.text).slice(0, 12)}
+                  {w > 2.4 ? (showTranslit && c.translit_text ? c.translit_text : c.text).slice(0, 14) : ""}
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             {overlays.length > 0 && (
               <div className="ed-lane" onClick={scrub}>
-                <span className="ed-lane-label">Text</span>
                 {overlays.map((o) => (
                   <div key={o.id} className={"ed-tl-block ed-tl-text" + (selOv === o.id ? " sel" : "")}
                     style={{ left: `${(o.start_ms / dur) * 100}%`, width: `${Math.max(((o.end_ms - o.start_ms) / dur) * 100, 1.2)}%` }}
@@ -1616,7 +1627,6 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
             {images.length > 0 && (
               <div className="ed-lane" onClick={scrub}>
-                <span className="ed-lane-label">Images</span>
                 {images.map((im) => (
                   <div key={im.id} className={"ed-tl-block ed-tl-img" + (selImg === im.id ? " sel" : "")}
                     style={{ left: `${(im.start_ms / dur) * 100}%`, width: `${Math.max(((im.end_ms - im.start_ms) / dur) * 100, 1.2)}%` }}
@@ -1627,7 +1637,6 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
             {brolls.length > 0 && (
               <div className="ed-lane" onClick={scrub}>
-                <span className="ed-lane-label">B-roll</span>
                 {brolls.map((b) => (
                   <div key={b.id} className={"ed-tl-block ed-tl-broll" + (selBroll === b.id ? " sel" : "")}
                     style={{ left: `${(b.start_ms / dur) * 100}%`, width: `${Math.max(((b.end_ms - b.start_ms) / dur) * 100, 1.2)}%` }}
@@ -1638,7 +1647,6 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
             {filterLayers.length > 0 && (
               <div className="ed-lane" onClick={scrub}>
-                <span className="ed-lane-label">Filters</span>
                 {filterLayers.map((l) => (
                   <div key={l.id} className={"ed-tl-block ed-tl-filter" + (selLayer === l.id ? " sel" : "")}
                     style={{ left: `${(l.start_ms / dur) * 100}%`, width: `${Math.max(((l.end_ms - l.start_ms) / dur) * 100, 1.2)}%` }}
@@ -1651,7 +1659,6 @@ export function EditorPage({ projectId }: { projectId: string }) {
             )}
 
             <div className="ed-lane ed-lane-media" onClick={scrub}>
-              <span className="ed-lane-label">Media</span>
               <div className="ed-media-clip">
                 <div className="ed-media-name">{proj.source_filename || "video"} · {fmtT(dur)}</div>
                 <Filmstrip src={mediaSrc} count={14} />
@@ -1659,6 +1666,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
               </div>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>

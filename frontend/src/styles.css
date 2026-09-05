@@ -460,9 +460,9 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
 .ed-tl-scroll { flex: 1; overflow-x: auto; overflow-y: hidden; }
 .ed-tl-track { position: relative; height: 44px; }
 .ed-tl-caps { margin-bottom: 8px; }
-.ed-tl-pill { position: absolute; top: 4px; height: 34px; background: rgba(34,197,94,.16);
-  border: 1px solid rgba(34,197,94,.5); border-radius: 6px; font-size: 11px; color: var(--text);
-  padding: 4px 6px; overflow: hidden; white-space: nowrap; cursor: pointer; box-sizing: border-box; }
+.ed-tl-pill { position: absolute; top: 4px; height: 34px; background: rgba(34,197,94,.14);
+  border: 1px solid rgba(34,197,94,.45); border-radius: 5px; font-size: 10px; color: var(--text);
+  padding: 3px 5px; overflow: hidden; white-space: nowrap; text-overflow: clip; cursor: pointer; box-sizing: border-box; }
 .ed-tl-pill.active { background: rgba(34,197,94,.34); border-color: #22c55e; box-shadow: 0 0 0 1px rgba(34,197,94,.4); }
 .ed-tl-wave { height: 70px; }
 
@@ -1160,3 +1160,16 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .ed-media-wave { position: relative; height: 34px; border-top: 1px solid var(--border); background: #0a0c13; overflow: hidden; }
 .ed-media-wave > * { height: 100% !important; }
 .ed-media-wave .waveform, .ed-media-wave .card { border: none !important; padding: 0 !important; margin: 0 !important; background: transparent !important; box-shadow: none !important; }
+
+/* ---- Clean timeline: fixed icon gutter + aligned tracks + shaped playhead ---- */
+.ed-tl-body { display: flex; align-items: flex-start; }
+.ed-tl-gutter { flex: 0 0 44px; width: 44px; background: var(--sidebar); border-right: 1px solid var(--border); z-index: 9; }
+.ed-th-ruler { height: 21px; box-sizing: border-box; border-bottom: 1px solid var(--border); }
+.ed-th { height: 47px; box-sizing: border-box; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center; }
+.ed-th-media { height: 87px; }
+.ed-th-ic { color: var(--muted); font-size: 15px; line-height: 1; opacity: .8; }
+.ed-ph-knob { position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 11px; height: 11px; background: var(--accent); border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,.5); }
+/* the gutter now carries the track names, so drop the old overlay labels */
+.ed-lane-label { display: none; }
