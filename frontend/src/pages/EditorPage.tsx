@@ -122,6 +122,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [adjust, setAdjust] = useState<Adjust>({ brightness: 0, contrast: 0, saturation: 0, warmth: 0 });
   const [filterLayers, setFilterLayers] = useState<FilterLayer[]>([]);
   const [selLayer, setSelLayer] = useState<string | null>(null);
+  const [hiddenTracks, setHiddenTracks] = useState<Set<string>>(new Set());
+  const [lockedTracks, setLockedTracks] = useState<Set<string>>(new Set());
+  const [mediaMuted, setMediaMuted] = useState(false);
   const [images, setImages] = useState<ImageOverlay[]>([]);
   const [selImg, setSelImg] = useState<string | null>(null);
   const [imgBusy, setImgBusy] = useState(false);
@@ -183,6 +186,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   }, [projectId]);
 
   useEffect(() => { setMediaEl(videoRef.current); }, [proj?.id]);
+  useEffect(() => { if (videoRef.current) videoRef.current.muted = mediaMuted; }, [mediaMuted]);
   useEffect(() => { setOverlays(proj?.overlays || []); }, [proj?.id]);
   useEffect(() => { api.listAutozoom(projectId).then(setZooms).catch(() => {}); }, [projectId]);
   useEffect(() => { api.filterPresets().then((r) => { setFilterList(r.filters); setFilterGroups(r.groups || []); }).catch(() => {}); }, []);
@@ -247,6 +251,25 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const filterPreviewCss = selLayer
     ? cssForFilter(curFilter, adjust)
     : activeLayer ? cssForFilter(activeLayer.name, activeLayer) : cssForFilter(curFilter, adjust);
+  const isHidden = (t: string) => hiddenTracks.has(t);
+  const isLocked = (t: string) => lockedTracks.has(t);
+  const toggleHide = (t: string) => setHiddenTracks((s) => { const n = new Set(s); n.has(t) ? n.delete(t) : n.add(t); return n; });
+  const toggleLock = (t: string) => setLockedTracks((s) => { const n = new Set(s); n.has(t) ? n.delete(t) : n.add(t); return n; });
+  const trackHead = (id: string, icon: string, media = false) => (
+    <div className={"ed-th" + (media ? " ed-th-media" : "") + (isHidden(id) ? " thoff" : "")}>
+      <span className="ed-th-ic">{icon}</span>
+      <div className="ed-th-btns">
+        <button className={"ed-th-b" + (isHidden(id) ? " off" : "")} title={isHidden(id) ? "Show track" : "Hide track"}
+          onClick={(e) => { e.stopPropagation(); toggleHide(id); }}>{isHidden(id) ? "\u{1F6AB}" : "\u{1F441}"}</button>
+        <button className={"ed-th-b" + (isLocked(id) ? " on" : "")} title={isLocked(id) ? "Unlock track" : "Lock track"}
+          onClick={(e) => { e.stopPropagation(); toggleLock(id); }}>{isLocked(id) ? "\u{1F512}" : "\u{1F513}"}</button>
+        {media && (
+          <button className={"ed-th-b" + (mediaMuted ? " on" : "")} title={mediaMuted ? "Unmute" : "Mute"}
+            onClick={(e) => { e.stopPropagation(); setMediaMuted((m) => !m); }}>{mediaMuted ? "\u{1F507}" : "\u{1F50A}"}</button>
+        )}
+      </div>
+    </div>
+  );
   const wordMode = WORD_STYLES.includes(capStyle);
   const mediaSrc = proj.media_url ? (proj.media_url.startsWith("http") ? proj.media_url : api.mediaUrl(proj.media_url)) : "";
 
@@ -1218,12 +1241,12 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 background: canvas.bg_type === "image" && canvas.image_url ? `center/cover no-repeat url("${canvas.image_url}")`
                   : canvas.bg_type === "blur" ? "#0a0c13" : (canvas.color || "#000000"),
               } : undefined}>
-            <VideoPreview ref={videoRef} src={mediaSrc} filterCss={filterPreviewCss}
+            <VideoPreview ref={videoRef} src={mediaSrc} filterCss={isHidden("filters") ? "" : filterPreviewCss}
               overlay={<>
-                {activeCue && overlayText ? (
+                {activeCue && overlayText && !isHidden("captions") ? (
                   <CaptionOverlay text={overlayText} styleId={effStyle} cue={activeCue} curMs={curMs} keyId={activeIdx} settings={capSettings} />
                 ) : null}
-                {overlays.filter((o) => curMs >= o.start_ms && curMs < o.end_ms).map((o) => (
+                {!isHidden("text") && overlays.filter((o) => curMs >= o.start_ms && curMs < o.end_ms).map((o) => (
                   <div key={o.id} className={"ed-ovl" + (selOv === o.id ? " sel" : "")}
                     style={{ left: o.x_pct + "%", top: o.y_pct + "%", color: o.color,
                              fontSize: Math.max(11, o.font_size * 0.24) + "px", fontWeight: o.bold ? 800 : 500 }}
@@ -1232,14 +1255,14 @@ export function EditorPage({ projectId }: { projectId: string }) {
                     {o.text}
                   </div>
                 ))}
-                {images.filter((im) => curMs >= im.start_ms && curMs < im.end_ms).map((im) => (
+                {!isHidden("images") && images.filter((im) => curMs >= im.start_ms && curMs < im.end_ms).map((im) => (
                   <img key={im.id} src={im.image_url} draggable={false}
                     className={"ed-imgovl" + (selImg === im.id ? " sel" : "")}
                     style={{ left: im.x_pct + "%", top: im.y_pct + "%", width: im.size_pct + "%" }}
                     onMouseDown={(e) => startDragImg(e, im)}
                     onClick={(e) => { e.stopPropagation(); setSelImg(im.id); setRail("images"); }} />
                 ))}
-                {brolls.filter((b) => curMs >= b.start_ms && curMs < b.end_ms).map((b) => (
+                {!isHidden("broll") && brolls.filter((b) => curMs >= b.start_ms && curMs < b.end_ms).map((b) => (
                   <video key={b.id} src={b.video_url} muted autoPlay loop playsInline draggable={false}
                     className={"ed-imgovl" + (selBroll === b.id ? " sel" : "")}
                     style={{ left: b.x_pct + "%", top: b.y_pct + "%", width: b.size_pct + "%" }}
@@ -1582,12 +1605,12 @@ export function EditorPage({ projectId }: { projectId: string }) {
         <div className="ed-tl-body">
           <div className="ed-tl-gutter">
             <div className="ed-th-ruler" />
-            <div className="ed-th"><span className="ed-th-ic">≡</span></div>
-            {overlays.length > 0 && <div className="ed-th"><span className="ed-th-ic">T</span></div>}
-            {images.length > 0 && <div className="ed-th"><span className="ed-th-ic">▤</span></div>}
-            {brolls.length > 0 && <div className="ed-th"><span className="ed-th-ic">▦</span></div>}
-            {filterLayers.length > 0 && <div className="ed-th"><span className="ed-th-ic">◑</span></div>}
-            <div className="ed-th ed-th-media"><span className="ed-th-ic">▶</span></div>
+            {trackHead("captions", "≡")}
+            {overlays.length > 0 && trackHead("text", "T")}
+            {images.length > 0 && trackHead("images", "▤")}
+            {brolls.length > 0 && trackHead("broll", "▦")}
+            {filterLayers.length > 0 && trackHead("filters", "◑")}
+            {trackHead("media", "▶", true)}
           </div>
           <div className="ed-tl2">
           <div className="ed-tl2-inner" style={{ width: TLW }}>
@@ -1598,7 +1621,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
               ))}
             </div>
 
-            <div className="ed-lane" onClick={scrub}>
+            <div className={"ed-lane" + (isHidden("captions") ? " lane-off" : "") + (isLocked("captions") ? " lane-lock" : "")} onClick={scrub}>
               {cues.map((c) => {
                 const w = ((c.end_ms - c.start_ms) / dur) * 100;
                 return (
@@ -1613,7 +1636,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             </div>
 
             {overlays.length > 0 && (
-              <div className="ed-lane" onClick={scrub}>
+              <div className={"ed-lane" + (isHidden("text") ? " lane-off" : "") + (isLocked("text") ? " lane-lock" : "")} onClick={scrub}>
                 {overlays.map((o) => (
                   <div key={o.id} className={"ed-tl-block ed-tl-text" + (selOv === o.id ? " sel" : "")}
                     style={{ left: `${(o.start_ms / dur) * 100}%`, width: `${Math.max(((o.end_ms - o.start_ms) / dur) * 100, 1.2)}%` }}
@@ -1626,7 +1649,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             )}
 
             {images.length > 0 && (
-              <div className="ed-lane" onClick={scrub}>
+              <div className={"ed-lane" + (isHidden("images") ? " lane-off" : "") + (isLocked("images") ? " lane-lock" : "")} onClick={scrub}>
                 {images.map((im) => (
                   <div key={im.id} className={"ed-tl-block ed-tl-img" + (selImg === im.id ? " sel" : "")}
                     style={{ left: `${(im.start_ms / dur) * 100}%`, width: `${Math.max(((im.end_ms - im.start_ms) / dur) * 100, 1.2)}%` }}
@@ -1636,7 +1659,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             )}
 
             {brolls.length > 0 && (
-              <div className="ed-lane" onClick={scrub}>
+              <div className={"ed-lane" + (isHidden("broll") ? " lane-off" : "") + (isLocked("broll") ? " lane-lock" : "")} onClick={scrub}>
                 {brolls.map((b) => (
                   <div key={b.id} className={"ed-tl-block ed-tl-broll" + (selBroll === b.id ? " sel" : "")}
                     style={{ left: `${(b.start_ms / dur) * 100}%`, width: `${Math.max(((b.end_ms - b.start_ms) / dur) * 100, 1.2)}%` }}
@@ -1646,7 +1669,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             )}
 
             {filterLayers.length > 0 && (
-              <div className="ed-lane" onClick={scrub}>
+              <div className={"ed-lane" + (isHidden("filters") ? " lane-off" : "") + (isLocked("filters") ? " lane-lock" : "")} onClick={scrub}>
                 {filterLayers.map((l) => (
                   <div key={l.id} className={"ed-tl-block ed-tl-filter" + (selLayer === l.id ? " sel" : "")}
                     style={{ left: `${(l.start_ms / dur) * 100}%`, width: `${Math.max(((l.end_ms - l.start_ms) / dur) * 100, 1.2)}%` }}
@@ -1658,7 +1681,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
               </div>
             )}
 
-            <div className="ed-lane ed-lane-media" onClick={scrub}>
+            <div className={"ed-lane ed-lane-media" + (isHidden("media") ? " lane-off" : "") + (isLocked("media") ? " lane-lock" : "")} onClick={scrub}>
               <div className="ed-media-clip">
                 <div className="ed-media-name">{proj.source_filename || "video"} · {fmtT(dur)}</div>
                 <Filmstrip src={mediaSrc} count={14} />

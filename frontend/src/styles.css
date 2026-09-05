@@ -1173,3 +1173,18 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
   width: 11px; height: 11px; background: var(--accent); border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,.5); }
 /* the gutter now carries the track names, so drop the old overlay labels */
 .ed-lane-label { display: none; }
+
+/* ---- Track headers with eye / lock / mute (override the simple gutter) ---- */
+.ed-tl-gutter { flex: 0 0 58px; width: 58px; }
+.ed-th { flex-direction: column; gap: 3px; justify-content: center; padding: 2px 0; }
+.ed-th-ic { font-size: 12px; opacity: .55; }
+.ed-th-btns { display: flex; gap: 3px; align-items: center; justify-content: center; }
+.ed-th-b { background: none; border: none; cursor: pointer; padding: 1px; font-size: 11px; line-height: 1;
+  opacity: .5; filter: grayscale(1); transition: opacity .12s, filter .12s; border-radius: 4px; }
+.ed-th-b:hover { opacity: 1; background: var(--panel-2); }
+.ed-th-b.off, .ed-th-b.on { opacity: 1; filter: none; }
+.ed-th.thoff .ed-th-ic { opacity: .25; }
+/* hidden / locked lane states */
+.ed-lane.lane-off { opacity: .38; }
+.ed-lane.lane-lock .ed-tl-pill, .ed-lane.lane-lock .ed-tl-block, .ed-lane.lane-lock .ed-media-clip { pointer-events: none; }
+.ed-lane.lane-lock::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(45deg, transparent 0 6px, rgba(255,255,255,.03) 6px 12px); pointer-events: none; z-index: 6; }
