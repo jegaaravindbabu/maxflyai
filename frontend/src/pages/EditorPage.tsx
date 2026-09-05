@@ -6,14 +6,16 @@ import { VideoPreview } from "../components/VideoPreview";
 import { CaptionOverlay } from "../components/CaptionOverlay";
 import { Waveform } from "../components/Waveform";
 import { Filmstrip } from "../components/Filmstrip";
+import { Dropdown } from "../components/Dropdown";
 import { SilenceRemover } from "../components/SilenceRemover";
 import { RetakeRemover } from "../components/RetakeRemover";
 import { FillerRemover } from "../components/FillerRemover";
 
 const LANGS = [
-  ["unknown", "Auto-detect"], ["ta-IN", "Tamil"], ["te-IN", "Telugu"],
-  ["hi-IN", "Hindi"], ["ml-IN", "Malayalam"], ["kn-IN", "Kannada"],
-  ["bn-IN", "Bengali"], ["en-IN", "English"],
+  ["unknown", "Auto-detect"], ["ta-IN", "Tamil"], ["hi-IN", "Hindi"],
+  ["ml-IN", "Malayalam"], ["te-IN", "Telugu"], ["bn-IN", "Bengali"],
+  ["kn-IN", "Kannada"], ["gu-IN", "Gujarati"], ["mr-IN", "Marathi"],
+  ["pa-IN", "Punjabi"], ["od-IN", "Odia"], ["en-IN", "English"],
 ];
 
 const SWATCHES: { color: string; style: string }[] = [
@@ -1015,16 +1017,16 @@ export function EditorPage({ projectId }: { projectId: string }) {
               <div className="ed-left-head"><h3>AI Tools</h3></div>
               <div className="ed-tools-transcribe card">
                 <div className="np-label">Language</div>
-                <select value={lang} onChange={(e) => setLang(e.target.value)}>
-                  {LANGS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                </select>
+                <Dropdown value={lang} searchable placeholder="Select language"
+                  options={LANGS.map(([v, l]) => ({ value: v, label: l }))}
+                  onChange={setLang} />
                 <div className="np-label" style={{ marginTop: 10 }}>Mode</div>
-                <select value={mode} onChange={(e) => setMode(e.target.value)}>
-                  <option value="transcribe">Transcribe (native)</option>
-                  <option value="translit">Romanized (Thanglish)</option>
-                  <option value="codemix">Code-mix</option>
-                  <option value="translate">Translate → English</option>
-                </select>
+                <Dropdown value={mode} onChange={setMode} options={[
+                  { value: "transcribe", label: "Native Script", sub: "Original language script" },
+                  { value: "translit", label: "Romanized (Thanglish)", sub: "Latin script transliteration" },
+                  { value: "codemix", label: "Code-mix", sub: "Mixed native + Latin" },
+                  { value: "translate", label: "English Translation", sub: "Translated to English" },
+                ]} />
                 <button style={{ marginTop: 12, width: "100%" }} onClick={runTranscribe} disabled={busy || transcribing}>
                   {transcribing ? "Transcribing…" : cues.length ? "Re-transcribe" : "Transcribe"}
                 </button>
@@ -1451,9 +1453,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 <input type="checkbox" checked={showTranslit} onChange={(e) => setShowTranslit(e.target.checked)} />
               </label>
               <div className="np-label" style={{ marginTop: 14 }}>Language</div>
-              <select value={lang} onChange={(e) => setLang(e.target.value)} style={{ width: "100%" }}>
-                {LANGS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
+              <Dropdown value={lang} searchable placeholder="Select language"
+                options={LANGS.map(([v, l]) => ({ value: v, label: l }))}
+                onChange={setLang} />
               <button style={{ width: "100%", marginTop: 12 }} onClick={runTranscribe} disabled={busy || transcribing}>
                 {transcribing ? "Transcribing…" : "Re-transcribe"}
               </button>
