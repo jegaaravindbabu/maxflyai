@@ -5,7 +5,7 @@ from app.database import get_db
 from app.deps import owned_project
 from app.models import Project, Export
 from app.schemas import ExportRequest
-from app.tasks.exporting import run_export_job
+from app.tasks.exporting import run_export_job, export_task
 from app import runner
 
 router = APIRouter(prefix="/api/projects", tags=["exports"])
@@ -19,8 +19,13 @@ def export(project_id: str, body: ExportRequest, db: Session = Depends(get_db),
     db.add(exp)
     db.commit()
     db.refresh(exp)
-    runner.submit(run_export_job, exp.id, project_id, body.format, body.use_translit,
-                  body.apply_cuts, body.style, body.enhance_audio, body.volume, body.speed)
+    if runner.use_celery():
+        export_task.delay(exp.id, project_id, body.format, body.use_translit,
+                          body.apply_cuts, body.style, body.enhance_audio,
+                          body.volume, body.speed)
+    else:
+        runner.submit(run_export_job, exp.id, project_id, body.format, body.use_translit,
+                      body.apply_cuts, body.style, body.enhance_audio, body.volume, body.speed)
     return {"export_id": exp.id, "status": "processing", "format": body.format}
 
 

@@ -1,37 +1,102 @@
-# Render blueprint for the maxfly backend. (Railway users: use the Dockerfile
-# directly; set the same env vars in the Railway dashboard.)
-services:
-  - type: web
-    name: maxfly-api
-    runtime: docker
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
-    plan: starter
-    healthCheckPath: /api/health
+# Render blueprint for the maxfly backend — scaled topology.
+#
+#   maxfly-redis   : Key Value (Redis) — Celery broker/result backend
+#   maxfly-api     : FastAPI web service (handles HTTP only, never ffmpeg)
+#   maxfly-worker  : Celery worker(s) that run transcription + ffmpeg exports,
+#                    autoscaling on CPU so jobs stay fast at peak.
+#
+# Shared config lives in the `maxfly-shared` env group so the api and worker
+# always agree. Secrets (sync:false) are set once in the Render dashboard.
+
+envVarGroups:
+  - name: maxfly-shared
     envVars:
+      - key: RUN_MODE
+        value: celery                 # dispatch jobs to Celery workers
       - key: SARVAM_API_KEY
         sync: false
       - key: PEXELS_API_KEY
-        sync: false          # Pexels stock-photo search key (set value in Render dashboard)
+        sync: false
       - key: DATABASE_URL
-        sync: false          # Supabase session-pooler URL (postgresql+psycopg://...)
+        sync: false                   # Supabase session-pooler (postgresql+psycopg://...)
+      # ---- storage: start on Supabase, switch to r2 once R2 vars are set ----
       - key: STORAGE_BACKEND
-        value: supabase
+        value: supabase               # change to "r2" after filling the R2_* secrets
       - key: SUPABASE_URL
         value: https://eimouchjvvnvcnrrzwmm.supabase.co
       - key: SUPABASE_BUCKET
         value: media
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      # ---- auth (managed in dashboard so a blueprint sync never flips it) ----
       - key: AUTH_ENABLED
-        value: "false"
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
       - key: SUPABASE_JWT_SECRET
         sync: false
+      # ---- misc ----
       - key: CORS_ORIGINS
-        sync: false          # set to your Vercel URL, e.g. https://maxfly.vercel.app
+        sync: false                   # e.g. https://maxfly.vercel.app
       - key: RAZORPAY_KEY_ID
         sync: false
       - key: RAZORPAY_KEY_SECRET
         sync: false
       - key: RAZORPAY_WEBHOOK_SECRET
         sync: false
+
+services:
+  # ---- Redis (Celery broker + result backend) ----
+  - type: keyvalue
+    name: maxfly-redis
+    plan: starter                     # noeviction so queued jobs are never dropped
+    maxmemoryPolicy: noeviction
+    ipAllowList: []                   # internal-only (no public access)
+
+  # ---- API (HTTP only) ----
+  - type: web
+    name: maxfly-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: standard                    # 1 CPU / 2 GB
+    healthCheckPath: /api/health
+    scaling:
+      minInstances: 1
+      maxInstances: 2
+      targetCPUPercent: 70
+    envVars:
+      - fromGroup: maxfly-shared
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: maxfly-redis
+          property: connectionString
+
+  # ---- Worker (transcription + ffmpeg exports) ----
+  - type: worker
+    name: maxfly-worker
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: standard                    # 1 CPU / 2 GB per instance
+    dockerCommand: celery -A app.celery_app worker --loglevel=info --concurrency=2 --max-tasks-per-child=20
+    scaling:
+      minInstances: 1
+      maxInstances: 3                 # scales out under load, back to 1 when quiet
+      targetCPUPercent: 70
+    envVars:
+      - fromGroup: maxfly-shared
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: maxfly-redis
+          property: connectionString

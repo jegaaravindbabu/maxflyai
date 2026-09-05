@@ -142,7 +142,7 @@ class R2Storage:
         )
 
     def save_upload(self, tmp_path: str, filename: str) -> str:
-        key = f"{uuid.uuid4()}_{filename}"
+        key = f"{uuid.uuid4()}_{_safe_filename(filename)}"
         self.s3.upload_file(tmp_path, self.bucket, key)
         return key
 

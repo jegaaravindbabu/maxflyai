@@ -379,8 +379,12 @@ def run_export_job(export_id: str, project_id: str, fmt: str, use_translit: bool
         raise
 
 
-@shared_task(name="maxfly.export")
-def export_task(project_id: str, fmt: str = "srt", use_translit: bool = False,
-                apply_cuts: bool = True, style: str = "classic",
-               enhance_audio: bool = False) -> dict:
-    return run_export(project_id, fmt, use_translit, apply_cuts, style, enhance_audio)
+@shared_task(name="maxfly.export", bind=True, max_retries=1, default_retry_delay=10)
+def export_task(self, export_id: str, project_id: str, fmt: str = "srt",
+                use_translit: bool = False, apply_cuts: bool = True,
+                style: str = "classic", enhance_audio: bool = False,
+                volume: float = 1.0, speed: float = 1.0) -> None:
+    """Celery entry for exports. Mirrors run_export_job so the Export row is
+    marked error on failure; retries once on transient errors."""
+    run_export_job(export_id, project_id, fmt, use_translit, apply_cuts, style,
+                   enhance_audio, volume, speed)
