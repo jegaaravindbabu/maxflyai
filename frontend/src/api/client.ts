@@ -335,9 +335,10 @@ export const api = {
       await afetch(`${BASE}/api/projects/${id}/exports`));
   },
 
-  async detectSilences(id: string) {
+  async detectSilences(id: string, minSilenceMs?: number) {
+    const qs = minSilenceMs != null ? `?min_silence_ms=${Math.round(minSilenceMs)}` : "";
     return j<{ threshold_db: number; count: number; silences: { start_ms: number; end_ms: number }[] }>(
-      await afetch(`${BASE}/api/projects/${id}/silences`)
+      await afetch(`${BASE}/api/projects/${id}/silences${qs}`)
     );
   },
 
