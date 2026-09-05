@@ -99,7 +99,13 @@ def _anim_prefix(anim: str | None, dur_ms: int, speed: float = 1.0) -> str:
     return ""
 
 
-def _karaoke_text(text: str, dur_ms: int) -> str:
+def _wmatch(w: str, emph: str) -> bool:
+    if not emph or w == "\\N":
+        return False
+    return re.sub(r"[^\w]", "", w, flags=re.UNICODE).lower() == emph.lower()
+
+
+def _karaoke_text(text: str, dur_ms: int, emph: str = "", accent: str = "", primary: str = "") -> str:
     """Split cue into words with per-word \\kf timing (centiseconds)."""
     plain = text.replace("\n", " \\N ")
     words = [w for w in plain.split(" ") if w != ""]
@@ -117,7 +123,10 @@ def _karaoke_text(text: str, dur_ms: int) -> str:
         share = round(total_cs * len(w) / total_chars)
         share = max(1, min(share, total_cs - used))
         used += share
-        out.append(f"{{\\kf{share}}}{w} ")
+        if _wmatch(w, emph):
+            out.append(f"{{\\kf{share}\\1c{accent}&}}{w}{{\\1c{primary}&}} ")
+        else:
+            out.append(f"{{\\kf{share}}}{w} ")
     return "".join(out).strip()
 
 
@@ -145,7 +154,7 @@ def _word_tag(anim: str, ti: int, D: int) -> str:
     return f"{{\\alpha&HFF&\\t({ti},{t2},\\alpha&H00&)}}"
 
 
-def _word_anim_text(text: str, dur_ms: int, anim: str, speed: float = 1.0) -> str:
+def _word_anim_text(text: str, dur_ms: int, anim: str, speed: float = 1.0, emph: str = "", accent: str = "", primary: str = "") -> str:
     """Each word animates in on its own, timed across the cue duration."""
     plain = text.replace("\n", " \\N ")
     words = [w for w in plain.split(" ") if w != ""]
@@ -162,7 +171,8 @@ def _word_anim_text(text: str, dur_ms: int, anim: str, speed: float = 1.0) -> st
             continue
         ti = int(dur_ms * used / total_chars)
         used += len(w)
-        out.append(_word_tag(anim, ti, D) + w + " ")
+        wtxt = ("{\\1c" + accent + "&}" + w + "{\\1c" + primary + "&}") if _wmatch(w, emph) else w
+        out.append(_word_tag(anim, ti, D) + wtxt + " ")
     return "".join(out).strip()
 
 
@@ -211,17 +221,18 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
         if p.get("upper"):
             txt = txt.upper()
         dur = max(c["end_ms"] - c["start_ms"], 1)
+        em = (st.get("emphasis") or "").strip()
+        emcol = YELLOW if p["primary"] == ACCENT else ACCENT
         if anim == "karaoke":
-            body = _karaoke_text(txt, dur)
+            body = _karaoke_text(txt, dur, em, emcol, p["primary"])
             prefix = glow_tag + "{\\fad(80,80)}"
         elif scope == "word" and anim in _WORD_MOTION:
-            body = _word_anim_text(txt, dur, anim, speed)
+            body = _word_anim_text(txt, dur, anim, speed, em, emcol, p["primary"])
             prefix = glow_tag
         else:
             body = txt.replace("\n", "\\N")
-            em = (st.get("emphasis") or "").strip()
             if em:
-                body = _emphasize(body, em, ACCENT, p["primary"])
+                body = _emphasize(body, em, emcol, p["primary"])
             prefix = glow_tag + _anim_prefix(anim, dur, speed)
         lines.append(
             f"Dialogue: 0,{_ms_to_ass(c['start_ms'])},{_ms_to_ass(c['end_ms'])},"
