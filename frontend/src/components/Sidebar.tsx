@@ -5,7 +5,7 @@ import { useAuth, authEnabled } from "../auth/AuthContext";
 interface Props { route: string; onNewProject: () => void; }
 
 const NAV = [
-  { id: "#/", ic: "⌂", label: "Home" },
+  { id: "#/app", ic: "⌂", label: "Home" },
   { id: "#/projects", ic: "▦", label: "Projects" },
   { id: "#/media", ic: "▤", label: "Media Library" },
   { id: "#/billing", ic: "◈", label: "Pricing" },
@@ -35,7 +35,7 @@ export function Sidebar({ route, onNewProject }: Props) {
       <nav className="sb-nav">
         {NAV.map((n) => (
           <a key={n.id} href={n.id}
-             className={"sb-item" + (route === n.id || (n.id === "#/" && route === "#/") ? " active" : "")}>
+             className={"sb-item" + (route === n.id ? " active" : "")}>
             <span className="ic">{n.ic}</span><span>{n.label}</span>
           </a>
         ))}

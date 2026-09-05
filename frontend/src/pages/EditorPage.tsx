@@ -557,7 +557,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
       {/* ===== top bar ===== */}
       <div className="ed-top">
         <div className="ed-top-l">
-          <a href="#/" className="ed-back" title="Back">←</a>
+          <a href="#/app" className="ed-back" title="Back">←</a>
           <span className="ed-play-logo">▶</span>
         </div>
         <div className="ed-title">{proj.name}</div>

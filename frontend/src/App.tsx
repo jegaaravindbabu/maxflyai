@@ -9,6 +9,7 @@ import { MediaLibraryPage } from "./pages/MediaLibraryPage";
 import { EditorPage } from "./pages/EditorPage";
 import { BillingPage } from "./pages/BillingPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { LandingPage } from "./pages/LandingPage";
 
 function useHashRoute() {
   const [hash, setHash] = useState(window.location.hash || "#/");
@@ -46,7 +47,7 @@ function Shell() {
   else if (hash === "#/settings") content = <SettingsPage />;
   else if (hash === "#/projects") content = <ProjectsPage onNewProject={openUpload} />;
   else if (hash === "#/media") content = <MediaLibraryPage onNewProject={openUpload} />;
-  else content = <HomePage onNewProject={openUpload} />;
+  else content = <HomePage onNewProject={openUpload} />;   // #/app (and fallback)
 
   return (
     <div className="shell">
@@ -60,7 +61,21 @@ function Shell() {
 }
 
 function Gate() {
+  const hash = useHashRoute();
   const { session, loading } = useAuth();
+
+  // Public marketing landing at the root — the front door for every visitor.
+  if (hash === "#/" || hash === "" || hash === "#") return <LandingPage />;
+
+  // Public login route.
+  if (hash === "#/login") {
+    if (!authEnabled) { window.location.hash = "#/app"; return null; }
+    if (loading) return <div style={{ padding: 24 }} className="muted">Loading…</div>;
+    if (session) { window.location.hash = "#/app"; return null; }
+    return <LoginPage />;
+  }
+
+  // Everything else is the app (requires login when auth is enabled).
   if (!authEnabled) return <Shell />;
   if (loading) return <div style={{ padding: 24 }} className="muted">Loading…</div>;
   if (!session) return <LoginPage />;
