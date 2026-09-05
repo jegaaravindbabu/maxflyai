@@ -1,6 +1,19 @@
-# Local dev services for maxfly.ai (Postgres + Redis).
-# The app itself runs outside compose during dev (uvicorn / vite),
-# but you can point DATABASE_URL / REDIS_URL at these.
+# Local dev stack for maxfly.ai — the full Celery pipeline, mirroring production.
+#
+#   postgres : local database
+#   redis    : Celery broker + result backend
+#   api      : FastAPI (HTTP only)
+#   worker   : Celery worker — runs transcription + ffmpeg exports off the API
+#
+# Secrets (Sarvam key, Supabase, etc.) come from backend/.env via env_file;
+# the infra URLs below override that file to point at these compose services.
+#
+#   docker compose up --build
+#   API on http://localhost:8000  ·  set the frontend VITE_API_BASE to it
+#
+# To run the app outside compose instead, just `docker compose up postgres redis`
+# and point DATABASE_URL / REDIS_URL at localhost.
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -12,11 +25,58 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U maxfly"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   redis:
     image: redis:7-alpine
+    command: ["redis-server", "--maxmemory-policy", "noeviction"]
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/.env
+    environment:
+      RUN_MODE: celery
+      DATABASE_URL: postgresql+psycopg://maxfly:maxfly@postgres:5432/maxfly
+      REDIS_URL: redis://redis:6379/0
+      PORT: "8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=2 --max-tasks-per-child=20
+    env_file:
+      - ./backend/.env
+    environment:
+      RUN_MODE: celery
+      DATABASE_URL: postgresql+psycopg://maxfly:maxfly@postgres:5432/maxfly
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
 
 volumes:
   pgdata:
