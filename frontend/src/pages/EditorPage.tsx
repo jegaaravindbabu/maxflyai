@@ -150,6 +150,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [hiddenTracks, setHiddenTracks] = useState<Set<string>>(new Set());
   const [lockedTracks, setLockedTracks] = useState<Set<string>>(new Set());
   const [mediaMuted, setMediaMuted] = useState(false);
+  const [capToolsOpen, setCapToolsOpen] = useState(false);
+  const [emphasisDraft, setEmphasisDraft] = useState("");
   const [images, setImages] = useState<ImageOverlay[]>([]);
   const [selImg, setSelImg] = useState<string | null>(null);
   const [imgBusy, setImgBusy] = useState(false);
@@ -527,6 +529,29 @@ export function EditorPage({ projectId }: { projectId: string }) {
     setFilterLayers((prev) => prev.filter((l) => l.id !== id));
     if (selLayer === id) deselectLayer();
   }
+
+  // ---- Caption tools: emphasis word highlighted across all captions ----
+  function applyEmphasis() {
+    const w = emphasisDraft.trim();
+    saveCapSetting({ emphasis: w });
+  }
+  function clearEmphasis() {
+    setEmphasisDraft("");
+    saveCapSetting({ emphasis: "" });
+  }
+  function autoPickEmphasis() {
+    const freq: Record<string, number> = {};
+    cues.forEach((c) => (c.text || "").split(/\s+/).forEach((w) => {
+      const k = w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+      if (k.length >= 4) freq[k] = (freq[k] || 0) + 1;
+    }));
+    let best = "", bestScore = 0;
+    Object.entries(freq).forEach(([k, n]) => {
+      const score = n * 10 + k.length;
+      if (score > bestScore) { bestScore = score; best = k; }
+    });
+    if (best) { setEmphasisDraft(best); saveCapSetting({ emphasis: best }); }
+  }
   async function uploadNewVideo(file: File) {
     setUpBusy(true);
     try {
@@ -786,6 +811,41 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   <span className={density === "roomy" ? "active" : ""} onClick={() => setDensity("roomy")}>Roomy</span>
                 </div>
               </div>
+              {cues.length > 0 && (
+                <div className="ed-captools-wrap">
+                  <button className={"ed-captools-btn" + (capToolsOpen ? " open" : "")}
+                    onClick={() => { setEmphasisDraft(capSettings.emphasis || ""); setCapToolsOpen((o) => !o); }}>
+                    <span>⚒ Caption tools</span><span className="ed-ct-chev">⌄</span>
+                  </button>
+                  {capToolsOpen && (
+                    <div className="ed-captools-pop">
+                      <div className="ed-ct-sec">EMPHASIS</div>
+                      <div className="np-sub">Highlights this word in all {cues.length} captions</div>
+                      <div className="ed-ct-emph">
+                        <input placeholder="Type a word, press Enter" value={emphasisDraft}
+                          onChange={(e) => setEmphasisDraft(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); applyEmphasis(); } }} />
+                        <button onClick={applyEmphasis}>Apply</button>
+                      </div>
+                      {capSettings.emphasis ? (
+                        <div className="ed-ct-cur">Emphasizing <b>{capSettings.emphasis}</b>
+                          <button className="linkbtn" onClick={clearEmphasis}>clear</button></div>
+                      ) : null}
+                      <div className="ed-ct-sec">ACTIONS</div>
+                      <div className="ed-ct-action" onClick={autoPickEmphasis}>
+                        <div className="ed-ct-ic">✨</div>
+                        <div><div className="ed-ct-a-title">Auto-pick emphasis</div>
+                          <div className="np-sub">Pick the standout word — the one repeated most, or the longest.</div></div>
+                      </div>
+                      <div className="ed-ct-action" onClick={() => { if (!transcribing) { runTranscribe(); setCapToolsOpen(false); } }}>
+                        <div className="ed-ct-ic">↻</div>
+                        <div><div className="ed-ct-a-title">Regenerate captions</div>
+                          <div className="np-sub">Create the captions again from the audio.</div></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="ed-cap-bar">
                 <span className="ed-cap-count">{cues.length} captions</span>
                 {cues.length > 0 && (

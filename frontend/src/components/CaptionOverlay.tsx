@@ -44,6 +44,8 @@ export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings }: P
 
   const speed = Math.max(0.3, st.speed || 1);
   const wordDur = (0.45 / speed).toFixed(2) + "s";
+  const emph = (st.emphasis || "").trim().toLowerCase();
+  const isEmph = (w: string) => !!emph && w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "") === emph;
 
   // ----- WORD-BY-WORD mode -----
   const perWordMotion = wordScope && animOn && MOTION.has(anim);
@@ -62,6 +64,7 @@ export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings }: P
       const arrived = curMs >= wStart;
 
       let cw = "capword";
+      if (isEmph(w)) cw += " capword-emph";
       if (on) cw += " capword-on";
       else if (passed) cw += " capword-passed";
 
@@ -84,5 +87,9 @@ export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings }: P
   const extra = anim ? ` capset-${anim}` : "";
   const capDyn = { ...dyn };
   if (extra) (capDyn as any).animationDuration = wordDur;
-  return <span className={`cap cap-${styleId}${extra}`} style={capDyn} key={keyId}>{text}</span>;
+  const body = emph
+    ? text.split(/(\s+)/).map((w, i) => isEmph(w)
+        ? <span key={i} className="capword-emph">{w}</span> : w)
+    : text;
+  return <span className={`cap cap-${styleId}${extra}`} style={capDyn} key={keyId}>{body}</span>;
 }

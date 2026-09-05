@@ -9,6 +9,8 @@ timing by splitting each cue's duration across its words.
 """
 from __future__ import annotations
 
+import re
+
 # palette (BGR hex)
 WHITE = "&H00FFFFFF"
 BLACK = "&H00000000"
@@ -164,6 +166,18 @@ def _word_anim_text(text: str, dur_ms: int, anim: str, speed: float = 1.0) -> st
     return "".join(out).strip()
 
 
+def _emphasize(text: str, word: str, accent: str, primary: str) -> str:
+    """Colour a whole-word match (case-insensitive) with the accent, then reset."""
+    if not word:
+        return text
+    def repl(m):
+        return "{\\1c" + accent + "&}" + m.group(0) + "{\\1c" + primary + "&}"
+    try:
+        return re.sub(r"(?<!\w)" + re.escape(word) + r"(?!\w)", repl, text, flags=re.IGNORECASE)
+    except re.error:
+        return text
+
+
 def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False,
               settings: dict | None = None) -> str:
     p = dict(PRESETS.get(style, PRESETS[DEFAULT]))   # copy so overrides don't mutate presets
@@ -205,6 +219,9 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
             prefix = glow_tag
         else:
             body = txt.replace("\n", "\\N")
+            em = (st.get("emphasis") or "").strip()
+            if em:
+                body = _emphasize(body, em, ACCENT, p["primary"])
             prefix = glow_tag + _anim_prefix(anim, dur, speed)
         lines.append(
             f"Dialogue: 0,{_ms_to_ass(c['start_ms'])},{_ms_to_ass(c['end_ms'])},"
