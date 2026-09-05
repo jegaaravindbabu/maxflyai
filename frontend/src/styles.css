@@ -1188,3 +1188,16 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .ed-lane.lane-off { opacity: .38; }
 .ed-lane.lane-lock .ed-tl-pill, .ed-lane.lane-lock .ed-tl-block, .ed-lane.lane-lock .ed-media-clip { pointer-events: none; }
 .ed-lane.lane-lock::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(45deg, transparent 0 6px, rgba(255,255,255,.03) 6px 12px); pointer-events: none; z-index: 6; }
+
+/* ---- Track gutter icons in one clean row (HyproAI look) ---- */
+.ed-tl-gutter { flex: 0 0 82px; width: 82px; }
+.ed-th { flex-direction: row; gap: 5px; align-items: center; justify-content: center; padding: 0 5px; }
+.ed-th-type { display: inline-flex; align-items: center; color: var(--muted); opacity: .65; }
+.ed-th-b { display: inline-flex; align-items: center; justify-content: center; background: none; border: none;
+  cursor: pointer; padding: 2px; color: var(--muted); opacity: .6; filter: none; border-radius: 5px;
+  transition: color .12s, opacity .12s, background .12s; }
+.ed-th-b:hover { opacity: 1; color: var(--text); background: var(--panel-2); }
+.ed-th-b.off { color: var(--accent-2); opacity: 1; }
+.ed-th-b.on { color: var(--accent-2); opacity: 1; }
+.ed-th-b svg { display: block; }
+.ed-th.thoff .ed-th-type { opacity: .3; }

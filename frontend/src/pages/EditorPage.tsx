@@ -74,6 +74,29 @@ const ADJUSTS: [keyof Adjust, string][] = [
   ["saturation", "Saturation"], ["warmth", "Warmth"],
 ];
 
+// thin line icons for the track gutter (match HyproAI's clean row)
+const svg = (children: React.ReactNode) => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
+);
+const IcType: Record<string, React.ReactNode> = {
+  captions: svg(<><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M9 10.5a2 2 0 1 0 0 3M16 10.5a2 2 0 1 0 0 3" /></>),
+  text: svg(<><path d="M5 6V5h14v1M12 5v14M9 19h6" /></>),
+  images: svg(<><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="8.5" cy="9" r="1.5" /><path d="M21 16l-5-5-8 8" /></>),
+  broll: svg(<><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M3 15h18M8 4v16M16 4v16" /></>),
+  filters: svg(<><circle cx="12" cy="12" r="9" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none" /></>),
+  media: svg(<><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M3 15h18M8 4v16M16 4v16" /></>),
+};
+const IcEye = (on: boolean) => on
+  ? svg(<><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" /><circle cx="12" cy="12" r="3" /></>)
+  : svg(<><path d="M9.9 4.24A9 9 0 0 1 12 4c7 0 11 8 11 8a18 18 0 0 1-2.16 3.19M6.06 6.06A18 18 0 0 0 1 12s4 8 11 8a9 9 0 0 0 3.94-.94M1 1l22 22" /></>);
+const IcLock = (locked: boolean) => locked
+  ? svg(<><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></>)
+  : svg(<><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 7.5-1.3" /></>);
+const IcVol = (muted: boolean) => muted
+  ? svg(<><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M22 9l-6 6M16 9l6 6" /></>)
+  : svg(<><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M16 8.5a5 5 0 0 1 0 7" /></>);
+
 // Rail order mirrors HyproAI: Uploads, Texts, Videos, Filters, Captions, Auto Zoom, Images
 // (maxfly uploads via the New Project modal, so there is no separate Uploads panel;
 //  "Videos" maps to B-roll clips. AI Tools / Canvas / Export are maxfly extras.)
@@ -255,19 +278,17 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const isLocked = (t: string) => lockedTracks.has(t);
   const toggleHide = (t: string) => setHiddenTracks((s) => { const n = new Set(s); n.has(t) ? n.delete(t) : n.add(t); return n; });
   const toggleLock = (t: string) => setLockedTracks((s) => { const n = new Set(s); n.has(t) ? n.delete(t) : n.add(t); return n; });
-  const trackHead = (id: string, icon: string, media = false) => (
+  const trackHead = (id: string, _icon: string, media = false) => (
     <div className={"ed-th" + (media ? " ed-th-media" : "") + (isHidden(id) ? " thoff" : "")}>
-      <span className="ed-th-ic">{icon}</span>
-      <div className="ed-th-btns">
-        <button className={"ed-th-b" + (isHidden(id) ? " off" : "")} title={isHidden(id) ? "Show track" : "Hide track"}
-          onClick={(e) => { e.stopPropagation(); toggleHide(id); }}>{isHidden(id) ? "\u{1F6AB}" : "\u{1F441}"}</button>
-        <button className={"ed-th-b" + (isLocked(id) ? " on" : "")} title={isLocked(id) ? "Unlock track" : "Lock track"}
-          onClick={(e) => { e.stopPropagation(); toggleLock(id); }}>{isLocked(id) ? "\u{1F512}" : "\u{1F513}"}</button>
-        {media && (
-          <button className={"ed-th-b" + (mediaMuted ? " on" : "")} title={mediaMuted ? "Unmute" : "Mute"}
-            onClick={(e) => { e.stopPropagation(); setMediaMuted((m) => !m); }}>{mediaMuted ? "\u{1F507}" : "\u{1F50A}"}</button>
-        )}
-      </div>
+      <span className="ed-th-type">{IcType[id]}</span>
+      <button className={"ed-th-b" + (isHidden(id) ? " off" : "")} title={isHidden(id) ? "Show track" : "Hide track"}
+        onClick={(e) => { e.stopPropagation(); toggleHide(id); }}>{IcEye(!isHidden(id))}</button>
+      <button className={"ed-th-b" + (isLocked(id) ? " on" : "")} title={isLocked(id) ? "Unlock track" : "Lock track"}
+        onClick={(e) => { e.stopPropagation(); toggleLock(id); }}>{IcLock(isLocked(id))}</button>
+      {media && (
+        <button className={"ed-th-b" + (mediaMuted ? " on" : "")} title={mediaMuted ? "Unmute" : "Mute"}
+          onClick={(e) => { e.stopPropagation(); setMediaMuted((m) => !m); }}>{IcVol(mediaMuted)}</button>
+      )}
     </div>
   );
   const wordMode = WORD_STYLES.includes(capStyle);
