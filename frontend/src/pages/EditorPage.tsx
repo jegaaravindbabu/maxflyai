@@ -178,6 +178,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const overlaysRef = useRef<Overlay[]>([]);
   overlaysRef.current = overlays;
   const [enhanceAudio, setEnhanceAudio] = useState(false);
+  const [enhanceStrength, setEnhanceStrength] = useState(50);
   const [styles, setStyles] = useState<{ id: string; label: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [curMs, setCurMs] = useState(0);
@@ -469,7 +470,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
     const style = animOn ? capStyle : "classic";
     upsertExport(fmt, { status: "processing" });
     try {
-      const r = await api.exportSub(projectId, fmt, showTranslit, true, style, enhanceAudio, audioVol, playRate);
+      const r = await api.exportSub(projectId, fmt, showTranslit, true, style, enhanceAudio, audioVol, playRate, enhanceStrength);
       const eid = r.export_id;
       for (let i = 0; i < 120; i++) {
         await new Promise((res) => setTimeout(res, 1500));
@@ -1499,13 +1500,21 @@ export function EditorPage({ projectId }: { projectId: string }) {
               <div className="ed-anim-toggle" style={{ marginTop: 20 }}>
                 <div>
                   <div className="ed-anim-title">Audio enhance</div>
-                  <div className="np-sub">Clean background noise with AI — applied when you export.</div>
+                  <div className="np-sub">Cleans background noise with AI — applied when you export.</div>
                 </div>
                 <label className="ed-switch">
                   <input type="checkbox" checked={enhanceAudio} onChange={(e) => setEnhanceAudio(e.target.checked)} />
                   <span className="ed-switch-track" />
                 </label>
               </div>
+              {enhanceAudio && (
+                <div className="ed-cs-slider" style={{ marginTop: 16 }}>
+                  <div className="ed-cs-slabel"><span>Strength</span><span>{enhanceStrength}%</span></div>
+                  <input type="range" min={0} max={100} step={1} value={enhanceStrength}
+                    onChange={(e) => setEnhanceStrength(+e.target.value)} />
+                  <div className="ed-cs-slabel" style={{ color: "var(--muted)" }}><span>subtle</span><span>aggressive</span></div>
+                </div>
+              )}
             </div>
           )}
 

@@ -339,12 +339,12 @@ export const api = {
     }));
   },
 
-  async exportSub(id: string, format: string, use_translit: boolean, apply_cuts = true, style = "classic", enhance_audio = false, volume = 1, speed = 1) {
+  async exportSub(id: string, format: string, use_translit: boolean, apply_cuts = true, style = "classic", enhance_audio = false, volume = 1, speed = 1, enhance_strength = 50) {
     return j<{ export_id: string; status: string; format: string }>(
       await afetch(`${BASE}/api/projects/${id}/export`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ format, use_translit, apply_cuts, style, enhance_audio, volume, speed }),
+        body: JSON.stringify({ format, use_translit, apply_cuts, style, enhance_audio, volume, speed, enhance_strength }),
       })
     );
   },
