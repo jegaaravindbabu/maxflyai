@@ -5,6 +5,7 @@ import type { ProjectDetail, Overlay, ImageOverlay, BrollClip, Cue, Project } fr
 import { VideoPreview } from "../components/VideoPreview";
 import { CaptionOverlay } from "../components/CaptionOverlay";
 import { Waveform } from "../components/Waveform";
+import { Filmstrip } from "../components/Filmstrip";
 import { SilenceRemover } from "../components/SilenceRemover";
 import { RetakeRemover } from "../components/RetakeRemover";
 import { FillerRemover } from "../components/FillerRemover";
@@ -1649,16 +1650,13 @@ export function EditorPage({ projectId }: { projectId: string }) {
               </div>
             )}
 
-            <div className="ed-lane" onClick={scrub}>
-              <span className="ed-lane-label">Video</span>
-              <div className="ed-tl-block ed-tl-vid" style={{ left: 0, width: "100%" }}>
-                {proj.source_filename || "video"} · {fmtT(dur)}
+            <div className="ed-lane ed-lane-media" onClick={scrub}>
+              <span className="ed-lane-label">Media</span>
+              <div className="ed-media-clip">
+                <div className="ed-media-name">{proj.source_filename || "video"} · {fmtT(dur)}</div>
+                <Filmstrip src={mediaSrc} count={14} />
+                <div className="ed-media-wave"><Waveform mediaEl={mediaEl} /></div>
               </div>
-            </div>
-
-            <div className="ed-lane ed-lane-audio" onClick={scrub}>
-              <span className="ed-lane-label">Audio</span>
-              <div className="ed-lane-wave"><Waveform mediaEl={mediaEl} /></div>
             </div>
           </div>
         </div>

@@ -463,7 +463,7 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
 .ed-tl-pill { position: absolute; top: 4px; height: 34px; background: rgba(34,197,94,.16);
   border: 1px solid rgba(34,197,94,.5); border-radius: 6px; font-size: 11px; color: var(--text);
   padding: 4px 6px; overflow: hidden; white-space: nowrap; cursor: pointer; box-sizing: border-box; }
-.ed-tl-pill.active { background: rgba(239,68,68,.25); border-color: var(--accent); }
+.ed-tl-pill.active { background: rgba(34,197,94,.34); border-color: #22c55e; box-shadow: 0 0 0 1px rgba(34,197,94,.4); }
 .ed-tl-wave { height: 70px; }
 
 @media (max-width: 1100px) {
@@ -1147,3 +1147,16 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .ed-layer-del:hover { color: var(--accent); }
 .ed-tl-filter { background: linear-gradient(90deg, rgba(239,68,68,.35), rgba(245,158,11,.35)); border: 1px solid var(--accent); color: #fff; }
 .ed-tl-filter.sel { box-shadow: 0 0 0 1px var(--accent); }
+
+/* ---- HyproAI-style media track (filmstrip + waveform) ---- */
+.ed-lane-media { height: 86px; }
+.ed-media-clip { position: absolute; left: 0; right: 0; top: 5px; bottom: 5px; border-radius: 8px;
+  overflow: hidden; border: 1px solid var(--border); background: #0b0d15; }
+.ed-media-name { position: absolute; top: 4px; left: 8px; z-index: 3; font-size: 10px; font-weight: 600;
+  color: rgba(255,255,255,.9); text-shadow: 0 1px 3px rgba(0,0,0,.9); pointer-events: none; letter-spacing: .2px; }
+.ed-filmstrip { display: flex; height: 50px; width: 100%; background: #12141f; }
+.ed-filmstrip .ed-frame { flex: 1 1 0; width: 0; height: 100%; display: block; border-right: 1px solid rgba(0,0,0,.4); }
+.ed-filmstrip.failed { background: repeating-linear-gradient(90deg, #1a1d2b 0 40px, #222637 40px 80px); }
+.ed-media-wave { position: relative; height: 34px; border-top: 1px solid var(--border); background: #0a0c13; overflow: hidden; }
+.ed-media-wave > * { height: 100% !important; }
+.ed-media-wave .waveform, .ed-media-wave .card { border: none !important; padding: 0 !important; margin: 0 !important; background: transparent !important; box-shadow: none !important; }
