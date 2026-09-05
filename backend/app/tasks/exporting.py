@@ -68,8 +68,8 @@ def _load_color_filter(db, project_id: str) -> str | None:
                      Edit.type == "filter").order_by(Edit.created_at.desc()).first())
     if not row:
         return None
-    name = (row.payload_json or {}).get("name")
-    return filters.filter_string(name)
+    p = row.payload_json or {}
+    return filters.combined_vf(p.get("name"), p.get("adjust"))
 
 
 def _load_images(db, project_id: str) -> list[dict]:

@@ -1116,3 +1116,18 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .ed-nle-t { font-size: 13px; font-weight: 700; }
 .ed-nle-s { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
 .ed-nle-row button { flex-shrink: 0; }
+
+/* ---- Filters panel (HyproAI-style groups + adjust) ---- */
+.ed-filt-sharp { filter: contrast(1.15) saturate(1.15); }
+.ed-filt-teal { filter: contrast(1.08) saturate(1.15) hue-rotate(-10deg); }
+.ed-filt-card { display: flex; align-items: center; gap: 10px; background: #0b0d15; border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; cursor: pointer; margin-bottom: 14px; }
+.ed-filt-card:hover { border-color: #3a3f57; }
+.ed-filt-card .ed-filt-prev { height: 40px; width: 64px; margin: 0; flex-shrink: 0; }
+.ed-filt-card .ed-style-lb { font-size: 13px; font-weight: 600; }
+.ed-filt-group { margin-bottom: 16px; }
+.ed-filt-ghead { display: flex; align-items: baseline; gap: 8px; font-size: 13px; font-weight: 700; margin: 0 0 8px; }
+.ed-filt-ghead span { font-size: 11px; font-weight: 500; color: var(--muted); }
+.ed-filt-adjust { border-top: 1px solid var(--border); padding-top: 14px; margin-top: 4px; display: flex; flex-direction: column; gap: 12px; }
+.ed-filt-adjust .ed-filt-ghead { justify-content: space-between; margin-bottom: 2px; }
+.ed-filt-reset { background: none; border: none; color: var(--accent-2); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; }
+.ed-filt-reset:hover { text-decoration: underline; }

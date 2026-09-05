@@ -186,6 +186,10 @@ def clear_autozoom(project_id: str, db: Session = Depends(get_db),
 
 class FilterIn(BaseModel):
     name: str = "none"
+    brightness: int = 0
+    contrast: int = 0
+    saturation: int = 0
+    warmth: int = 0
 
 
 @router.get("/{project_id}/filter")
@@ -193,8 +197,13 @@ def get_filter(project_id: str, db: Session = Depends(get_db),
     _owner: Project = Depends(owned_project)):
     row = (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "filter")
              .order_by(Edit.created_at.desc()).first())
-    name = (row.payload_json or {}).get("name", "none") if row else "none"
-    return {"name": name}
+    p = (row.payload_json or {}) if row else {}
+    adj = p.get("adjust", {}) or {}
+    return {"name": p.get("name", "none"),
+            "brightness": int(adj.get("brightness", 0)),
+            "contrast": int(adj.get("contrast", 0)),
+            "saturation": int(adj.get("saturation", 0)),
+            "warmth": int(adj.get("warmth", 0))}
 
 
 @router.post("/{project_id}/filter")
@@ -202,11 +211,14 @@ def set_filter(project_id: str, body: FilterIn, db: Session = Depends(get_db),
     _owner: Project = Depends(owned_project)):
     (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "filter")
        .delete(synchronize_session=False))
-    if body.name and body.name != "none":
+    adjust = {"brightness": body.brightness, "contrast": body.contrast,
+              "saturation": body.saturation, "warmth": body.warmth}
+    has_adjust = any(adjust.values())
+    if (body.name and body.name != "none") or has_adjust:
         db.add(Edit(project_id=project_id, type="filter",
-                    payload_json={"name": body.name}, enabled=True))
+                    payload_json={"name": body.name, "adjust": adjust}, enabled=True))
     db.commit()
-    return {"name": body.name}
+    return {"name": body.name, **adjust}
 
 
 class CapSettingsIn(BaseModel):

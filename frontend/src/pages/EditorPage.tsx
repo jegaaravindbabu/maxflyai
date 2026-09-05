@@ -38,6 +38,40 @@ const ANIM_PRESETS: [string, string][] = [
   ["bounce", "Bounce"], ["rotate", "Rotate"], ["flip", "Flip"],
 ];
 
+// Live-preview CSS approximations of the ffmpeg preset grades (editor preview only).
+const FILTER_CSS: Record<string, string> = {
+  none: "",
+  vivid: "saturate(1.4) contrast(1.12)",
+  bright: "brightness(1.06) contrast(1.05) saturate(1.05)",
+  contrast: "contrast(1.3) saturate(1.08)",
+  sharp: "contrast(1.12) saturate(1.12)",
+  warm: "sepia(0.2) saturate(1.12)",
+  cool: "saturate(1.05) hue-rotate(12deg) brightness(1.02)",
+  cinematic: "contrast(1.12) saturate(0.92) sepia(0.12)",
+  teal: "contrast(1.08) saturate(1.12) hue-rotate(-8deg)",
+  vintage: "sepia(0.45) contrast(0.9) saturate(0.85)",
+  bw: "grayscale(1)",
+};
+
+interface Adjust { brightness: number; contrast: number; saturation: number; warmth: number; }
+
+function cssForFilter(name: string, a: Adjust): string {
+  const parts: string[] = [];
+  const preset = FILTER_CSS[name];
+  if (preset) parts.push(preset);
+  if (a.brightness) parts.push(`brightness(${(1 + a.brightness / 100 * 0.3).toFixed(3)})`);
+  if (a.contrast) parts.push(`contrast(${(1 + a.contrast / 100 * 0.5).toFixed(3)})`);
+  if (a.saturation) parts.push(`saturate(${(1 + a.saturation / 100).toFixed(3)})`);
+  if (a.warmth > 0) parts.push(`sepia(${(a.warmth / 100 * 0.3).toFixed(3)})`);
+  else if (a.warmth < 0) parts.push(`hue-rotate(${(a.warmth / 100 * 18).toFixed(1)}deg)`);
+  return parts.join(" ");
+}
+
+const ADJUSTS: [keyof Adjust, string][] = [
+  ["brightness", "Brightness"], ["contrast", "Contrast"],
+  ["saturation", "Saturation"], ["warmth", "Warmth"],
+];
+
 // Rail order mirrors HyproAI: Uploads, Texts, Videos, Filters, Captions, Auto Zoom, Images
 // (maxfly uploads via the New Project modal, so there is no separate Uploads panel;
 //  "Videos" maps to B-roll clips. AI Tools / Canvas / Export are maxfly extras.)
@@ -80,8 +114,10 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [zooms, setZooms] = useState<{ id: string; start_ms: number; end_ms: number; scale: number }[]>([]);
   const [zoomScale, setZoomScale] = useState(1.2);
   const [zoomBusy, setZoomBusy] = useState(false);
-  const [filterList, setFilterList] = useState<{ id: string; label: string }[]>([]);
+  const [filterList, setFilterList] = useState<{ id: string; label: string; group: string }[]>([]);
+  const [filterGroups, setFilterGroups] = useState<{ name: string; sub: string }[]>([]);
   const [curFilter, setCurFilter] = useState("none");
+  const [adjust, setAdjust] = useState<Adjust>({ brightness: 0, contrast: 0, saturation: 0, warmth: 0 });
   const [images, setImages] = useState<ImageOverlay[]>([]);
   const [selImg, setSelImg] = useState<string | null>(null);
   const [imgBusy, setImgBusy] = useState(false);
@@ -145,9 +181,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
   useEffect(() => { setMediaEl(videoRef.current); }, [proj?.id]);
   useEffect(() => { setOverlays(proj?.overlays || []); }, [proj?.id]);
   useEffect(() => { api.listAutozoom(projectId).then(setZooms).catch(() => {}); }, [projectId]);
-  useEffect(() => { api.filterPresets().then((r) => setFilterList(r.filters)).catch(() => {}); }, []);
+  useEffect(() => { api.filterPresets().then((r) => { setFilterList(r.filters); setFilterGroups(r.groups || []); }).catch(() => {}); }, []);
   useEffect(() => {
-    api.getFilter(projectId).then((r) => setCurFilter(r.name)).catch(() => {});
+    api.getFilter(projectId).then((r) => { setCurFilter(r.name); setAdjust({ brightness: r.brightness, contrast: r.contrast, saturation: r.saturation, warmth: r.warmth }); }).catch(() => {});
     api.listImages(projectId).then(setImages).catch(() => {});
     api.listProjects().then(setMyMedia).catch(() => {});
     api.listBrolls(projectId).then(setBrolls).catch(() => {});
@@ -381,7 +417,17 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
   async function applyFilter(name: string) {
     setCurFilter(name);
-    try { await api.setFilter(projectId, name); } catch {}
+    try { await api.setFilter(projectId, name, adjust); } catch {}
+  }
+  function changeAdjust(key: keyof Adjust, val: number) {
+    setAdjust((prev) => ({ ...prev, [key]: val }));   // live CSS preview
+  }
+  function saveAdjust(next?: Adjust) {
+    api.setFilter(projectId, curFilter, next || adjust).catch(() => {});
+  }
+  function resetAdjust() {
+    const zero: Adjust = { brightness: 0, contrast: 0, saturation: 0, warmth: 0 };
+    setAdjust(zero); api.setFilter(projectId, curFilter, zero).catch(() => {});
   }
   async function uploadNewVideo(file: File) {
     setUpBusy(true);
@@ -938,12 +984,41 @@ export function EditorPage({ projectId }: { projectId: string }) {
           {rail === "filters" && (
             <>
               <div className="ed-left-head"><h3>Filters</h3></div>
-              <div className="ed-hint-box">A colour grade applied to the whole video on MP4 export.</div>
-              <div className="ed-style-grid">
-                {filterList.map((f) => (
-                  <div key={f.id} className={"ed-style-card" + (curFilter === f.id ? " active" : "")} onClick={() => applyFilter(f.id)}>
-                    <div className={"ed-filt-prev ed-filt-" + f.id} />
-                    <div className="ed-style-lb">{f.label}</div>
+              <p className="np-sub" style={{ margin: "0 0 12px" }}>
+                Tap a grade to preview it on your video. Fine-tune with Adjust below — everything bakes into the MP4 export.
+              </p>
+
+              <div className="ed-filt-card" onClick={() => applyFilter("none")}
+                   style={curFilter === "none" ? { borderColor: "var(--accent)" } : undefined}>
+                <div className="ed-filt-prev ed-filt-none" />
+                <div className="ed-style-lb">Original</div>
+              </div>
+
+              {filterGroups.map((g) => (
+                <div key={g.name} className="ed-filt-group">
+                  <div className="ed-filt-ghead">{g.name}<span>{g.sub}</span></div>
+                  <div className="ed-style-grid">
+                    {filterList.filter((f) => f.group === g.name).map((f) => (
+                      <div key={f.id} className={"ed-style-card" + (curFilter === f.id ? " active" : "")} onClick={() => applyFilter(f.id)}>
+                        <div className={"ed-filt-prev ed-filt-" + f.id} />
+                        <div className="ed-style-lb">{f.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              <div className="ed-filt-adjust">
+                <div className="ed-filt-ghead">Adjust
+                  <button className="ed-filt-reset" onClick={resetAdjust}>Reset all</button>
+                </div>
+                {ADJUSTS.map(([key, label]) => (
+                  <div className="ed-cs-slider" key={key}>
+                    <div className="ed-cs-slabel"><span>{label}</span><span>{adjust[key] > 0 ? "+" : ""}{adjust[key]}</span></div>
+                    <input type="range" min={-100} max={100} step={1} value={adjust[key]}
+                      onChange={(e) => changeAdjust(key, +e.target.value)}
+                      onMouseUp={(e) => saveAdjust({ ...adjust, [key]: +(e.target as HTMLInputElement).value })}
+                      onTouchEnd={(e) => saveAdjust({ ...adjust, [key]: +(e.target as HTMLInputElement).value })} />
                   </div>
                 ))}
               </div>
@@ -1065,7 +1140,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 background: canvas.bg_type === "image" && canvas.image_url ? `center/cover no-repeat url("${canvas.image_url}")`
                   : canvas.bg_type === "blur" ? "#0a0c13" : (canvas.color || "#000000"),
               } : undefined}>
-            <VideoPreview ref={videoRef} src={mediaSrc}
+            <VideoPreview ref={videoRef} src={mediaSrc} filterCss={cssForFilter(curFilter, adjust)}
               overlay={<>
                 {activeCue && overlayText ? (
                   <CaptionOverlay text={overlayText} styleId={effStyle} cue={activeCue} curMs={curMs} keyId={activeIdx} settings={capSettings} />

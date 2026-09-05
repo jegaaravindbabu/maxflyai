@@ -39,8 +39,8 @@ def caption_styles():
 
 @app.get("/api/filter-presets")
 def filter_presets():
-    from app.services.filters import list_presets
-    return {"filters": list_presets()}
+    from app.services.filters import list_presets, list_groups
+    return {"filters": list_presets(), "groups": list_groups()}
 
 
 @app.get("/api/stock/search")

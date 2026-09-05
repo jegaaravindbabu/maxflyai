@@ -111,15 +111,17 @@ export const api = {
   },
 
   async filterPresets() {
-    return j<{ filters: { id: string; label: string }[] }>(await afetch(`${BASE}/api/filter-presets`));
+    return j<{ filters: { id: string; label: string; group: string }[];
+      groups: { name: string; sub: string }[] }>(await afetch(`${BASE}/api/filter-presets`));
   },
   async getFilter(id: string) {
-    return j<{ name: string }>(await afetch(`${BASE}/api/projects/${id}/filter`));
+    return j<{ name: string; brightness: number; contrast: number;
+      saturation: number; warmth: number }>(await afetch(`${BASE}/api/projects/${id}/filter`));
   },
-  async setFilter(id: string, name: string) {
-    return j<{ name: string }>(await afetch(`${BASE}/api/projects/${id}/filter`, {
+  async setFilter(id: string, name: string, adjust?: { brightness?: number; contrast?: number; saturation?: number; warmth?: number }) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/filter`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, ...(adjust || {}) }),
     }));
   },
 
