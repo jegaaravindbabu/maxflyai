@@ -1054,3 +1054,36 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
   .lp-links { display: none; }
   .lp-foot-copy { margin-left: 0; width: 100%; }
 }
+
+/* ---------- Retake remover panel ---------- */
+.rtk { display: flex; flex-direction: column; gap: 10px; }
+.rtk-intro { color: var(--muted); font-size: 12.5px; line-height: 1.5; margin: 0; }
+.rtk-scan { width: 100%; padding: 11px; border-radius: 10px; border: none; background: var(--grad); color: var(--on-accent); font-weight: 700; font-size: 14px; cursor: pointer; transition: opacity .15s; }
+.rtk-scan:hover:not(:disabled) { opacity: .92; }
+.rtk-scan:disabled { opacity: .6; cursor: default; }
+.rtk-err { color: var(--accent); font-size: 12.5px; line-height: 1.5; margin: 2px 0 0; }
+.rtk-summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+.rtk-summary strong { font-size: 16px; }
+.rtk-sub { color: var(--muted); }
+.rtk-summary button { padding: 7px 12px; border-radius: 8px; border: none; background: var(--grad); color: var(--on-accent); font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.rtk-summary button.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+.rtk-removed { background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.3); color: var(--ok); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; font-weight: 600; }
+.rtk-empty { background: rgba(34,197,94,.08); border: 1px solid rgba(34,197,94,.25); color: var(--ok); border-radius: 8px; padding: 10px 12px; font-size: 13px; }
+.rtk-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 6px; }
+.rtk-card.applied { border-color: var(--ok); }
+.rtk-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+.rtk-card-head .spacer { flex: 1; }
+.rtk-match { font-size: 11px; font-weight: 700; letter-spacing: .5px; color: var(--accent-2); background: rgba(239,68,68,.12); border-radius: 999px; padding: 3px 9px; }
+.rtk-len { font-size: 11px; color: var(--muted); }
+.rtk-apply { padding: 6px 12px; border-radius: 8px; border: none; background: var(--grad); color: var(--on-accent); font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.rtk-apply.undo { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+.rtk-apply:disabled { opacity: .6; cursor: default; }
+.rtk-take { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 8px; background: var(--panel-2); cursor: pointer; transition: background .12s; }
+.rtk-take:hover { background: #23273a; }
+.rtk-take.cut { opacity: .7; }
+.rtk-take.cut .rtk-txt { text-decoration: line-through; text-decoration-color: rgba(239,68,68,.6); }
+.rtk-tag { font-size: 9px; font-weight: 800; letter-spacing: 1px; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
+.rtk-tag.cut { background: rgba(239,68,68,.18); color: var(--accent-2); }
+.rtk-tag.keep { background: rgba(34,197,94,.18); color: var(--ok); }
+.rtk-time { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.rtk-txt { font-size: 12.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

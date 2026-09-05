@@ -50,6 +50,7 @@ const RAILS = [
   { id: "zoom", icon: "⊕", label: "Auto Zoom" },
   { id: "images", icon: "🖼", label: "Images" },
   { id: "tools", icon: "✨", label: "AI Tools" },
+  { id: "retake", icon: "↺", label: "Retake" },
   { id: "canvas", icon: "▭", label: "Canvas" },
   { id: "export", icon: "⬇", label: "Export" },
 ];
@@ -112,7 +113,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [curMs, setCurMs] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [exports, setExports] = useState<{ fmt: string; url?: string; status: string; error?: string }[]>([]);
-  const [rail, setRail] = useState<"uploads" | "captions" | "texts" | "images" | "broll" | "tools" | "zoom" | "filters" | "canvas" | "export">("captions");
+  const [rail, setRail] = useState<"uploads" | "captions" | "texts" | "images" | "broll" | "tools" | "retake" | "zoom" | "filters" | "canvas" | "export">("captions");
   const [rightTab, setRightTab] = useState<"styles" | "font" | "animation" | "outline" | "shadow">("styles");
   const [topTab, setTopTab] = useState<"video" | "audio" | "text">("text");
   const [playRate, setPlayRate] = useState(1);
@@ -887,8 +888,14 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 </button>
               </div>
               <SilenceRemover projectId={projectId} durationMs={dur} onSeek={seek} />
-              <RetakeRemover projectId={projectId} onSeek={seek} />
               <FillerRemover projectId={projectId} onSeek={seek} />
+            </>
+          )}
+
+          {rail === "retake" && (
+            <>
+              <div className="ed-left-head"><h3>Retake Remover</h3></div>
+              <RetakeRemover projectId={projectId} onSeek={seek} />
             </>
           )}
 
@@ -1365,7 +1372,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 <div className="ed-tb-aimenu" onMouseLeave={() => setAiMenu(false)}>
                   <div className="ed-tb-aiitem" onClick={() => { setRail("tools"); setAiMenu(false); }}>Remove silences</div>
                   <div className="ed-tb-aiitem" onClick={() => { setRail("tools"); setAiMenu(false); }}>Remove filler words</div>
-                  <div className="ed-tb-aiitem" onClick={() => { setRail("tools"); setAiMenu(false); }}>Remove retakes</div>
+                  <div className="ed-tb-aiitem" onClick={() => { setRail("retake"); setAiMenu(false); }}>Remove retakes</div>
                   <div className="ed-tb-aiitem" onClick={() => { setRail("zoom"); setAiMenu(false); }}>Auto zoom</div>
                   <div className="ed-tb-aiitem" onClick={() => { setRail("tools"); setAiMenu(false); }}>Re-transcribe</div>
                 </div>
