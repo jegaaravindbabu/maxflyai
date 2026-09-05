@@ -5,16 +5,78 @@ import type { Project } from "../types";
 const LANGS: { code: string; label: string }[] = [
   { code: "ta-IN", label: "Tamil" },
   { code: "hi-IN", label: "Hindi" },
-  { code: "te-IN", label: "Telugu" },
   { code: "ml-IN", label: "Malayalam" },
+  { code: "te-IN", label: "Telugu" },
+  { code: "bn-IN", label: "Bengali" },
   { code: "kn-IN", label: "Kannada" },
+  { code: "gu-IN", label: "Gujarati" },
+  { code: "mr-IN", label: "Marathi" },
+  { code: "pa-IN", label: "Punjabi" },
+  { code: "od-IN", label: "Odia" },
   { code: "en-IN", label: "English" },
 ];
 
-const OUTPUT_MODES: { value: string; label: string }[] = [
-  { value: "translit", label: "Romanized (Transliterated)" },
-  { value: "transcribe", label: "Native script" },
+const OUTPUT_MODES: { value: string; label: string; sub: string }[] = [
+  { value: "translit", label: "Romanized (Transliterated)", sub: "Latin script transliteration" },
+  { value: "translate", label: "English Translation", sub: "Translated to English" },
+  { value: "transcribe", label: "Native Script", sub: "Original language script" },
 ];
+
+// Clean custom dropdown (searchable list + optional per-option subtitle),
+// matching HyproAI's Language Settings.
+function NPDropdown({ value, options, onChange, searchable, placeholder }: {
+  value: string;
+  options: { value: string; label: string; sub?: string }[];
+  onChange: (v: string) => void;
+  searchable?: boolean;
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const wrapRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => { if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+  const cur = options.find((o) => o.value === value);
+  const shown = searchable && q.trim()
+    ? options.filter((o) => o.label.toLowerCase().includes(q.trim().toLowerCase()))
+    : options;
+  return (
+    <div className={"np-dd" + (open ? " open" : "")} ref={wrapRef}>
+      <button type="button" className="np-dd-trigger" onClick={() => setOpen((v) => !v)}>
+        <span>{cur ? cur.label : (placeholder || "Select…")}</span>
+        <span className="np-dd-chev">⌄</span>
+      </button>
+      {open && (
+        <div className="np-dd-panel">
+          {searchable && (
+            <div className="np-dd-search">
+              <span>⌕</span>
+              <input autoFocus placeholder="Search language…" value={q}
+                onChange={(e) => setQ(e.target.value)} />
+            </div>
+          )}
+          <div className="np-dd-list">
+            {shown.map((o) => (
+              <div key={o.value} className={"np-dd-opt" + (o.value === value ? " sel" : "")}
+                onClick={() => { onChange(o.value); setOpen(false); setQ(""); }}>
+                <div className="np-dd-opt-main">
+                  <span className="np-dd-opt-label">{o.label}</span>
+                  {o.sub && <span className="np-dd-opt-sub">{o.sub}</span>}
+                </div>
+                {o.value === value && <span className="np-dd-check">✓</span>}
+              </div>
+            ))}
+            {shown.length === 0 && <div className="np-dd-empty">No matches</div>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function fmtSize(bytes: number) {
   if (bytes >= 1e9) return (bytes / 1e9).toFixed(1) + " GB";
@@ -181,13 +243,11 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
           <div className="np-settings">
             <div className="np-settings-head">🌐 <span>Language Settings</span></div>
             <label className="np-label">🔊 Speaker's language</label>
-            <select value={lang} onChange={(e) => setLang(e.target.value)}>
-              {LANGS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
-            </select>
+            <NPDropdown value={lang} searchable placeholder="Select language"
+              options={LANGS.map((l) => ({ value: l.code, label: l.label }))}
+              onChange={setLang} />
             <label className="np-label" style={{ marginTop: 14 }}>🅰 Output mode</label>
-            <select value={outputMode} onChange={(e) => setOutputMode(e.target.value)}>
-              {OUTPUT_MODES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-            </select>
+            <NPDropdown value={outputMode} options={OUTPUT_MODES} onChange={setOutputMode} />
           </div>
         </div>
 
