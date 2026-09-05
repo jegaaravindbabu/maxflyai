@@ -188,6 +188,15 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [topTab, setTopTab] = useState<"video" | "audio" | "text">("text");
   const [playRate, setPlayRate] = useState(1);
   const [audioVol, setAudioVol] = useState(1);
+  const VFX_DEFAULT = { opacity: 100, radius: 0, outlineColor: "#000000", outlineSize: 0,
+    shadowColor: "#000000", shadowX: 0, shadowY: 0, shadowBlur: 0, blur: 0, anim: "none",
+    cropOpen: false, cropT: 0, cropR: 0, cropB: 0, cropL: 0 };
+  const [videofx, setVideofx] = useState<any>(VFX_DEFAULT);
+  const setFx = (patch: any) => setVideofx((v: any) => {
+    const n = { ...v, ...patch };
+    try { localStorage.setItem("maxfly:vfx:" + projectId, JSON.stringify(n)); } catch {}
+    return n;
+  });
   const [density, setDensity] = useState<"compact" | "roomy">("roomy");
   type CueSnap = { start_ms: number; end_ms: number; text: string; translit_text: string | null; line_count: number };
   const [undoStack, setUndoStack] = useState<CueSnap[][]>([]);
@@ -213,6 +222,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
   }, [projectId]);
 
   useEffect(() => { setMediaEl(videoRef.current); }, [proj?.id]);
+  useEffect(() => {
+    try { const raw = localStorage.getItem("maxfly:vfx:" + projectId); if (raw) setVideofx({ ...VFX_DEFAULT, ...JSON.parse(raw) }); } catch {}
+  }, [projectId]);
   useEffect(() => { if (videoRef.current) videoRef.current.muted = mediaMuted; }, [mediaMuted]);
   useEffect(() => { setOverlays(proj?.overlays || []); }, [proj?.id]);
   useEffect(() => { api.listAutozoom(projectId).then(setZooms).catch(() => {}); }, [projectId]);
@@ -278,6 +290,20 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const filterPreviewCss = selLayer
     ? cssForFilter(curFilter, adjust)
     : activeLayer ? cssForFilter(activeLayer.name, activeLayer) : cssForFilter(curFilter, adjust);
+  const _grade = hiddenTracks.has("filters") ? "" : filterPreviewCss;
+  const _fparts: string[] = [];
+  if (_grade) _fparts.push(_grade);
+  if (videofx.blur) _fparts.push(`blur(${(videofx.blur * 0.12).toFixed(1)}px)`);
+  if (videofx.shadowBlur || videofx.shadowX || videofx.shadowY)
+    _fparts.push(`drop-shadow(${videofx.shadowX}px ${videofx.shadowY}px ${Math.max(0, videofx.shadowBlur)}px ${videofx.shadowColor})`);
+  const videoFxStyle: React.CSSProperties = {
+    filter: _fparts.join(" ") || undefined,
+    opacity: videofx.opacity / 100,
+    borderRadius: videofx.radius ? (videofx.radius / 2) + "%" : undefined,
+    boxShadow: videofx.outlineSize ? `0 0 0 ${videofx.outlineSize}px ${videofx.outlineColor}` : undefined,
+    clipPath: (videofx.cropT || videofx.cropR || videofx.cropB || videofx.cropL)
+      ? `inset(${videofx.cropT}% ${videofx.cropR}% ${videofx.cropB}% ${videofx.cropL}%)` : undefined,
+  };
   const isHidden = (t: string) => hiddenTracks.has(t);
   const isLocked = (t: string) => lockedTracks.has(t);
   const toggleHide = (t: string) => setHiddenTracks((s) => { const n = new Set(s); n.has(t) ? n.delete(t) : n.add(t); return n; });
@@ -1324,7 +1350,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 background: canvas.bg_type === "image" && canvas.image_url ? `center/cover no-repeat url("${canvas.image_url}")`
                   : canvas.bg_type === "blur" ? "#0a0c13" : (canvas.color || "#000000"),
               } : undefined}>
-            <VideoPreview ref={videoRef} src={mediaSrc} filterCss={isHidden("filters") ? "" : filterPreviewCss}
+            <VideoPreview ref={videoRef} src={mediaSrc} videoStyle={videoFxStyle}
               overlay={<>
                 {activeCue && overlayText && !isHidden("captions") ? (
                   <CaptionOverlay text={overlayText} styleId={effStyle} cue={activeCue} curMs={curMs} keyId={activeIdx} settings={capSettings} />
@@ -1380,17 +1406,84 @@ export function EditorPage({ projectId }: { projectId: string }) {
           )}
 
           {topTab === "video" && (
-            <div className="ed-rt-body">
-              <div className="ed-anim-lbl">PLAYBACK SPEED</div>
+            <div className="ed-rt-body ed-vfx">
+              <div className="ed-anim-lbl">PLAYBACK</div>
               <div className="ed-cs-slider">
                 <div className="ed-cs-slabel"><span>Speed</span><span>{playRate.toFixed(2)}x</span></div>
                 <input type="range" min={0.25} max={2} step={0.05} value={playRate}
                   onChange={(e) => { const v = +e.target.value; setPlayRate(v); if (videoRef.current) videoRef.current.playbackRate = v; }} />
-                <div className="ed-cs-slabel" style={{ color: "var(--muted)" }}><span>0.25x</span><span>2x</span></div>
               </div>
-              <div className="ed-hint-box" style={{ marginTop: 16 }}>
-                Preview speed for scrubbing. For the look of the video use <b>Filters</b> (colour grading &amp; LUTs) and <b>Auto Zoom</b> (punch-ins) in the left rail; change the source with <b>Replace</b> above the preview.
+
+              <div className="ed-anim-lbl" style={{ marginTop: 18 }}>LOOK</div>
+              <div className="ed-cs-slider">
+                <div className="ed-cs-slabel"><span>Opacity</span><span>{videofx.opacity}</span></div>
+                <input type="range" min={0} max={100} step={1} value={videofx.opacity}
+                  onChange={(e) => setFx({ opacity: +e.target.value })} />
               </div>
+              <div className="ed-cs-slider">
+                <div className="ed-cs-slabel"><span>Rounded corners</span><span>{videofx.radius}</span></div>
+                <input type="range" min={0} max={100} step={1} value={videofx.radius}
+                  onChange={(e) => setFx({ radius: +e.target.value })} />
+                <div className="ed-cs-slabel" style={{ color: "var(--muted)" }}><span>% of the clip's shorter side</span></div>
+              </div>
+              <button className="ed-vfx-crop" onClick={() => setFx({ cropOpen: !videofx.cropOpen })}>⛶ Crop this clip…</button>
+              {videofx.cropOpen && (
+                <div className="ed-vfx-cropbox">
+                  {([["cropT","Top"],["cropR","Right"],["cropB","Bottom"],["cropL","Left"]] as [string,string][]).map(([k,l]) => (
+                    <div className="ed-cs-slider" key={k}>
+                      <div className="ed-cs-slabel"><span>{l}</span><span>{videofx[k]}%</span></div>
+                      <input type="range" min={0} max={45} step={1} value={videofx[k]}
+                        onChange={(e) => setFx({ [k]: +e.target.value })} />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="ed-anim-lbl" style={{ marginTop: 18 }}>EFFECTS</div>
+              <div className="ed-vfx-row">
+                <span>Outline colour</span>
+                <input type="color" value={videofx.outlineColor} onChange={(e) => setFx({ outlineColor: e.target.value })} />
+              </div>
+              <div className="ed-cs-slider">
+                <div className="ed-cs-slabel"><span>Outline size</span><span>{videofx.outlineSize}</span></div>
+                <input type="range" min={0} max={20} step={1} value={videofx.outlineSize}
+                  onChange={(e) => setFx({ outlineSize: +e.target.value })} />
+              </div>
+              <div className="ed-vfx-row">
+                <span>Shadow colour</span>
+                <input type="color" value={videofx.shadowColor} onChange={(e) => setFx({ shadowColor: e.target.value })} />
+              </div>
+              <div className="ed-cs-slider">
+                <div className="ed-cs-slabel"><span>Shadow left / right</span><span>{videofx.shadowX}</span></div>
+                <input type="range" min={-40} max={40} step={1} value={videofx.shadowX}
+                  onChange={(e) => setFx({ shadowX: +e.target.value })} />
+              </div>
+              <div className="ed-cs-slider">
+                <div className="ed-cs-slabel"><span>Shadow up / down</span><span>{videofx.shadowY}</span></div>
+                <input type="range" min={-40} max={40} step={1} value={videofx.shadowY}
+                  onChange={(e) => setFx({ shadowY: +e.target.value })} />
+              </div>
+              <div className="ed-cs-slider">
+                <div className="ed-cs-slabel"><span>Shadow blur</span><span>{videofx.shadowBlur}</span></div>
+                <input type="range" min={0} max={40} step={1} value={videofx.shadowBlur}
+                  onChange={(e) => setFx({ shadowBlur: +e.target.value })} />
+              </div>
+              <div className="ed-cs-slider">
+                <div className="ed-cs-slabel"><span>Blur</span><span>{videofx.blur}</span></div>
+                <input type="range" min={0} max={40} step={1} value={videofx.blur}
+                  onChange={(e) => setFx({ blur: +e.target.value })} />
+              </div>
+
+              <div className="ed-anim-lbl" style={{ marginTop: 18 }}>ANIMATION</div>
+              <Dropdown value={videofx.anim} onChange={(v) => setFx({ anim: v })} options={[
+                { value: "none", label: "None" },
+                { value: "fade", label: "Fade in", sub: "Clip fades in at its start" },
+                { value: "zoom", label: "Zoom in", sub: "Gentle push-in on entry" },
+                { value: "slide", label: "Slide up", sub: "Rises into place" },
+              ]} />
+
+              <button className="secondary" style={{ width: "100%", marginTop: 14 }}
+                onClick={() => setFx({ ...VFX_DEFAULT })}>↺ Reset video effects</button>
             </div>
           )}
 

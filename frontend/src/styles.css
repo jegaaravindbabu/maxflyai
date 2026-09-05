@@ -1259,3 +1259,11 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .ed-ct-a-title { font-size: 13.5px; font-weight: 700; }
 /* emphasized caption word (preview) */
 .capword-emph { color: #ff5a3c; font-weight: 800; }
+
+/* ---- Video tab effects ---- */
+.ed-vfx .ed-cs-slider { margin-bottom: 12px; }
+.ed-vfx-row { display: flex; align-items: center; justify-content: space-between; margin: 8px 0; font-size: 13px; }
+.ed-vfx-row input[type=color] { width: 40px; height: 26px; border: 1px solid var(--border); border-radius: 6px; background: none; cursor: pointer; padding: 0; }
+.ed-vfx-crop { width: 100%; margin-top: 6px; background: var(--panel-2); border: 1px solid var(--border); color: var(--text); border-radius: 10px; padding: 10px 12px; font-size: 13px; font-weight: 600; cursor: pointer; text-align: left; }
+.ed-vfx-crop:hover { border-color: var(--accent); }
+.ed-vfx-cropbox { margin-top: 8px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; }
