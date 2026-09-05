@@ -29,6 +29,8 @@ export function RetakeRemover({ projectId, onSeek }: Props) {
   const [cands, setCands] = useState<Candidate[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [sens, setSens] = useState(50); // 0 = strict, 100 = loose
+  const threshold = +(0.80 - (sens / 100) * 0.35).toFixed(3); // 0.80..0.45
 
   const removedMs = useMemo(
     () => (cands || []).filter((c) => c.applied).reduce((a, c) => a + cutMs(c), 0),
@@ -44,7 +46,7 @@ export function RetakeRemover({ projectId, onSeek }: Props) {
   async function find() {
     setBusy(true); setErr(null);
     try {
-      const r = await api.detectRetakes(projectId);
+      const r = await api.detectRetakes(projectId, threshold);
       setCands(r.candidates.map((c) => ({ ...c, applied: false })));
     } catch (e: any) {
       setErr(e?.message || "Retake detection failed. Transcribe the video first, then try again.");
@@ -94,6 +96,18 @@ export function RetakeRemover({ projectId, onSeek }: Props) {
       <button className="rtk-scan" onClick={find} disabled={busy}>
         {busy ? "Scanning…" : cands ? "Re-scan" : "↺ Find retakes"}
       </button>
+
+      <div className="rtk-sens">
+        <div className="rtk-sens-top">
+          <span>Sensitivity</span>
+          <span className="rtk-sens-val">{sens < 34 ? "Strict" : sens > 66 ? "Loose" : "Balanced"}</span>
+        </div>
+        <input type="range" min={0} max={100} step={5} value={sens}
+          onChange={(e) => setSens(+e.target.value)}
+          onMouseUp={() => { if (cands) find(); }}
+          onTouchEnd={() => { if (cands) find(); }} />
+        <div className="rtk-sens-ends"><span>Only near-identical</span><span>Catch more</span></div>
+      </div>
 
       {err && <p className="rtk-err">{err}</p>}
 
