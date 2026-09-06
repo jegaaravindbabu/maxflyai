@@ -1289,3 +1289,88 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .cap-word_purple { font-family: "Poppins", system-ui, sans-serif; font-weight: 700; color: #fff;
   text-shadow: 1px 2px 3px #000; }
 .cap-word_purple .cap-emph { color: #B15CFF; }
+
+/* ===== Video-tab Animation picker (In / Loop / Out) — parity with reference ===== */
+.ed-vfx-anitabs { display:flex; gap:6px; margin:4px 0 12px; }
+.ed-vfx-anitab { flex:1; text-align:center; padding:7px 0; border-radius:9px; font-size:13px; cursor:pointer;
+  background:var(--panel2,#1b1e26); color:var(--muted,#9aa3b2); border:1px solid transparent; }
+.ed-vfx-anitab.active { background:var(--accent,#ff5a3c); color:#fff; }
+.ed-vfx-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.ed-vfx-card { position:relative; background:var(--panel2,#1b1e26); border:1.5px solid transparent;
+  border-radius:11px; padding:10px 6px 8px; cursor:pointer; overflow:hidden; text-align:center;
+  transition:border-color .15s, background .15s; }
+.ed-vfx-card:hover { background:var(--panel3,#232732); }
+.ed-vfx-card.active { border-color:var(--accent,#ff5a3c); }
+.ed-vfx-card .ed-vfx-stage { height:40px; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.ed-vfx-card .ed-vfx-chip { font-weight:800; font-size:19px; color:#fff; display:inline-block;
+  background:linear-gradient(135deg,#ff7a1a,#ff3c8b); -webkit-background-clip:text; background-clip:text; }
+.ed-vfx-card.none .ed-vfx-chip { background:none; -webkit-text-fill-color:var(--muted,#9aa3b2); color:var(--muted,#9aa3b2); }
+.ed-vfx-card .ed-vfx-lb { font-size:11px; color:var(--muted,#9aa3b2); margin-top:4px; line-height:1.2; }
+.ed-vfx-card.active .ed-vfx-lb { color:#fff; }
+.ed-vfx-card .ed-vfx-tick { position:absolute; top:5px; right:6px; font-size:11px; color:var(--accent,#ff5a3c); }
+
+/* --- card demo animations (loop so cards preview like the reference) --- */
+.vfxdemo-fade      { animation:vfxd-fade 2.4s ease infinite; }
+.vfxdemo-fadeblur  { animation:vfxd-fadeblur 2.4s ease infinite; }
+.vfxdemo-zoom      { animation:vfxd-zoomin 2.4s ease infinite; }
+.vfxdemo-slideup   { animation:vfxd-slideup 2.4s ease infinite; }
+.vfxdemo-slidedown { animation:vfxd-slidedown 2.4s ease infinite; }
+.vfxdemo-slideleft { animation:vfxd-slideleft 2.4s ease infinite; }
+.vfxdemo-slideright{ animation:vfxd-slideright 2.4s ease infinite; }
+.vfxdemo-rotate    { animation:vfxd-rotate 2.4s ease infinite; }
+.vfxdemo-flip      { animation:vfxd-flip 2.4s ease infinite; }
+.vfxdemo-pop       { animation:vfxd-pop 2.4s cubic-bezier(.2,1.4,.4,1) infinite; }
+.vfxdemo-typeon    { animation:vfxd-typeon 2.6s steps(12) infinite; white-space:nowrap; overflow:hidden; }
+.vfxdemo-shakeH    { animation:vfxd-shakeH .6s ease-in-out infinite; }
+.vfxdemo-shakeV    { animation:vfxd-shakeV .6s ease-in-out infinite; }
+.vfxdemo-pulse     { animation:vfxd-pulse 1.6s ease-in-out infinite; }
+.vfxdemo-zoomloop  { animation:vfxd-zoomloop 3s ease-in-out infinite; }
+.vfxdemo-sway      { animation:vfxd-sway 2.4s ease-in-out infinite; }
+.vfxdemo-float     { animation:vfxd-float 2.4s ease-in-out infinite; }
+.vfxdemo-ofade     { animation:vfxd-ofade 2.4s ease infinite; }
+.vfxdemo-ozoom     { animation:vfxd-ozoom 2.4s ease infinite; }
+.vfxdemo-oslidedown{ animation:vfxd-oslidedown 2.4s ease infinite; }
+.vfxdemo-oslideup  { animation:vfxd-oslideup 2.4s ease infinite; }
+.vfxdemo-orotate   { animation:vfxd-orotate 2.4s ease infinite; }
+
+@keyframes vfxd-fade      {0%,12%{opacity:0}40%,80%{opacity:1}100%{opacity:0}}
+@keyframes vfxd-fadeblur  {0%,12%{opacity:0;filter:blur(6px)}42%,80%{opacity:1;filter:blur(0)}100%{opacity:0;filter:blur(6px)}}
+@keyframes vfxd-zoomin    {0%,12%{opacity:0;transform:scale(.5)}42%,80%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.5)}}
+@keyframes vfxd-slideup   {0%,12%{opacity:0;transform:translateY(14px)}42%,80%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(14px)}}
+@keyframes vfxd-slidedown {0%,12%{opacity:0;transform:translateY(-14px)}42%,80%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-14px)}}
+@keyframes vfxd-slideleft {0%,12%{opacity:0;transform:translateX(16px)}42%,80%{opacity:1;transform:translateX(0)}100%{opacity:0;transform:translateX(16px)}}
+@keyframes vfxd-slideright{0%,12%{opacity:0;transform:translateX(-16px)}42%,80%{opacity:1;transform:translateX(0)}100%{opacity:0;transform:translateX(-16px)}}
+@keyframes vfxd-rotate    {0%,12%{opacity:0;transform:rotate(-14deg)}42%,80%{opacity:1;transform:rotate(0)}100%{opacity:0;transform:rotate(-14deg)}}
+@keyframes vfxd-flip      {0%,12%{opacity:0;transform:perspective(200px) rotateY(85deg)}42%,80%{opacity:1;transform:none}100%{opacity:0;transform:perspective(200px) rotateY(85deg)}}
+@keyframes vfxd-pop       {0%,12%{opacity:0;transform:scale(.35)}38%{transform:scale(1.15)}52%,80%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.35)}}
+@keyframes vfxd-typeon    {0%{width:0}45%,80%{width:2.6em}100%{width:0}}
+@keyframes vfxd-shakeH    {0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+@keyframes vfxd-shakeV    {0%,100%{transform:translateY(0)}25%{transform:translateY(-4px)}75%{transform:translateY(4px)}}
+@keyframes vfxd-pulse     {0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes vfxd-zoomloop  {0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+@keyframes vfxd-sway      {0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
+@keyframes vfxd-float     {0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes vfxd-ofade     {0%,20%{opacity:1}60%,100%{opacity:0}}
+@keyframes vfxd-ozoom     {0%,20%{opacity:1;transform:scale(1)}70%,100%{opacity:0;transform:scale(1.5)}}
+@keyframes vfxd-oslidedown{0%,20%{opacity:1;transform:translateY(0)}70%,100%{opacity:0;transform:translateY(16px)}}
+@keyframes vfxd-oslideup  {0%,20%{opacity:1;transform:translateY(0)}70%,100%{opacity:0;transform:translateY(-16px)}}
+@keyframes vfxd-orotate   {0%,20%{opacity:1;transform:rotate(0)}70%,100%{opacity:0;transform:rotate(14deg)}}
+
+/* --- real preview animations applied to the video element --- */
+@keyframes vfxin-fade      {from{opacity:0}to{opacity:1}}
+@keyframes vfxin-fadeblur  {from{opacity:0;filter:blur(10px)}to{opacity:1;filter:blur(0)}}
+@keyframes vfxin-zoom      {from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
+@keyframes vfxin-slideup   {from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+@keyframes vfxin-slidedown {from{opacity:0;transform:translateY(-40px)}to{opacity:1;transform:translateY(0)}}
+@keyframes vfxin-slideleft {from{opacity:0;transform:translateX(48px)}to{opacity:1;transform:translateX(0)}}
+@keyframes vfxin-slideright{from{opacity:0;transform:translateX(-48px)}to{opacity:1;transform:translateX(0)}}
+@keyframes vfxin-rotate    {from{opacity:0;transform:rotate(-16deg) scale(.9)}to{opacity:1;transform:rotate(0) scale(1)}}
+@keyframes vfxin-flip      {from{opacity:0;transform:perspective(600px) rotateY(90deg)}to{opacity:1;transform:none}}
+@keyframes vfxin-pop       {0%{opacity:0;transform:scale(.4)}60%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
+@keyframes vfxin-typeon    {from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes vfxloop-shakeH  {0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@keyframes vfxloop-shakeV  {0%,100%{transform:translateY(0)}25%{transform:translateY(-6px)}75%{transform:translateY(6px)}}
+@keyframes vfxloop-pulse   {0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+@keyframes vfxloop-zoom    {0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes vfxloop-sway    {0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+@keyframes vfxloop-float   {0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}

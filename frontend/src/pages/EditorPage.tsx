@@ -42,6 +42,36 @@ const ANIM_PRESETS: [string, string][] = [
   ["bounce", "Bounce"], ["rotate", "Rotate"], ["flip", "Flip"],
 ];
 
+// ---- Video-element animation picker (In / Loop / Out) ----
+// key -> CSS animation shorthand applied to the <video> in the live preview.
+const VFX_ANIM_IN: Record<string, string> = {
+  none: "", fade: "vfxin-fade .6s ease", fadeblur: "vfxin-fadeblur .7s ease",
+  zoom: "vfxin-zoom .6s ease", slideup: "vfxin-slideup .6s ease", slidedown: "vfxin-slidedown .6s ease",
+  slideleft: "vfxin-slideleft .6s ease", slideright: "vfxin-slideright .6s ease",
+  rotate: "vfxin-rotate .6s ease", flip: "vfxin-flip .7s ease",
+  pop: "vfxin-pop .6s cubic-bezier(.2,1.4,.4,1)", typeon: "vfxin-typeon .8s ease",
+};
+const VFX_ANIM_LOOP: Record<string, string> = {
+  none: "", shakeH: "vfxloop-shakeH .55s ease-in-out infinite", shakeV: "vfxloop-shakeV .55s ease-in-out infinite",
+  pulse: "vfxloop-pulse 2s ease-in-out infinite", zoom: "vfxloop-zoom 4s ease-in-out infinite",
+  sway: "vfxloop-sway 3s ease-in-out infinite", float: "vfxloop-float 3s ease-in-out infinite",
+};
+// [key, label, demo-class] for each timing tab's card grid.
+const VFX_IN_CARDS: [string, string, string][] = [
+  ["none", "None", ""], ["fade", "Fade", "vfxdemo-fade"], ["fadeblur", "Fade Blur", "vfxdemo-fadeblur"],
+  ["zoom", "Zoom In", "vfxdemo-zoom"], ["slideup", "Slide Up", "vfxdemo-slideup"], ["slidedown", "Slide Down", "vfxdemo-slidedown"],
+  ["slideleft", "Slide Left", "vfxdemo-slideleft"], ["slideright", "Slide Right", "vfxdemo-slideright"],
+  ["rotate", "Rotate", "vfxdemo-rotate"], ["flip", "Flip", "vfxdemo-flip"], ["pop", "Pop", "vfxdemo-pop"], ["typeon", "Type On", "vfxdemo-typeon"],
+];
+const VFX_LOOP_CARDS: [string, string, string][] = [
+  ["none", "None", ""], ["shakeH", "Shake H", "vfxdemo-shakeH"], ["shakeV", "Shake V", "vfxdemo-shakeV"],
+  ["pulse", "Pulse", "vfxdemo-pulse"], ["zoom", "Zoom", "vfxdemo-zoomloop"], ["sway", "Sway", "vfxdemo-sway"], ["float", "Float", "vfxdemo-float"],
+];
+const VFX_OUT_CARDS: [string, string, string][] = [
+  ["none", "None", ""], ["fade", "Fade Out", "vfxdemo-ofade"], ["zoom", "Zoom Out", "vfxdemo-ozoom"],
+  ["slidedown", "Slide Down", "vfxdemo-oslidedown"], ["slideup", "Slide Up", "vfxdemo-oslideup"], ["rotate", "Rotate Out", "vfxdemo-orotate"],
+];
+
 // Live-preview CSS approximations of the ffmpeg preset grades (editor preview only).
 const FILTER_CSS: Record<string, string> = {
   none: "",
@@ -193,8 +223,10 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [audioVol, setAudioVol] = useState(1);
   const VFX_DEFAULT = { opacity: 100, radius: 0, outlineColor: "#000000", outlineSize: 0,
     shadowColor: "#000000", shadowX: 0, shadowY: 0, shadowBlur: 0, blur: 0, anim: "none",
+    animIn: "none", animLoop: "none", animOut: "none",
     cropOpen: false, cropT: 0, cropR: 0, cropB: 0, cropL: 0 };
   const [videofx, setVideofx] = useState<any>(VFX_DEFAULT);
+  const [animTab, setAnimTab] = useState<"in" | "loop" | "out">("in");
   const setFx = (patch: any) => setVideofx((v: any) => {
     const n = { ...v, ...patch };
     try { localStorage.setItem("maxfly:vfx:" + projectId, JSON.stringify(n)); } catch {}
@@ -226,7 +258,14 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
   useEffect(() => { setMediaEl(videoRef.current); }, [proj?.id]);
   useEffect(() => {
-    try { const raw = localStorage.getItem("maxfly:vfx:" + projectId); if (raw) setVideofx({ ...VFX_DEFAULT, ...JSON.parse(raw) }); } catch {}
+    try {
+      const raw = localStorage.getItem("maxfly:vfx:" + projectId);
+      if (raw) {
+        const j = JSON.parse(raw);
+        if (j.anim && !j.animIn) j.animIn = j.anim === "slide" ? "slideup" : (j.anim === "zoom" || j.anim === "fade") ? j.anim : "none";
+        setVideofx({ ...VFX_DEFAULT, ...j });
+      }
+    } catch {}
   }, [projectId]);
   useEffect(() => { if (videoRef.current) videoRef.current.muted = mediaMuted; }, [mediaMuted]);
   useEffect(() => { setOverlays(proj?.overlays || []); }, [proj?.id]);
@@ -299,8 +338,10 @@ export function EditorPage({ projectId }: { projectId: string }) {
   if (videofx.blur) _fparts.push(`blur(${(videofx.blur * 0.12).toFixed(1)}px)`);
   if (videofx.shadowBlur || videofx.shadowX || videofx.shadowY)
     _fparts.push(`drop-shadow(${videofx.shadowX}px ${videofx.shadowY}px ${Math.max(0, videofx.shadowBlur)}px ${videofx.shadowColor})`);
+  const _vanim = [VFX_ANIM_LOOP[videofx.animLoop || "none"], VFX_ANIM_IN[videofx.animIn || "none"]].filter(Boolean).join(", ");
   const videoFxStyle: React.CSSProperties = {
     filter: _fparts.join(" ") || undefined,
+    animation: _vanim || undefined,
     opacity: videofx.opacity / 100,
     borderRadius: videofx.radius ? (videofx.radius / 2) + "%" : undefined,
     boxShadow: videofx.outlineSize ? `0 0 0 ${videofx.outlineSize}px ${videofx.outlineColor}` : undefined,
@@ -1487,12 +1528,37 @@ export function EditorPage({ projectId }: { projectId: string }) {
               </div>
 
               <div className="ed-anim-lbl" style={{ marginTop: 18 }}>ANIMATION</div>
-              <Dropdown value={videofx.anim} onChange={(v) => setFx({ anim: v })} options={[
-                { value: "none", label: "None" },
-                { value: "fade", label: "Fade in", sub: "Clip fades in at its start" },
-                { value: "zoom", label: "Zoom in", sub: "Gentle push-in on entry" },
-                { value: "slide", label: "Slide up", sub: "Rises into place" },
-              ]} />
+              <div className="ed-vfx-anitabs">
+                {(["in", "loop", "out"] as const).map((t) => (
+                  <div key={t} className={"ed-vfx-anitab" + (animTab === t ? " active" : "")} onClick={() => setAnimTab(t)}>
+                    {t === "in" ? "In" : t === "loop" ? "Loop" : "Out"}
+                  </div>
+                ))}
+              </div>
+              {(() => {
+                const cards = animTab === "in" ? VFX_IN_CARDS : animTab === "loop" ? VFX_LOOP_CARDS : VFX_OUT_CARDS;
+                const field = animTab === "in" ? "animIn" : animTab === "loop" ? "animLoop" : "animOut";
+                const cur = videofx[field] || "none";
+                return (
+                  <div className="ed-vfx-grid">
+                    {cards.map(([key, label, demo]) => (
+                      <div key={key} className={"ed-vfx-card" + (key === "none" ? " none" : "") + (cur === key ? " active" : "")}
+                        onClick={() => setFx({ [field]: key })}>
+                        <div className="ed-vfx-stage">
+                          <span className={"ed-vfx-chip " + (key === "none" ? "" : demo)}>{key === "none" ? "—" : "Aa"}</span>
+                        </div>
+                        <div className="ed-vfx-lb">{label}</div>
+                        {cur === key && key !== "none" && <div className="ed-vfx-tick">✓</div>}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+              <div className="np-sub" style={{ marginTop: 8 }}>
+                {animTab === "in" ? "Plays once as the clip appears."
+                  : animTab === "loop" ? "Plays continuously while the clip is on screen."
+                  : "Plays once as the clip leaves."}
+              </div>
 
               <button className="secondary" style={{ width: "100%", marginTop: 14 }}
                 onClick={() => setFx({ ...VFX_DEFAULT })}>↺ Reset video effects</button>
