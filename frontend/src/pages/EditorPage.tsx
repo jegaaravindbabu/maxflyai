@@ -321,6 +321,14 @@ export function EditorPage({ projectId }: { projectId: string }) {
     return () => window.removeEventListener("keydown", onKey);
   });
 
+  // show a default Pexels grid the moment the Videos / Images panel opens,
+  // so it's populated like the reference editor (curated photos / popular clips).
+  useEffect(() => {
+    if (rail === "images" && stockRes.length === 0 && !stockBusy) runStock();
+    if (rail === "broll" && bvRes.length === 0 && !bvBusy) runBrollStock();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rail]);
+
   if (!proj) return <div className="ed-loading muted">Loading editor…</div>;
 
   const dur = proj.duration_ms || 1;
@@ -746,14 +754,6 @@ export function EditorPage({ projectId }: { projectId: string }) {
     catch { setBvRes([]); }
     finally { setBvBusy(false); }
   }
-
-  // show a default Pexels grid the moment the Videos / Images panel opens,
-  // so it's populated like the reference editor (curated photos / popular clips).
-  useEffect(() => {
-    if (rail === "images" && stockRes.length === 0 && !stockBusy) runStock();
-    if (rail === "broll" && bvRes.length === 0 && !bvBusy) runBrollStock();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rail]);
   async function addBrollStock(url: string, duration?: number) {
     const at = Math.round(curMs);
     const len = duration ? Math.min(duration * 1000, 8000) : 4000;
