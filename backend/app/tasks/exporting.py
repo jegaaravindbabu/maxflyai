@@ -138,6 +138,7 @@ def _load_enabled_cuts(db, project_id: str) -> list[dict]:
 def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                apply_cuts: bool = True, style: str = "classic",
                enhance_audio: bool = False, volume: float = 1.0, speed: float = 1.0,
+               enhance_strength: int = 50,
                export_id: str | None = None) -> dict:
     db = SessionLocal()
     try:
@@ -186,7 +187,7 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
             # 2. burn the (remapped) captions
             _af = []
             if enhance_audio:
-                _ef = ffmpeg_utils.audio_enhance_filter(settings.arnndn_model_path or None)
+                _ef = ffmpeg_utils.audio_enhance_filter(settings.arnndn_model_path or None, enhance_strength)
                 if _ef: _af.append(_ef)
             if abs(vol - 1.0) > 1e-3:
                 _af.append(f"volume={vol:.3f}")
@@ -323,7 +324,7 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
             work = tempfile.mkdtemp(prefix="maxfly_bundle_")
             try:
                 stems.render_video_only(src, keep, os.path.join(work, "video.mp4"))
-                af = (ffmpeg_utils.audio_enhance_filter(settings.arnndn_model_path or None)
+                af = (ffmpeg_utils.audio_enhance_filter(settings.arnndn_model_path or None, enhance_strength)
                       if enhance_audio else None)
                 stems.render_voice(src, keep, os.path.join(work, "voice.wav"), audio_filter=af)
                 music_out = stems.render_music(src, keep, os.path.join(work, "music.wav"))
@@ -383,11 +384,12 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
 
 def run_export_job(export_id: str, project_id: str, fmt: str, use_translit: bool,
                    apply_cuts: bool, style: str, enhance_audio: bool,
-                   volume: float = 1.0, speed: float = 1.0) -> None:
+                   volume: float = 1.0, speed: float = 1.0,
+                   enhance_strength: int = 50) -> None:
     """Background entry: run the export, mark the Export row error on failure."""
     try:
         run_export(project_id, fmt, use_translit, apply_cuts, style, enhance_audio,
-                   volume, speed, export_id=export_id)
+                   volume, speed, enhance_strength=enhance_strength, export_id=export_id)
     except Exception as e:
         db = SessionLocal()
         try:
@@ -409,8 +411,9 @@ def run_export_job(export_id: str, project_id: str, fmt: str, use_translit: bool
 def export_task(self, export_id: str, project_id: str, fmt: str = "srt",
                 use_translit: bool = False, apply_cuts: bool = True,
                 style: str = "classic", enhance_audio: bool = False,
-                volume: float = 1.0, speed: float = 1.0) -> None:
+                volume: float = 1.0, speed: float = 1.0,
+                enhance_strength: int = 50) -> None:
     """Celery entry for exports. Mirrors run_export_job so the Export row is
     marked error on failure; retries once on transient errors."""
     run_export_job(export_id, project_id, fmt, use_translit, apply_cuts, style,
-                   enhance_audio, volume, speed)
+                   enhance_audio, volume, speed, enhance_strength)

@@ -237,14 +237,21 @@ def video_info(media_path: str) -> dict:
 # "Mic -> studio" voice cleanup chain (no model needed): remove rumble, FFT
 # denoise, gentle compression, then EBU R128 broadcast loudness. If an arnndn
 # RNN model path is configured, prepend AI denoise for stronger results.
-def audio_enhance_filter(arnndn_model: str | None = None) -> str:
+def audio_enhance_filter(arnndn_model: str | None = None, strength: int = 50) -> str:
+    # strength 0..100 controls how aggressive the noise reduction is.
+    # noise floor: light (-15dB) at 0, ~-25dB at 50, aggressive (-35dB) at 100.
+    try:
+        st = max(0, min(100, int(strength)))
+    except Exception:
+        st = 50
+    nf = -15 - round(st / 100 * 20)          # -15 .. -35
     stages = []
     if arnndn_model:
         safe = arnndn_model.replace("\\", "/").replace(":", "\\:")
         stages.append(f"arnndn=m='{safe}'")
     stages += [
         "highpass=f=80",
-        "afftdn=nf=-25",
+        f"afftdn=nf={nf}:tn=1",
         "acompressor=threshold=-18dB:ratio=3:attack=20:release=250",
         "loudnorm=I=-16:TP=-1.5:LRA=11",
     ]

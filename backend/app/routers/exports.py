@@ -22,10 +22,11 @@ def export(project_id: str, body: ExportRequest, db: Session = Depends(get_db),
     if runner.use_celery():
         export_task.delay(exp.id, project_id, body.format, body.use_translit,
                           body.apply_cuts, body.style, body.enhance_audio,
-                          body.volume, body.speed)
+                          body.volume, body.speed, body.enhance_strength)
     else:
         runner.submit(run_export_job, exp.id, project_id, body.format, body.use_translit,
-                      body.apply_cuts, body.style, body.enhance_audio, body.volume, body.speed)
+                      body.apply_cuts, body.style, body.enhance_audio, body.volume, body.speed,
+                      body.enhance_strength)
     return {"export_id": exp.id, "status": "processing", "format": body.format}
 
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * A row of video thumbnails (like HyproAI's media track). Captures frames from
+ * A row of video thumbnails (like maxfly.ai's media track). Captures frames from
  * a hidden <video> by seeking through it and drawing each frame into its own
  * <canvas> (drawing a tainted canvas is allowed — we never read pixels back,
  * so it works even when the media host sends no CORS headers). Falls back to a

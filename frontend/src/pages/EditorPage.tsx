@@ -76,7 +76,7 @@ const ADJUSTS: [keyof Adjust, string][] = [
   ["saturation", "Saturation"], ["warmth", "Warmth"],
 ];
 
-// thin line icons for the track gutter (match HyproAI's clean row)
+// thin line icons for the track gutter (match maxfly.ai's clean row)
 const svg = (children: React.ReactNode) => (
   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
     strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
@@ -99,7 +99,7 @@ const IcVol = (muted: boolean) => muted
   ? svg(<><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M22 9l-6 6M16 9l6 6" /></>)
   : svg(<><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M16 8.5a5 5 0 0 1 0 7" /></>);
 
-// Rail order mirrors HyproAI: Uploads, Texts, Videos, Filters, Captions, Auto Zoom, Images
+// Rail order mirrors maxfly.ai: Uploads, Texts, Videos, Filters, Captions, Auto Zoom, Images
 // (maxfly uploads via the New Project modal, so there is no separate Uploads panel;
 //  "Videos" maps to B-roll clips. AI Tools / Canvas / Export are maxfly extras.)
 const RAILS = [

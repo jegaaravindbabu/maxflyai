@@ -1,5 +1,5 @@
 """
-Animated caption styles (12 presets), parity with HyproAI's caption animations.
+Animated caption styles (12 presets), parity with maxfly.ai's caption animations.
 
 Each preset renders to ASS override tags, so the SAME style previews live in the
 editor (CSS) and burns identically into the exported MP4 (libass via ffmpeg).

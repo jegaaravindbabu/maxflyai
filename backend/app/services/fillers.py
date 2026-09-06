@@ -1,5 +1,5 @@
 """
-Filler-word removal (matches HyproAI's "uh/um" cut).
+Filler-word removal (matches maxfly.ai's "uh/um" cut).
 
 Fillers are disfluencies with no meaning: uh, um, hmm, er, aa, etc. We operate on
 the timed segments produced by our silence segmentation — an isolated filler like
