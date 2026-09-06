@@ -54,7 +54,8 @@ def _ms_to_ass(ms: int) -> str:
     return f"{h:d}:{m:02d}:{s:02d}.{ms // 10:02d}"
 
 
-def _header(p: dict, spacing: float = 0.0) -> str:
+def _header(p: dict, spacing: float = 0.0,
+            margin_l: int = 80, margin_r: int = 80, margin_v: int = 90) -> str:
     return (
         "[Script Info]\n"
         "ScriptType: v4.00+\nPlayResX: 1920\nPlayResY: 1080\nWrapStyle: 2\n\n"
@@ -64,7 +65,7 @@ def _header(p: dict, spacing: float = 0.0) -> str:
         "BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
         f"Style: Default,{p['font']},{p['size']},{p['primary']},{p['secondary']},{p['outline']},"
         f"{p['back']},{p['bold']},0,0,0,100,100,{spacing:g},0,{p['border_style']},{p['outline_w']},"
-        f"{p['shadow']},2,80,80,90,1\n\n"
+        f"{p['shadow']},2,{margin_l},{margin_r},{margin_v},1\n\n"
         "[Events]\n"
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
     )
@@ -214,12 +215,40 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
     elif st.get("anim"):
         anim = st["anim"]
 
-    lines = [_header(p, spacing)]
-    glow_tag = "{\\blur3}" if glow else ""
+    # ---- HyproAI-parity caption-settings: case / opacity / position / gaps / layer ----
+    if st.get("letter_gap") is not None:
+        spacing = float(st.get("letter_gap") or 0)
+    case_mode = st.get("case")  # None|"as_typed"|"upper"|"lower"|"title"
+    pos_v = int(st.get("pos_v") or 0)          # +up
+    pos_h = int(st.get("pos_h") or 0)          # +right
+    margin_v = max(0, 90 + pos_v)
+    margin_l = max(0, 80 + max(0, pos_h))
+    margin_r = max(0, 80 + max(0, -pos_h))
+    op = st.get("opacity")
+    alpha_tag = ""
+    if op is not None:
+        try:
+            a = max(0, min(255, 255 - round(float(op) * 2.55)))
+            if a > 0:
+                alpha_tag = "{\\alpha&H%02X&}" % a
+        except Exception:
+            alpha_tag = ""
+    layer = 1 if (st.get("layer") == "front") else 0
+
+    def _case(t: str) -> str:
+        if case_mode == "upper" or (case_mode is None and p.get("upper")):
+            return t.upper()
+        if case_mode == "lower":
+            return t.lower()
+        if case_mode == "title":
+            return t.title()
+        return t   # as typed
+
+    lines = [_header(p, spacing, margin_l, margin_r, margin_v)]
+    glow_tag = alpha_tag + ("{\\blur3}" if glow else "")
     for c in cues:
         txt = (c.get("translit_text") if use_translit and c.get("translit_text") else c["text"]) or ""
-        if p.get("upper"):
-            txt = txt.upper()
+        txt = _case(txt)
         dur = max(c["end_ms"] - c["start_ms"], 1)
         em = (st.get("emphasis") or "").strip()
         emcol = YELLOW if p["primary"] == ACCENT else ACCENT
@@ -235,7 +264,7 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
                 body = _emphasize(body, em, emcol, p["primary"])
             prefix = glow_tag + _anim_prefix(anim, dur, speed)
         lines.append(
-            f"Dialogue: 0,{_ms_to_ass(c['start_ms'])},{_ms_to_ass(c['end_ms'])},"
+            f"Dialogue: {layer},{_ms_to_ass(c['start_ms'])},{_ms_to_ass(c['end_ms'])},"
             f"Default,,0,0,0,,{prefix}{body}"
         )
     return "\n".join(lines) + "\n"

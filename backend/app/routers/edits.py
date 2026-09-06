@@ -319,6 +319,16 @@ class CapSettingsIn(BaseModel):
     anim: str | None = None
     speed: float | None = None
     scope: str | None = None
+    when: str | None = None
+    # HyproAI-parity caption settings
+    case: str | None = None          # as_typed|upper|lower|title
+    opacity: int | None = None       # 0..100
+    pos_v: int | None = None         # vertical offset px (+up)
+    pos_h: int | None = None         # horizontal offset px (+right)
+    letter_gap: float | None = None  # letter spacing px
+    word_gap: float | None = None    # word spacing px (preview)
+    layer: str | None = None         # front|back
+    weight: str | None = None        # font weight label (preview)
 
 
 @router.get("/{project_id}/caption-settings")

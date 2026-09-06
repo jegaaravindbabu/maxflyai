@@ -39,8 +39,22 @@ export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings }: P
   const dyn: React.CSSProperties = {};
   if (st.font && FONT_MAP[st.font]) dyn.fontFamily = FONT_MAP[st.font];
   if (st.bold === -1) dyn.fontWeight = 800 as any;
-  if (typeof st.spacing === "number") dyn.letterSpacing = st.spacing + "px";
+  const _lg = typeof st.letter_gap === "number" ? st.letter_gap : st.spacing;
+  if (typeof _lg === "number") dyn.letterSpacing = _lg + "px";
+  if (typeof st.word_gap === "number" && st.word_gap) dyn.wordSpacing = st.word_gap + "px";
   if (st.glow) dyn.textShadow = "0 0 10px rgba(255,255,255,.7), 0 0 4px #000";
+  if (typeof st.opacity === "number" && st.opacity < 100) dyn.opacity = Math.max(0, st.opacity) / 100;
+  if (st.case === "upper") dyn.textTransform = "uppercase";
+  else if (st.case === "lower") dyn.textTransform = "lowercase";
+  else if (st.case === "title") dyn.textTransform = "capitalize";
+  const _pv = Number(st.pos_v) || 0, _ph = Number(st.pos_h) || 0;
+  if (_pv || _ph) dyn.transform = `translate(${_ph}px, ${-_pv}px)`;
+  // Big-word (emphasis) per-part overrides shown live in the preview.
+  const emphStyle: React.CSSProperties = {};
+  if (typeof st.big_opacity === "number" && st.big_opacity < 100) emphStyle.opacity = Math.max(0, st.big_opacity) / 100;
+  if (st.big_case === "upper") emphStyle.textTransform = "uppercase";
+  else if (st.big_case === "lower") emphStyle.textTransform = "lowercase";
+  else if (st.big_case === "title") emphStyle.textTransform = "capitalize";
 
   const speed = Math.max(0.3, st.speed || 1);
   const wordDur = (0.45 / speed).toFixed(2) + "s";
@@ -68,7 +82,7 @@ export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings }: P
       if (on) cw += " capword-on";
       else if (passed) cw += " capword-passed";
 
-      const wStyle: React.CSSProperties = {};
+      const wStyle: React.CSSProperties = isEmph(w) ? { ...emphStyle } : {};
       if (perWordMotion) {
         if (arrived) {
           cw += " capword-move capset-" + anim;
@@ -89,7 +103,7 @@ export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings }: P
   if (extra) (capDyn as any).animationDuration = wordDur;
   const body = emph
     ? text.split(/(\s+)/).map((w, i) => isEmph(w)
-        ? <span key={i} className="capword-emph">{w}</span> : w)
+        ? <span key={i} className="capword-emph" style={emphStyle}>{w}</span> : w)
     : text;
   return <span className={`cap cap-${styleId}${extra}`} style={capDyn} key={keyId}>{body}</span>;
 }
