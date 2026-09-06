@@ -727,7 +727,6 @@ export function EditorPage({ projectId }: { projectId: string }) {
       anim_enabled: true, anim: "", speed: 1, scope: "caption" }).catch(() => {});
   }
   async function runStock() {
-    if (!stockQ.trim()) return;
     setStockBusy(true);
     try { const r = await api.stockSearch(stockQ); setStockRes(r.results); }
     catch { setStockRes([]); }
@@ -742,12 +741,19 @@ export function EditorPage({ projectId }: { projectId: string }) {
     } catch (e: any) { alert("Could not add image: " + (e?.message || "")); }
   }
   async function runBrollStock() {
-    if (!bvQ.trim()) return;
     setBvBusy(true);
     try { const r = await api.stockVideos(bvQ); setBvRes(r.results); }
     catch { setBvRes([]); }
     finally { setBvBusy(false); }
   }
+
+  // show a default Pexels grid the moment the Videos / Images panel opens,
+  // so it's populated like the reference editor (curated photos / popular clips).
+  useEffect(() => {
+    if (rail === "images" && stockRes.length === 0 && !stockBusy) runStock();
+    if (rail === "broll" && bvRes.length === 0 && !bvBusy) runBrollStock();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rail]);
   async function addBrollStock(url: string, duration?: number) {
     const at = Math.round(curMs);
     const len = duration ? Math.min(duration * 1000, 8000) : 4000;

@@ -9,19 +9,23 @@ from app.config import settings
 
 def search(query: str, per_page: int = 24) -> list[dict]:
     query = (query or "").strip()
-    if not query:
-        return []
     if settings.pexels_api_key:
-        return _pexels(query, per_page)
-    return _openverse(query, per_page)
+        return _pexels(query, per_page)          # blank -> curated feed
+    # Openverse needs a term; seed a pleasant default so the panel is never empty
+    return _openverse(query or "cinematic background", per_page)
 
 
 def _pexels(query: str, per_page: int) -> list[dict]:
     try:
         with httpx.Client(timeout=20) as c:
-            r = c.get("https://api.pexels.com/v1/search",
-                      headers={"Authorization": settings.pexels_api_key},
-                      params={"query": query, "per_page": per_page})
+            if query:
+                r = c.get("https://api.pexels.com/v1/search",
+                          headers={"Authorization": settings.pexels_api_key},
+                          params={"query": query, "per_page": per_page})
+            else:
+                r = c.get("https://api.pexels.com/v1/curated",
+                          headers={"Authorization": settings.pexels_api_key},
+                          params={"per_page": per_page})
         if r.status_code >= 400:
             return []
         out = []
@@ -60,13 +64,18 @@ def search_videos(query: str, per_page: int = 18) -> list[dict]:
     """Stock video search (Pexels Videos). Requires PEXELS_API_KEY; returns
     [] when no key is configured."""
     query = (query or "").strip()
-    if not query or not settings.pexels_api_key:
+    if not settings.pexels_api_key:
         return []
     try:
         with httpx.Client(timeout=20) as c:
-            r = c.get("https://api.pexels.com/videos/search",
-                      headers={"Authorization": settings.pexels_api_key},
-                      params={"query": query, "per_page": per_page})
+            if query:
+                r = c.get("https://api.pexels.com/videos/search",
+                          headers={"Authorization": settings.pexels_api_key},
+                          params={"query": query, "per_page": per_page})
+            else:
+                r = c.get("https://api.pexels.com/videos/popular",
+                          headers={"Authorization": settings.pexels_api_key},
+                          params={"per_page": per_page})
         if r.status_code >= 400:
             return []
         out = []
