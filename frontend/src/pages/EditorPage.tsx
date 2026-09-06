@@ -29,7 +29,8 @@ const SWATCHES: { color: string; style: string }[] = [
   { color: "#ffffff", style: "classic" },
 ];
 
-const WORD_STYLES = ["karaoke", "highlight"];
+const WORD_STYLES = ["karaoke", "highlight", "anton_gold",
+  "word_sunset", "word_outline", "word_neon", "word_gold", "word_green", "word_bubble", "word_mono", "word_purple"];
 const CS_FONTS: [string, string][] = [
   ["", "Default (Inter)"], ["Anton", "Anton"], ["Bebas Neue", "Bebas Neue"],
   ["Poppins", "Poppins"], ["Montserrat", "Montserrat"], ["Pacifico", "Pacifico (script)"],

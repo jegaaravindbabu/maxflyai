@@ -1,5 +1,5 @@
 """
-Animated caption styles (12 presets), parity with maxfly.ai's caption animations.
+Animated caption styles (line + word-by-word presets), parity with maxfly.ai captions.
 
 Each preset renders to ASS override tags, so the SAME style previews live in the
 editor (CSS) and burns identically into the exported MP4 (libass via ffmpeg).
@@ -19,6 +19,10 @@ ACCENT = "&H003C5AFF"      # orange #FF5A3C
 CYAN = "&H00FFFF4C"        # #4C8DFF-ish
 BOX = "&H80000000"         # semi-transparent black
 DIMWHITE = "&H00CCCCCC"
+ORANGE = "&H001A7AFF"      # #FF7A1A
+PINK   = "&H00A34FFF"      # #FF4FA3
+GREEN  = "&H006AE82E"      # #2EE86A
+PURPLE = "&H00FF5CB1"      # #B15CFF
 
 # preset -> style + per-line animation behavior
 PRESETS = {
@@ -41,6 +45,15 @@ PRESETS = {
     "montserrat": {"label": "Montserrat",        "font": "Montserrat",      "size": 66, "bold": 0,  "primary": WHITE,  "secondary": DIMWHITE, "outline": BLACK, "back": BOX,   "border_style": 1, "outline_w": 4, "shadow": 1, "anim": "pop"},
     "script":     {"label": "Script",            "font": "Pacifico",        "size": 74, "bold": 0,  "primary": WHITE,  "secondary": DIMWHITE, "outline": BLACK, "back": BOX,   "border_style": 1, "outline_w": 3, "shadow": 2, "anim": "fade"},
     "script_gold":{"label": "Script gold",       "font": "Pacifico",        "size": 74, "bold": 0,  "primary": YELLOW, "secondary": WHITE,    "outline": BLACK, "back": "&H00000000", "border_style": 1, "outline_w": 2, "shadow": 3, "anim": "glow"},
+    # ---- word-by-word ("Words" tab): each spoken word highlights via \kf ----
+    "word_sunset": {"label": "Sunset script words", "font": "Pacifico",     "size": 74, "bold": 0,  "primary": ORANGE, "secondary": WHITE,    "outline": BLACK, "back": BOX, "border_style": 1, "outline_w": 3, "shadow": 2, "anim": "karaoke"},
+    "word_outline":{"label": "Outline caps",        "font": "Arial Black",  "size": 72, "bold": -1, "primary": YELLOW, "secondary": WHITE,    "outline": BLACK, "back": BOX, "border_style": 1, "outline_w": 6, "shadow": 1, "anim": "karaoke", "upper": True},
+    "word_neon":   {"label": "Neon words",          "font": "Arial",        "size": 66, "bold": -1, "primary": CYAN,   "secondary": WHITE,    "outline": CYAN,  "back": BOX, "border_style": 1, "outline_w": 2, "shadow": 0, "anim": "karaoke"},
+    "word_gold":   {"label": "Gold pop words",      "font": "Anton",        "size": 82, "bold": 0,  "primary": YELLOW, "secondary": WHITE,    "outline": BLACK, "back": BOX, "border_style": 1, "outline_w": 5, "shadow": 2, "anim": "karaoke", "upper": True},
+    "word_green":  {"label": "Bold green words",    "font": "Montserrat",   "size": 66, "bold": 0,  "primary": GREEN,  "secondary": WHITE,    "outline": BLACK, "back": BOX, "border_style": 1, "outline_w": 4, "shadow": 1, "anim": "karaoke"},
+    "word_bubble": {"label": "Bubble words",        "font": "Arial Black",  "size": 70, "bold": -1, "primary": PINK,   "secondary": WHITE,    "outline": BLACK, "back": BOX, "border_style": 1, "outline_w": 6, "shadow": 1, "anim": "karaoke"},
+    "word_mono":   {"label": "Mono caps words",     "font": "Bebas Neue",   "size": 88, "bold": 0,  "primary": CYAN,   "secondary": WHITE,    "outline": BLACK, "back": BOX, "border_style": 1, "outline_w": 3, "shadow": 1, "anim": "karaoke", "upper": True},
+    "word_purple": {"label": "Purple words",        "font": "Poppins",      "size": 66, "bold": 0,  "primary": PURPLE, "secondary": WHITE,    "outline": BLACK, "back": BOX, "border_style": 1, "outline_w": 4, "shadow": 1, "anim": "karaoke"},
 }
 
 DEFAULT = "classic"
@@ -242,7 +255,7 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
     elif st.get("anim"):
         anim = st["anim"]
 
-    # ---- HyproAI-parity caption-settings: case / opacity / position / gaps / layer ----
+    # ---- maxfly.ai-parity caption-settings: case / opacity / position / gaps / layer ----
     if st.get("letter_gap") is not None:
         spacing = float(st.get("letter_gap") or 0)
     case_mode = st.get("case")  # None|"as_typed"|"upper"|"lower"|"title"

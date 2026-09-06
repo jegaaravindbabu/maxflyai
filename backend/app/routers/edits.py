@@ -323,7 +323,7 @@ class CapSettingsIn(BaseModel):
     speed: float | None = None
     scope: str | None = None
     when: str | None = None
-    # HyproAI-parity caption settings
+    # maxfly.ai-parity caption settings
     case: str | None = None          # as_typed|upper|lower|title
     opacity: int | None = None       # 0..100
     pos_v: int | None = None         # vertical offset px (+up)
