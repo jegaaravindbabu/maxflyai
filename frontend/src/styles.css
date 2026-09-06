@@ -51,7 +51,7 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
 /* editor */
 .editor { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
 .preview-wrap { position: relative; background: black; border-radius: 10px; overflow: hidden; }
-.preview-wrap video { width: 100%; display: block; }
+.preview-wrap video { width: 100%; height: 100%; object-fit: contain; display: block; }
 .caption-overlay { position: absolute; left: 0; right: 0; bottom: 7%;
   text-align: center; pointer-events: none; }
 .caption-overlay span { display: inline-block; background: rgba(0,0,0,.55);
@@ -427,7 +427,8 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
 .ed-center-top { width: 100%; display: flex; justify-content: center; }
 .ed-replace { padding: 7px 16px; font-size: 13px; }
 .ed-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; width: 100%; }
-.ed-stage .preview-wrap { max-height: 100%; max-width: 420px; }
+.ed-stage .preview-wrap { height: 100%; max-height: 100%; max-width: 100%;
+  aspect-ratio: var(--v-aspect, 9 / 16); margin: auto; }
 .ed-zoombar { width: 100%; display: flex; align-items: center; gap: 12px; font-size: 12px;
   background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; }
 
