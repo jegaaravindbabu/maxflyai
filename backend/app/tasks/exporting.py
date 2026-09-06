@@ -251,8 +251,8 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
             except Exception:
                 _fps = 30.0
             _dur_s = (ffmpeg_utils.probe_duration_ms(video_src) or 0) / 1000.0
-            vfx_vf = ffmpeg_utils.build_videofx_filter(
-                _load_videofx(db, project_id), ow, oh, _dur_s, _fps)
+            _vfx = _load_videofx(db, project_id)
+            vfx_vf = ffmpeg_utils.build_videofx_filter(_vfx, ow, oh, _dur_s, _fps)
             if vfx_vf:
                 vfilters.append(vfx_vf)
             # image / B-roll overlays
@@ -291,6 +291,20 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                 ffmpeg_utils.burn_captions(video_src, ass_path, out_path,
                                            audio_filter=audio_filter, video_prefilter=prefilter)
             os.remove(ass_path)
+            # rounded corners: separate one-time-mask compositing pass (the mask
+            # is a single geq frame, so there is no per-frame cost on the video).
+            try:
+                _rad = float((_vfx or {}).get("radius", 0) or 0)
+            except Exception:
+                _rad = 0.0
+            if _rad > 0:
+                fd, _rc = tempfile.mkstemp(suffix="_round.mp4"); os.close(fd)
+                try:
+                    ffmpeg_utils.rounded_corners_pass(out_path, _rc, ow, oh, _rad)
+                    os.replace(_rc, out_path)
+                except Exception:
+                    try: os.remove(_rc)
+                    except Exception: pass
             # canvas backdrop (aspect + background) as a final composite
             canvas = _load_canvas(db, project_id)
             if canvas and canvas.get("aspect") in CANVAS_DIMS:

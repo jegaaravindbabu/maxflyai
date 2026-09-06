@@ -366,9 +366,9 @@ def compose_canvas(src: str, out_path: str, w: int, h: int, bg_type: str = "colo
 #
 # Baked: crop (inset), loop motion (shake / float / sway / pulse / zoom),
 #        blur, opacity, outline, In-fade, Out-fade.
-# Not baked (kept as editor preview only): rounded corners (needs a per-pixel
-#        alpha mask — too slow for production) and drop shadow (only visible
-#        when the clip is smaller than the canvas).
+# Rounded corners are baked separately by rounded_corners_pass() (a one-time
+# mask overlay, not a per-frame filter). Drop shadow stays editor-preview only
+# (only visible when the clip is smaller than the canvas).
 # ---------------------------------------------------------------------------
 def _hex_to_0x(color: str, default: str = "0x000000") -> str:
     if not color:
@@ -453,3 +453,35 @@ def build_videofx_filter(fx: dict | None, ow: int, oh: int,
         parts.append(f"fade=t=out:st={max(0.0, dur_s-0.6):.2f}:d=0.6:alpha=0")
 
     return ",".join(parts) if parts else None
+
+
+def rounded_corners_pass(in_path: str, out_path: str, w: int, h: int,
+                         radius_pct: float) -> str:
+    """Round the video's corners as a SEPARATE compositing pass: build a
+    rounded-rect alpha mask ONCE (a single geq frame, so no per-frame cost),
+    alpha-merge it onto the clip, and flatten over black. `radius_pct` is the
+    Video-tab 'radius' 0..100 (editor uses radius/2 %% of the shorter side)."""
+    import tempfile as _tf
+    r = int(round((radius_pct / 2.0) / 100.0 * min(w, h)))
+    r = max(1, min(r, min(w, h) // 2))
+    fd, mask = _tf.mkstemp(suffix=".png"); os.close(fd)
+    # one-shot mask: white inside the rounded rect, black in the corner arcs
+    corner = (f"pow(max(0\\,{r}-min(X\\,{w}-1-X))\\,2)"
+              f"+pow(max(0\\,{r}-min(Y\\,{h}-1-Y))\\,2)")
+    mask_vf = f"format=gray,geq=lum='if(gt({corner}\\,{r}*{r})\\,0\\,255)'"
+    m = _run(["ffmpeg", "-y", "-f", "lavfi", "-i", f"color=c=black:s={w}x{h}",
+              "-vf", mask_vf, "-frames:v", "1", mask])
+    if m.returncode != 0:
+        raise RuntimeError(f"rounded mask failed: {m.stderr[-400:]}")
+    try:
+        fc = (f"[0:v][1:v]alphamerge[a];color=c=black:s={w}x{h}[bg];"
+              f"[bg][a]overlay=format=auto:shortest=1,format=yuv420p[v]")
+        cp = _run(["ffmpeg", "-y", "-i", in_path, "-i", mask,
+                   "-filter_complex", fc, "-map", "[v]", "-map", "0:a?",
+                   *_VENC, "-c:a", "copy", "-movflags", "+faststart", out_path])
+        if cp.returncode != 0:
+            raise RuntimeError(f"rounded composite failed: {cp.stderr[-400:]}")
+    finally:
+        try: os.remove(mask)
+        except Exception: pass
+    return out_path
