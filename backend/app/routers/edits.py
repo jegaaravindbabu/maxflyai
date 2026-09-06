@@ -11,7 +11,7 @@ import os
 import tempfile
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -309,6 +309,9 @@ def delete_filter_layer(project_id: str, layer_id: str, db: Session = Depends(ge
 
 
 class CapSettingsIn(BaseModel):
+    # allow extra part-prefixed keys (big_*, top_*) so every Caption-settings
+    # control persists through the save round-trip.
+    model_config = ConfigDict(extra="allow")
     font: str | None = None
     bold: int | None = None
     spacing: float | None = None

@@ -100,13 +100,32 @@ def _anim_prefix(anim: str | None, dur_ms: int, speed: float = 1.0) -> str:
     return ""
 
 
+def _case_str(t: str, mode) -> str:
+    if mode == "upper": return t.upper()
+    if mode == "lower": return t.lower()
+    if mode == "title": return t.title()
+    return t
+
+
+def _alpha_hex(op):
+    """0..100 opacity -> ASS alpha hex ("00" opaque .. "FF" clear); None if unset."""
+    if op is None:
+        return None
+    try:
+        a = max(0, min(255, 255 - round(float(op) * 2.55)))
+        return "%02X" % a
+    except Exception:
+        return None
+
+
 def _wmatch(w: str, emph: str) -> bool:
     if not emph or w == "\\N":
         return False
     return re.sub(r"[^\w]", "", w, flags=re.UNICODE).lower() == emph.lower()
 
 
-def _karaoke_text(text: str, dur_ms: int, emph: str = "", accent: str = "", primary: str = "") -> str:
+def _karaoke_text(text: str, dur_ms: int, emph: str = "", accent: str = "", primary: str = "",
+                  case=None, alpha=None, base_alpha: str = "00") -> str:
     """Split cue into words with per-word \\kf timing (centiseconds)."""
     plain = text.replace("\n", " \\N ")
     words = [w for w in plain.split(" ") if w != ""]
@@ -115,6 +134,8 @@ def _karaoke_text(text: str, dur_ms: int, emph: str = "", accent: str = "", prim
         return text.replace("\n", "\\N")
     total_chars = sum(len(w) for w in real) or 1
     total_cs = max(dur_ms // 10, len(real))
+    o_extra = "\\1c" + accent + "&" + ("\\alpha&H" + alpha + "&" if alpha else "")
+    c_extra = "\\1c" + primary + "&" + ("\\alpha&H" + base_alpha + "&" if alpha else "")
     out = []
     used = 0
     for w in words:
@@ -125,9 +146,9 @@ def _karaoke_text(text: str, dur_ms: int, emph: str = "", accent: str = "", prim
         share = max(1, min(share, total_cs - used))
         used += share
         if _wmatch(w, emph):
-            out.append(f"{{\\kf{share}\\1c{accent}&}}{w}{{\\1c{primary}&}} ")
+            out.append("{\\kf" + str(share) + o_extra + "}" + _case_str(w, case) + "{" + c_extra + "} ")
         else:
-            out.append(f"{{\\kf{share}}}{w} ")
+            out.append("{\\kf" + str(share) + "}" + w + " ")
     return "".join(out).strip()
 
 
@@ -155,7 +176,8 @@ def _word_tag(anim: str, ti: int, D: int) -> str:
     return f"{{\\alpha&HFF&\\t({ti},{t2},\\alpha&H00&)}}"
 
 
-def _word_anim_text(text: str, dur_ms: int, anim: str, speed: float = 1.0, emph: str = "", accent: str = "", primary: str = "") -> str:
+def _word_anim_text(text: str, dur_ms: int, anim: str, speed: float = 1.0, emph: str = "", accent: str = "", primary: str = "",
+                    case=None, alpha=None, base_alpha: str = "00") -> str:
     """Each word animates in on its own, timed across the cue duration."""
     plain = text.replace("\n", " \\N ")
     words = [w for w in plain.split(" ") if w != ""]
@@ -164,6 +186,8 @@ def _word_anim_text(text: str, dur_ms: int, anim: str, speed: float = 1.0, emph:
         return text.replace("\n", "\\N")
     total_chars = sum(len(w) for w in real) or 1
     D = max(80, int(220 / max(0.3, speed)))
+    o_extra = "\\1c" + accent + "&" + ("\\alpha&H" + alpha + "&" if alpha else "")
+    c_extra = "\\1c" + primary + "&" + ("\\alpha&H" + base_alpha + "&" if alpha else "")
     out = []
     used = 0
     for w in words:
@@ -172,17 +196,20 @@ def _word_anim_text(text: str, dur_ms: int, anim: str, speed: float = 1.0, emph:
             continue
         ti = int(dur_ms * used / total_chars)
         used += len(w)
-        wtxt = ("{\\1c" + accent + "&}" + w + "{\\1c" + primary + "&}") if _wmatch(w, emph) else w
+        wtxt = ("{" + o_extra + "}" + _case_str(w, case) + "{" + c_extra + "}") if _wmatch(w, emph) else w
         out.append(_word_tag(anim, ti, D) + wtxt + " ")
     return "".join(out).strip()
 
 
-def _emphasize(text: str, word: str, accent: str, primary: str) -> str:
+def _emphasize(text: str, word: str, accent: str, primary: str,
+               case=None, alpha=None, base_alpha: str = "00") -> str:
     """Colour a whole-word match (case-insensitive) with the accent, then reset."""
     if not word:
         return text
+    o_extra = "\\1c" + accent + "&" + ("\\alpha&H" + alpha + "&" if alpha else "")
+    c_extra = "\\1c" + primary + "&" + ("\\alpha&H" + base_alpha + "&" if alpha else "")
     def repl(m):
-        return "{\\1c" + accent + "&}" + m.group(0) + "{\\1c" + primary + "&}"
+        return "{" + o_extra + "}" + _case_str(m.group(0), case) + "{" + c_extra + "}"
     try:
         return re.sub(r"(?<!\w)" + re.escape(word) + r"(?!\w)", repl, text, flags=re.IGNORECASE)
     except re.error:
@@ -225,15 +252,14 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
     margin_l = max(0, 80 + max(0, pos_h))
     margin_r = max(0, 80 + max(0, -pos_h))
     op = st.get("opacity")
-    alpha_tag = ""
-    if op is not None:
-        try:
-            a = max(0, min(255, 255 - round(float(op) * 2.55)))
-            if a > 0:
-                alpha_tag = "{\\alpha&H%02X&}" % a
-        except Exception:
-            alpha_tag = ""
+    base_alpha = _alpha_hex(op) or "00"
+    alpha_tag = ("{\\alpha&H%s&}" % base_alpha) if (op is not None and base_alpha != "00") else ""
     layer = 1 if (st.get("layer") == "front") else 0
+    # Big word (emphasis) + Top line (first line of a 2-line caption) per-part styling
+    big_case = st.get("big_case")
+    big_alpha = _alpha_hex(st.get("big_opacity"))
+    top_case = st.get("top_case")
+    top_alpha = _alpha_hex(st.get("top_opacity"))
 
     def _case(t: str) -> str:
         if case_mode == "upper" or (case_mode is None and p.get("upper")):
@@ -249,19 +275,30 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
     for c in cues:
         txt = (c.get("translit_text") if use_translit and c.get("translit_text") else c["text"]) or ""
         txt = _case(txt)
+        # Top line = first line of a two-line caption. Case is safe in every mode;
+        # opacity is applied inline in the plain/whole-caption path only (karaoke and
+        # per-word paths tokenise on spaces, so an inline alpha span there would break
+        # the per-word timing tags).
+        _karaoke_mode = (anim == "karaoke") or (scope == "word" and anim in _WORD_MOTION)
+        if ("\n" in txt) and (top_case in ("upper", "lower", "title") or top_alpha):
+            _first, _rest = txt.split("\n", 1)
+            _first = _case_str(_first, top_case)
+            if top_alpha and not _karaoke_mode:
+                _first = "{\\alpha&H" + top_alpha + "&}" + _first + "{\\alpha&H" + base_alpha + "&}"
+            txt = _first + "\n" + _rest
         dur = max(c["end_ms"] - c["start_ms"], 1)
         em = (st.get("emphasis") or "").strip()
         emcol = YELLOW if p["primary"] == ACCENT else ACCENT
         if anim == "karaoke":
-            body = _karaoke_text(txt, dur, em, emcol, p["primary"])
+            body = _karaoke_text(txt, dur, em, emcol, p["primary"], big_case, big_alpha, base_alpha)
             prefix = glow_tag + "{\\fad(80,80)}"
         elif scope == "word" and anim in _WORD_MOTION:
-            body = _word_anim_text(txt, dur, anim, speed, em, emcol, p["primary"])
+            body = _word_anim_text(txt, dur, anim, speed, em, emcol, p["primary"], big_case, big_alpha, base_alpha)
             prefix = glow_tag
         else:
             body = txt.replace("\n", "\\N")
             if em:
-                body = _emphasize(body, em, emcol, p["primary"])
+                body = _emphasize(body, em, emcol, p["primary"], big_case, big_alpha, base_alpha)
             prefix = glow_tag + _anim_prefix(anim, dur, speed)
         lines.append(
             f"Dialogue: {layer},{_ms_to_ass(c['start_ms'])},{_ms_to_ass(c['end_ms'])},"
