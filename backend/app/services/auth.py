@@ -29,11 +29,17 @@ def _jwk_client():
 
 def _verify(token: str) -> dict:
     import jwt
-    # HS256 (legacy shared secret) takes precedence if configured
-    if settings.supabase_jwt_secret:
+    # Route by the token's OWN algorithm, not by whether a secret happens to be
+    # configured. Modern Supabase projects sign with ES256 (asymmetric) even when
+    # a legacy HS256 secret is still present in the env, so the header decides.
+    try:
+        alg = jwt.get_unverified_header(token).get("alg", "")
+    except Exception:
+        alg = ""
+    if alg == "HS256" and settings.supabase_jwt_secret:
         return jwt.decode(token, settings.supabase_jwt_secret, algorithms=["HS256"],
                           audience="authenticated")
-    # otherwise verify the asymmetric signature via JWKS
+    # asymmetric signature (ES256/RS256) -> verify via the project JWKS
     signing_key = _jwk_client().get_signing_key_from_jwt(token)
     return jwt.decode(token, signing_key.key, algorithms=["ES256", "RS256"],
                       audience="authenticated")
