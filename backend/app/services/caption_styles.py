@@ -9,7 +9,12 @@ timing by splitting each cue's duration across its words.
 """
 from __future__ import annotations
 
+import functools
+import logging
 import re
+import subprocess
+
+logger = logging.getLogger(__name__)
 
 # palette (BGR hex)
 WHITE = "&H00FFFFFF"
@@ -23,6 +28,58 @@ ORANGE = "&H001A7AFF"      # #FF7A1A
 PINK   = "&H00A34FFF"      # #FF4FA3
 GREEN  = "&H006AE82E"      # #2EE86A
 PURPLE = "&H00FF5CB1"      # #B15CFF
+
+# ---- Font availability: fall back cleanly instead of libass silently
+# swapping a missing display font for a plain serif/Arial. Each display font
+# maps to an ordered chain of acceptable substitutes; the first one actually
+# installed (per fontconfig) wins, and the substitution is logged.
+_FONT_FALLBACKS = {
+    "Anton":       ["Anton", "Oswald", "Archivo Black", "Arial Black", "DejaVu Sans"],
+    "Bebas Neue":  ["Bebas Neue", "Oswald", "Archivo Narrow", "Arial Narrow", "DejaVu Sans Condensed"],
+    "Pacifico":    ["Pacifico", "Dancing Script", "Comic Sans MS", "DejaVu Sans"],
+    "Poppins":     ["Poppins", "Montserrat", "Nunito Sans", "DejaVu Sans"],
+    "Montserrat":  ["Montserrat", "Poppins", "Nunito Sans", "DejaVu Sans"],
+    "Arial Black": ["Arial Black", "Archivo Black", "DejaVu Sans"],
+    "Arial":       ["Arial", "Liberation Sans", "DejaVu Sans", "Helvetica"],
+}
+_DEFAULT_FALLBACK = ["DejaVu Sans", "Liberation Sans", "Arial"]
+
+
+@functools.lru_cache(maxsize=1)
+def _installed_fonts() -> frozenset:
+    """Lowercased family names fontconfig knows on this machine (empty if fc-list
+    is unavailable, in which case font resolution is skipped)."""
+    try:
+        out = subprocess.run(["fc-list", ":", "family"],
+                             capture_output=True, text=True, timeout=10).stdout
+    except Exception as e:                 # fc-list missing / errored -> skip check
+        logger.warning("fc-list unavailable, skipping caption font check: %s", e)
+        return frozenset()
+    fams = set()
+    for line in out.splitlines():
+        for fam in line.split(","):
+            f = fam.strip().lower()
+            if f:
+                fams.add(f)
+    return frozenset(fams)
+
+
+def resolve_font(desired: str) -> str:
+    """Return an installed font family for `desired`, walking its fallback chain.
+    Falls through to a generic sans (DejaVu/Liberation) rather than letting libass
+    pick an arbitrary default. If fontconfig can't be queried, returns `desired`."""
+    fonts = _installed_fonts()
+    if not fonts or not desired:
+        return desired
+    if desired.lower() in fonts:
+        return desired
+    for cand in _FONT_FALLBACKS.get(desired, []) + _DEFAULT_FALLBACK:
+        if cand.lower() in fonts:
+            logger.info("caption font %r not installed — falling back to %r", desired, cand)
+            return cand
+    logger.warning("caption font %r not installed and no fallback found; leaving as-is", desired)
+    return desired
+
 
 # preset -> style + per-line animation behavior
 PRESETS = {
@@ -240,6 +297,7 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
     st = settings or {}
     if st.get("font"):
         p["font"] = st["font"]
+    p["font"] = resolve_font(p["font"])
     if st.get("bold") is not None:
         p["bold"] = st["bold"]
     if st.get("outline_w") is not None:

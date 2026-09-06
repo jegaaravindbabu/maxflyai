@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 
 # ffmpeg for all media ops + fontconfig for caption fonts
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg fontconfig curl \
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg fontconfig curl fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 # Display fonts for caption styles (burned into exports via libass).
@@ -12,6 +12,7 @@ RUN mkdir -p /usr/share/fonts/truetype/maxfly && cd /usr/share/fonts/truetype/ma
     && curl -fsSL -o Pacifico-Regular.ttf  "https://github.com/google/fonts/raw/main/ofl/pacifico/Pacifico-Regular.ttf" || true \
     && curl -fsSL -o Poppins-Bold.ttf      "https://github.com/google/fonts/raw/main/ofl/poppins/Poppins-Bold.ttf" || true \
     && curl -fsSL -o Montserrat.ttf        "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat%5Bwght%5D.ttf" || true \
+    && curl -fsSL -o Oswald.ttf            "https://github.com/google/fonts/raw/main/ofl/oswald/Oswald%5Bwght%5D.ttf" || true \
     && fc-cache -f || true
 
 WORKDIR /app
