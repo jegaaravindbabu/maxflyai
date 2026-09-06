@@ -485,3 +485,36 @@ def rounded_corners_pass(in_path: str, out_path: str, w: int, h: int,
         try: os.remove(mask)
         except Exception: pass
     return out_path
+
+
+def drop_shadow_pass(in_path: str, out_path: str, w: int, h: int,
+                     sx: float, sy: float, blur: float, color: str,
+                     bg_color: str = "black") -> str:
+    """Bake a drop shadow: inset the clip on a `bg_color` canvas and place an
+    offset, blurred dark copy of it behind — so the shadow actually shows
+    (a full-frame clip has nowhere to cast one). Offsets/blur are Video-tab px."""
+    sxi, syi, bl = int(round(sx)), int(round(sy)), max(0.0, float(blur))
+    pad = max(12, int(round(bl * 1.2 + max(abs(sxi), abs(syi)) + 12)))
+    pad = min(pad, int(min(w, h) * 0.18))
+    iw = max(2, (w - 2 * pad) // 2 * 2)
+    ih = max(2, (h - 2 * pad) // 2 * 2)
+    cx, cy = (w - iw) // 2, (h - ih) // 2
+    sig = round(bl * 0.7, 2)
+    scol = _hex_to_0x(color, "0x000000")
+    bg = bg_color if bg_color in ("black", "white") else _hex_to_0x(bg_color, "0x000000")
+    shadow_layer = (f"[shb][shs]overlay=x={cx + sxi}:y={cy + syi}[sho];"
+                    f"[sho]gblur=sigma={sig}[shbl];") if sig > 0 else \
+                   (f"[shb][shs]overlay=x={cx + sxi}:y={cy + syi}[shbl];")
+    fc = (f"[0:v]scale={iw}:{ih}[clip];"
+          f"color=c={scol}@0.5:s={iw}x{ih},format=rgba[shs];"
+          f"color=c=black@0:s={w}x{h},format=rgba[shb];"
+          + shadow_layer +
+          f"color=c={bg}:s={w}x{h}[bg];"
+          f"[bg][shbl]overlay=0:0[bg2];"
+          f"[bg2][clip]overlay=x={cx}:y={cy}:format=auto,format=yuv420p[v]")
+    cp = _run(["ffmpeg", "-y", "-i", in_path, "-filter_complex", fc,
+               "-map", "[v]", "-map", "0:a?", *_VENC, "-c:a", "copy",
+               "-movflags", "+faststart", out_path])
+    if cp.returncode != 0:
+        raise RuntimeError(f"drop shadow failed: {cp.stderr[-400:]}")
+    return out_path

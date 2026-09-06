@@ -307,7 +307,30 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                     except Exception: pass
             # canvas backdrop (aspect + background) as a final composite
             canvas = _load_canvas(db, project_id)
-            if canvas and canvas.get("aspect") in CANVAS_DIMS:
+            _canvas_active = bool(canvas and canvas.get("aspect") in CANVAS_DIMS)
+            # drop shadow: inset the clip with an offset blurred dark copy behind
+            # it (a full-frame clip has nowhere to cast one). Cast on the canvas
+            # colour when a solid-colour canvas is set, else on black; skipped for
+            # image/blur canvases (can't cast onto those in this pass).
+            try:
+                _sx = float((_vfx or {}).get("shadowX", 0) or 0)
+                _sy = float((_vfx or {}).get("shadowY", 0) or 0)
+                _sb = float((_vfx or {}).get("shadowBlur", 0) or 0)
+            except Exception:
+                _sx = _sy = _sb = 0.0
+            _colour_canvas = _canvas_active and canvas.get("bg_type") == "color"
+            if (_sx or _sy or _sb) and (not _canvas_active or _colour_canvas):
+                _sbg = canvas.get("color") if _colour_canvas else "black"
+                fd, _ds = tempfile.mkstemp(suffix="_shadow.mp4"); os.close(fd)
+                try:
+                    ffmpeg_utils.drop_shadow_pass(
+                        out_path, _ds, ow, oh, _sx, _sy, _sb,
+                        (_vfx or {}).get("shadowColor", "#000000"), _sbg or "black")
+                    os.replace(_ds, out_path)
+                except Exception:
+                    try: os.remove(_ds)
+                    except Exception: pass
+            if _canvas_active:
                 cw, ch = CANVAS_DIMS[canvas["aspect"]]
                 cimg = None
                 if canvas.get("bg_type") == "image" and canvas.get("image_url"):
