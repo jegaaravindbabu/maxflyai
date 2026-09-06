@@ -334,6 +334,35 @@ class CapSettingsIn(BaseModel):
     weight: str | None = None        # font weight label (preview)
 
 
+class VideoFxIn(BaseModel):
+    # full video-tab effects blob (opacity/blur/crop/rounded/outline/shadow +
+    # In/Loop/Out animations). Extra keys allowed so the client owns the shape.
+    model_config = ConfigDict(extra="allow")
+
+
+@router.get("/{project_id}/videofx")
+def get_videofx(project_id: str, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    row = (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "videofx")
+             .order_by(Edit.created_at.desc()).first())
+    return row.payload_json if row else {}
+
+
+@router.post("/{project_id}/videofx")
+def set_videofx(project_id: str, body: VideoFxIn, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    # replace the whole blob (the client always sends the complete effects object)
+    payload = {k: v for k, v in body.model_dump().items() if v is not None}
+    row = (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "videofx")
+             .order_by(Edit.created_at.desc()).first())
+    if row:
+        row.payload_json = payload
+    else:
+        db.add(Edit(project_id=project_id, type="videofx", payload_json=payload, enabled=True))
+    db.commit()
+    return payload
+
+
 @router.get("/{project_id}/caption-settings")
 def get_caption_settings(project_id: str, db: Session = Depends(get_db),
     _owner: Project = Depends(owned_project)):

@@ -216,6 +216,16 @@ export const api = {
     }));
   },
 
+  async getVideoFx(id: string) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/videofx`));
+  },
+  async setVideoFx(id: string, body: Record<string, any>) {
+    return j<any>(await afetch(`${BASE}/api/projects/${id}/videofx`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }));
+  },
+
   async listSavedStyles(id: string) {
     return j<{ id: string; name: string; style: string; settings: any }[]>(
       await afetch(`${BASE}/api/projects/${id}/saved-styles`));

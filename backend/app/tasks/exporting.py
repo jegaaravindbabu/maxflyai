@@ -51,6 +51,13 @@ def _load_capsettings(db, project_id: str) -> dict | None:
     return (row.payload_json or None) if row else None
 
 
+def _load_videofx(db, project_id: str) -> dict | None:
+    row = (db.query(Edit)
+             .filter(Edit.project_id == project_id, Edit.enabled == True,  # noqa: E712
+                     Edit.type == "videofx").order_by(Edit.created_at.desc()).first())
+    return (row.payload_json or None) if row else None
+
+
 # 720-wide canvas keeps the final composite encode within the 512MB instance.
 CANVAS_DIMS = {"9:16": (720, 1280), "4:5": (720, 900), "1:1": (720, 720), "16:9": (1280, 720)}
 
@@ -238,6 +245,16 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
             # colour filter
             color_vf = _load_color_filter(db, project_id, cuts=cuts, sp=sp)
             vfilters = [f for f in (scale_vf, zoom_prefilter, color_vf) if f]
+            # video-tab effects (opacity/blur/crop/outline + In/Loop/Out animation)
+            try:
+                _fps = vinfo["fps_num"] / max(1, vinfo["fps_den"])
+            except Exception:
+                _fps = 30.0
+            _dur_s = (ffmpeg_utils.probe_duration_ms(video_src) or 0) / 1000.0
+            vfx_vf = ffmpeg_utils.build_videofx_filter(
+                _load_videofx(db, project_id), ow, oh, _dur_s, _fps)
+            if vfx_vf:
+                vfilters.append(vfx_vf)
             # image / B-roll overlays
             images = _load_images(db, project_id)
             img_inputs = []

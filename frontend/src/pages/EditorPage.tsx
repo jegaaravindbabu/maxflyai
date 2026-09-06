@@ -230,6 +230,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const setFx = (patch: any) => setVideofx((v: any) => {
     const n = { ...v, ...patch };
     try { localStorage.setItem("maxfly:vfx:" + projectId, JSON.stringify(n)); } catch {}
+    api.setVideoFx(projectId, n).catch(() => {});
     return n;
   });
   const [density, setDensity] = useState<"compact" | "roomy">("roomy");
@@ -266,6 +267,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
         setVideofx({ ...VFX_DEFAULT, ...j });
       }
     } catch {}
+    api.getVideoFx(projectId).then((r) => {
+      if (r && Object.keys(r).length) setVideofx((v: any) => ({ ...VFX_DEFAULT, ...v, ...r }));
+    }).catch(() => {});
   }, [projectId]);
   useEffect(() => { if (videoRef.current) videoRef.current.muted = mediaMuted; }, [mediaMuted]);
   useEffect(() => { setOverlays(proj?.overlays || []); }, [proj?.id]);

@@ -357,3 +357,99 @@ def compose_canvas(src: str, out_path: str, w: int, h: int, bg_type: str = "colo
     if cp.returncode != 0:
         raise RuntimeError(f"compose_canvas failed: {cp.stderr[-400:]}")
     return out_path
+
+
+# ---------------------------------------------------------------------------
+# Video-tab effects ("videofx") -> a linear -vf chain, baked into the export.
+# The input frame is already scaled to (ow x oh). Every stage is optional and
+# only added when it deviates from the default, so untouched clips are untouched.
+#
+# Baked: crop (inset), loop motion (shake / float / sway / pulse / zoom),
+#        blur, opacity, outline, In-fade, Out-fade.
+# Not baked (kept as editor preview only): rounded corners (needs a per-pixel
+#        alpha mask — too slow for production) and drop shadow (only visible
+#        when the clip is smaller than the canvas).
+# ---------------------------------------------------------------------------
+def _hex_to_0x(color: str, default: str = "0x000000") -> str:
+    if not color:
+        return default
+    c = color.strip().lstrip("#")
+    if len(c) == 6 and all(ch in "0123456789abcdefABCDEF" for ch in c):
+        return "0x" + c
+    return default
+
+
+def build_videofx_filter(fx: dict | None, ow: int, oh: int,
+                         dur_s: float | None = None, fps: float = 30.0) -> str | None:
+    if not fx:
+        return None
+    parts: list[str] = []
+
+    def _num(k, d=0):
+        try:
+            return float(fx.get(k, d) or 0)
+        except Exception:
+            return d
+
+    # 1) crop (inset): keep frame size, mask edges with black — matches the
+    #    editor's clip-path inset preview.
+    L, R, T, B = _num("cropL"), _num("cropR"), _num("cropT"), _num("cropB")
+    if (L + R) < 100 and (T + B) < 100 and (L or R or T or B):
+        cw = max(2, int(round(ow * (1 - (L + R) / 100.0))) // 2 * 2)
+        ch = max(2, int(round(oh * (1 - (T + B) / 100.0))) // 2 * 2)
+        cx = int(round(ow * L / 100.0))
+        cy = int(round(oh * T / 100.0))
+        parts.append(f"crop={cw}:{ch}:{cx}:{cy}")
+        parts.append(f"pad={ow}:{oh}:{cx}:{cy}:color=black")
+
+    # 2) loop motion (continuous). Upscale a touch so shake/float never reveal
+    #    an edge; sway pre-scales more to hide rotation corners.
+    loop = str(fx.get("animLoop", "none") or "none")
+    if loop == "shakeH":
+        parts.append(f"scale=ceil({ow}*1.05/2)*2:ceil({oh}*1.05/2)*2")
+        parts.append(f"crop={ow}:{oh}:x='(in_w-{ow})/2+7*sin(2*PI*t/0.55)':y='(in_h-{oh})/2'")
+    elif loop == "shakeV":
+        parts.append(f"scale=ceil({ow}*1.05/2)*2:ceil({oh}*1.05/2)*2")
+        parts.append(f"crop={ow}:{oh}:x='(in_w-{ow})/2':y='(in_h-{oh})/2+7*sin(2*PI*t/0.55)'")
+    elif loop == "float":
+        parts.append(f"scale=ceil({ow}*1.05/2)*2:ceil({oh}*1.05/2)*2")
+        parts.append(f"crop={ow}:{oh}:x='(in_w-{ow})/2':y='(in_h-{oh})/2+10*sin(2*PI*t/3)'")
+    elif loop == "sway":
+        parts.append(f"scale=ceil({ow}*1.10/2)*2:ceil({oh}*1.10/2)*2")
+        parts.append("rotate=a='0.03*sin(2*PI*t/3)':c=black")
+        parts.append(f"crop={ow}:{oh}")
+    elif loop in ("pulse", "zoom"):
+        amp = 0.03 if loop == "pulse" else 0.05
+        per = 2.0 if loop == "pulse" else 4.0
+        pf = max(1, int(round(per * (fps or 30))))
+        base = 1.0 + amp
+        parts.append(
+            f"zoompan=z='{base:.3f}+{amp:.3f}*sin(2*PI*on/{pf})':d=1:"
+            f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={ow}x{oh}:fps={fps:.4f}")
+
+    # 3) blur
+    b = _num("blur")
+    if b > 0:
+        parts.append(f"gblur=sigma={b*0.15:.2f}")
+
+    # 4) opacity (blend toward black — matches opacity-over-dark preview)
+    op = _num("opacity", 100)
+    if op < 100:
+        o = max(0.0, min(1.0, op / 100.0))
+        parts.append(f"colorchannelmixer=rr={o:.3f}:gg={o:.3f}:bb={o:.3f}")
+
+    # 5) outline (inner colored border ring)
+    osize = _num("outlineSize")
+    if osize > 0:
+        col = _hex_to_0x(str(fx.get("outlineColor", "#000000")))
+        t = int(round(osize))
+        parts.append(f"drawbox=x=0:y=0:w={ow}:h={oh}:t={t}:color={col}")
+
+    # 6) In / Out fade (entrance & exit). Geometric In/Out variants bake as a
+    #    clean fade; fade/fade-blur bake exactly.
+    if str(fx.get("animIn", "none") or "none") != "none":
+        parts.append("fade=t=in:st=0:d=0.6:alpha=0")
+    if str(fx.get("animOut", "none") or "none") != "none" and dur_s and dur_s > 0.7:
+        parts.append(f"fade=t=out:st={max(0.0, dur_s-0.6):.2f}:d=0.6:alpha=0")
+
+    return ",".join(parts) if parts else None
