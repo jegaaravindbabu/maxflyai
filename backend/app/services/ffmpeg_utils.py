@@ -365,7 +365,9 @@ def compose_canvas(src: str, out_path: str, w: int, h: int, bg_type: str = "colo
 # only added when it deviates from the default, so untouched clips are untouched.
 #
 # Baked: crop (inset), loop motion (shake / float / sway / pulse / zoom),
-#        blur, opacity, outline, In-fade, Out-fade.
+#        blur, opacity, outline, and In/Out animation as REAL motion
+#        (slides, rotate, zoom, pop; fade / fade-blur / type-on bake as fade,
+#        flip approximated as zoom).
 # Rounded corners are baked separately by rounded_corners_pass() (a one-time
 # mask overlay, not a per-frame filter). Drop shadow stays editor-preview only
 # (only visible when the clip is smaller than the canvas).
@@ -445,12 +447,45 @@ def build_videofx_filter(fx: dict | None, ow: int, oh: int,
         t = int(round(osize))
         parts.append(f"drawbox=x=0:y=0:w={ow}:h={oh}:t={t}:color={col}")
 
-    # 6) In / Out fade (entrance & exit). Geometric In/Out variants bake as a
-    #    clean fade; fade/fade-blur bake exactly.
-    if str(fx.get("animIn", "none") or "none") != "none":
-        parts.append("fade=t=in:st=0:d=0.6:alpha=0")
-    if str(fx.get("animOut", "none") or "none") != "none" and dur_s and dur_s > 0.7:
-        parts.append(f"fade=t=out:st={max(0.0, dur_s-0.6):.2f}:d=0.6:alpha=0")
+    # 6) In / Out animation (entrance & exit), baked as REAL motion where ffmpeg
+    #    allows it in a linear chain: slides (pad+crop), rotate, zoom/pop (zoompan).
+    #    fade/fade-blur -> fade; flip -> zoom; type-on -> fade (a clean reveal).
+    D = 0.6
+    fpf = max(1, int(round(D * (fps or 30))))
+    ai = str(fx.get("animIn", "none") or "none")
+    if ai in ("fade", "fadeblur", "typeon"):
+        parts.append(f"fade=t=in:st=0:d={D}:alpha=0")
+    elif ai in ("zoom", "pop", "flip"):
+        parts.append(f"zoompan=z='if(lte(on\\,{fpf})\\,1.25-0.25*on/{fpf}\\,1)':d=1:"
+                     f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={ow}x{oh}:fps={(fps or 30):.4f}")
+    elif ai == "rotate":
+        parts.append(f"rotate=a='if(lt(t\\,{D})\\,-0.26*(1-t/{D})\\,0)':ow={ow}:oh={oh}:c=black")
+    elif ai == "slideup":
+        parts.append(f"pad={ow}:{2*oh}:0:{oh}:color=black,crop={ow}:{oh}:0:{oh}*min(t/{D}\\,1)")
+    elif ai == "slidedown":
+        parts.append(f"pad={ow}:{2*oh}:0:0:color=black,crop={ow}:{oh}:0:{oh}*(1-min(t/{D}\\,1))")
+    elif ai == "slideleft":
+        parts.append(f"pad={2*ow}:{oh}:{ow}:0:color=black,crop={ow}:{oh}:{ow}*min(t/{D}\\,1):0")
+    elif ai == "slideright":
+        parts.append(f"pad={2*ow}:{oh}:0:0:color=black,crop={ow}:{oh}:{ow}*(1-min(t/{D}\\,1)):0")
+    elif ai != "none":
+        parts.append(f"fade=t=in:st=0:d={D}:alpha=0")
+
+    ao = str(fx.get("animOut", "none") or "none")
+    if ao != "none" and dur_s and dur_s > (D + 0.1):
+        st = dur_s - D
+        s0 = int(round(st * (fps or 30)))
+        if ao == "zoom":
+            parts.append(f"zoompan=z='if(gte(on\\,{s0})\\,1+0.25*(on-{s0})/{fpf}\\,1)':d=1:"
+                         f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={ow}x{oh}:fps={(fps or 30):.4f}")
+        elif ao == "rotate":
+            parts.append(f"rotate=a='if(gt(t\\,{st:.2f})\\,0.26*(t-{st:.2f})/{D}\\,0)':ow={ow}:oh={oh}:c=black")
+        elif ao == "slidedown":
+            parts.append(f"pad={ow}:{2*oh}:0:{oh}:color=black,crop={ow}:{oh}:0:{oh}*(1-max(0\\,min((t-{st:.2f})/{D}\\,1)))")
+        elif ao == "slideup":
+            parts.append(f"pad={ow}:{2*oh}:0:0:color=black,crop={ow}:{oh}:0:{oh}*max(0\\,min((t-{st:.2f})/{D}\\,1))")
+        else:  # fade (and any other)
+            parts.append(f"fade=t=out:st={st:.2f}:d={D}:alpha=0")
 
     return ",".join(parts) if parts else None
 
