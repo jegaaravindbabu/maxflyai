@@ -9,7 +9,7 @@ from app.models import Project, CaptionCue
 from app.schemas import TranscribeRequest, CaptionEditRequest
 from app.tasks.transcribe import transcribe_task, run_transcription
 from app.services import billing
-from app.services.auth import current_user
+from app.services.auth import current_user, is_admin
 from app import runner
 
 router = APIRouter(prefix="/api/projects", tags=["transcripts"])
@@ -17,11 +17,12 @@ router = APIRouter(prefix="/api/projects", tags=["transcripts"])
 
 @router.post("/{project_id}/transcribe")
 def transcribe(project_id: str, body: TranscribeRequest, db: Session = Depends(get_db),
-    _owner: Project = Depends(owned_project), user: str | None = Depends(current_user)):
+    _owner: Project = Depends(owned_project), user: str | None = Depends(current_user),
+    admin: bool = Depends(is_admin)):
     project = db.get(Project, project_id)
     if project is None:
         raise HTTPException(404, "project not found")
-    if user is not None:
+    if user is not None and not admin:
         ok, info = billing.can_process(db, user, project.duration_ms or 0)
         if not ok:
             raise HTTPException(402, detail={"error": "quota_exceeded", **info})
