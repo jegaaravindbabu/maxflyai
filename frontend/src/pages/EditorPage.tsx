@@ -144,7 +144,6 @@ const RAILS = [
   { id: "tools", icon: "✨", label: "AI Tools" },
   { id: "retake", icon: "↺", label: "Retake" },
   { id: "canvas", icon: "▭", label: "Canvas" },
-  { id: "export", icon: "⬇", label: "Export" },
 ];
 
 function fmtT(ms: number) {
@@ -218,6 +217,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [exports, setExports] = useState<{ fmt: string; url?: string; status: string; error?: string }[]>([]);
   const [expRes, setExpRes] = useState("auto");   // export resolution: auto|1080|720|480
   const [nleOpen, setNleOpen] = useState(false);  // "Export for Editor" section collapsed by default
+  const [expOpen, setExpOpen] = useState(false);  // right-side export panel (HyproAI-style)
   const [rail, setRail] = useState<"uploads" | "captions" | "texts" | "images" | "broll" | "tools" | "retake" | "zoom" | "filters" | "canvas" | "export">("captions");
   const [rightTab, setRightTab] = useState<"styles" | "settings" | "animation">("styles");
   const [capPart, setCapPart] = useState<"top" | "big" | "bottom">("bottom");
@@ -854,7 +854,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
           <span className="ed-pill">{(dur / 60000).toFixed(1)} min</span>
           <span className={"badge " + proj.status}>{proj.status}</span>
           <div className="ed-export-wrap">
-            <button className="ed-export" onClick={() => setRail("export")}>⬇ Export</button>
+            <button className="ed-export" onClick={() => setExpOpen((v) => !v)}>⬇ Export</button>
           </div>
         </div>
       </div>
@@ -911,7 +911,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 </>
               ) : (
                 <>
-                  <button className="ml-import" onClick={() => setRail("export")}>⤓ Export this project</button>
+                  <button className="ml-import" onClick={() => setExpOpen(true)}>⤓ Export this project</button>
                   <div className="ml-empty2">
                     <div className="ml-empty2-ic">🗎</div>
                     <p>Export your captioned MP4, or download SRT / VTT / ASS subtitles.</p>
@@ -1372,10 +1372,67 @@ export function EditorPage({ projectId }: { projectId: string }) {
             </>
           )}
 
-          {rail === "export" && (
-            <>
-              <div className="ed-left-head"><h3>Export</h3></div>
-              <div className="card ed-exp">
+        </div>
+
+        {/* center preview */}
+        <div className="ed-center">
+          <div className="ed-center-top">
+            <button className="ed-replace secondary">↻ Replace</button>
+          </div>
+          <div className="ed-stage" ref={stageRef}>
+            <div className={"ed-canvas-frame" + (canvas.aspect && canvas.aspect !== "original" ? " on" : "")}
+              style={canvas.aspect && canvas.aspect !== "original" ? {
+                aspectRatio: canvas.aspect.replace(":", "/"),
+                background: canvas.bg_type === "image" && canvas.image_url ? `center/cover no-repeat url("${canvas.image_url}")`
+                  : canvas.bg_type === "blur" ? "#0a0c13" : (canvas.color || "#000000"),
+              } : undefined}>
+            <VideoPreview ref={videoRef} src={mediaSrc} videoStyle={videoFxStyle}
+              overlay={<>
+                {activeCue && overlayText && !isHidden("captions") ? (
+                  <CaptionOverlay text={overlayText} styleId={effStyle} cue={activeCue} curMs={curMs} keyId={activeIdx} settings={capSettings} />
+                ) : null}
+                {!isHidden("text") && overlays.filter((o) => curMs >= o.start_ms && curMs < o.end_ms).map((o) => (
+                  <div key={o.id} className={"ed-ovl" + (selOv === o.id ? " sel" : "")}
+                    style={{ left: o.x_pct + "%", top: o.y_pct + "%", color: o.color,
+                             fontSize: Math.max(11, o.font_size * 0.24) + "px", fontWeight: o.bold ? 800 : 500 }}
+                    onMouseDown={(e) => startDrag(e, o)}
+                    onClick={(e) => { e.stopPropagation(); setSelOv(o.id); setRail("texts"); }}>
+                    {o.text}
+                  </div>
+                ))}
+                {!isHidden("images") && images.filter((im) => curMs >= im.start_ms && curMs < im.end_ms).map((im) => (
+                  <img key={im.id} src={im.image_url} draggable={false}
+                    className={"ed-imgovl" + (selImg === im.id ? " sel" : "")}
+                    style={{ left: im.x_pct + "%", top: im.y_pct + "%", width: im.size_pct + "%" }}
+                    onMouseDown={(e) => startDragImg(e, im)}
+                    onClick={(e) => { e.stopPropagation(); setSelImg(im.id); setRail("images"); }} />
+                ))}
+                {!isHidden("broll") && brolls.filter((b) => curMs >= b.start_ms && curMs < b.end_ms).map((b) => (
+                  <video key={b.id} src={b.video_url} muted autoPlay loop playsInline draggable={false}
+                    className={"ed-imgovl" + (selBroll === b.id ? " sel" : "")}
+                    style={{ left: b.x_pct + "%", top: b.y_pct + "%", width: b.size_pct + "%" }}
+                    onMouseDown={(e) => startDragBroll(e, b)}
+                    onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setRail("broll"); }} />
+                ))}
+              </>} />
+            </div>
+          </div>
+          <div className="ed-zoombar">
+            <span className="muted">{fmtT(curMs)} / {fmtT(dur)}</span>
+            <span className="spacer" />
+            <span className="muted">100%</span>
+          </div>
+        </div>
+
+        {/* right panel */}
+        <div className="ed-right">
+          {expOpen && (
+            <div className="ed-rt-export">
+              <div className="ed-rt-exp-head">
+                <span>Export</span>
+                <button className="ed-rt-exp-x" onClick={() => setExpOpen(false)} title="Close">✕</button>
+              </div>
+              <div className="ed-exp">
                 <div className="ed-exp-label">Export settings</div>
 
                 <div className="ed-exp-field">
@@ -1457,62 +1514,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   </div>
                 )}
               </div>
-            </>
-          )}
-        </div>
-
-        {/* center preview */}
-        <div className="ed-center">
-          <div className="ed-center-top">
-            <button className="ed-replace secondary">↻ Replace</button>
-          </div>
-          <div className="ed-stage" ref={stageRef}>
-            <div className={"ed-canvas-frame" + (canvas.aspect && canvas.aspect !== "original" ? " on" : "")}
-              style={canvas.aspect && canvas.aspect !== "original" ? {
-                aspectRatio: canvas.aspect.replace(":", "/"),
-                background: canvas.bg_type === "image" && canvas.image_url ? `center/cover no-repeat url("${canvas.image_url}")`
-                  : canvas.bg_type === "blur" ? "#0a0c13" : (canvas.color || "#000000"),
-              } : undefined}>
-            <VideoPreview ref={videoRef} src={mediaSrc} videoStyle={videoFxStyle}
-              overlay={<>
-                {activeCue && overlayText && !isHidden("captions") ? (
-                  <CaptionOverlay text={overlayText} styleId={effStyle} cue={activeCue} curMs={curMs} keyId={activeIdx} settings={capSettings} />
-                ) : null}
-                {!isHidden("text") && overlays.filter((o) => curMs >= o.start_ms && curMs < o.end_ms).map((o) => (
-                  <div key={o.id} className={"ed-ovl" + (selOv === o.id ? " sel" : "")}
-                    style={{ left: o.x_pct + "%", top: o.y_pct + "%", color: o.color,
-                             fontSize: Math.max(11, o.font_size * 0.24) + "px", fontWeight: o.bold ? 800 : 500 }}
-                    onMouseDown={(e) => startDrag(e, o)}
-                    onClick={(e) => { e.stopPropagation(); setSelOv(o.id); setRail("texts"); }}>
-                    {o.text}
-                  </div>
-                ))}
-                {!isHidden("images") && images.filter((im) => curMs >= im.start_ms && curMs < im.end_ms).map((im) => (
-                  <img key={im.id} src={im.image_url} draggable={false}
-                    className={"ed-imgovl" + (selImg === im.id ? " sel" : "")}
-                    style={{ left: im.x_pct + "%", top: im.y_pct + "%", width: im.size_pct + "%" }}
-                    onMouseDown={(e) => startDragImg(e, im)}
-                    onClick={(e) => { e.stopPropagation(); setSelImg(im.id); setRail("images"); }} />
-                ))}
-                {!isHidden("broll") && brolls.filter((b) => curMs >= b.start_ms && curMs < b.end_ms).map((b) => (
-                  <video key={b.id} src={b.video_url} muted autoPlay loop playsInline draggable={false}
-                    className={"ed-imgovl" + (selBroll === b.id ? " sel" : "")}
-                    style={{ left: b.x_pct + "%", top: b.y_pct + "%", width: b.size_pct + "%" }}
-                    onMouseDown={(e) => startDragBroll(e, b)}
-                    onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setRail("broll"); }} />
-                ))}
-              </>} />
             </div>
-          </div>
-          <div className="ed-zoombar">
-            <span className="muted">{fmtT(curMs)} / {fmtT(dur)}</span>
-            <span className="spacer" />
-            <span className="muted">100%</span>
-          </div>
-        </div>
-
-        {/* right panel */}
-        <div className="ed-right">
+          )}
           <div className="ed-rt-tabs">
             <div className={"ed-rt-tab" + (topTab === "video" ? " active" : "")} onClick={() => setTopTab("video")}>Video</div>
             <div className={"ed-rt-tab" + (topTab === "audio" ? " active" : "")} onClick={() => setTopTab("audio")}>Audio</div>
