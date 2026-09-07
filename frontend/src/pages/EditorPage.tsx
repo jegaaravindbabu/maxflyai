@@ -1456,11 +1456,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
                 <div className="ed-exp-sec">
                   <div className="ed-exp-sub">Subtitles</div>
-                  <div className="ed-exp-btns">
-                    <button className="secondary" onClick={() => doExport("srt")}>SRT</button>
-                    <button className="secondary" onClick={() => doExport("vtt")}>VTT</button>
-                    <button className="secondary" onClick={() => doExport("ass")}>ASS</button>
-                  </div>
+                  <button className="secondary ed-exp-dltext" onClick={() => doExport("srt")}>⬇ Download Text</button>
                 </div>
 
                 <div className="ed-exp-sec">

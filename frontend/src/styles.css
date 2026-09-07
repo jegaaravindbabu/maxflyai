@@ -1398,3 +1398,4 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .ed-rt-exp-head { display: flex; align-items: center; justify-content: space-between; font-size: 15px; font-weight: 700; }
 .ed-rt-exp-x { background: transparent; border: 0; font-size: 15px; line-height: 1; cursor: pointer; color: var(--muted); padding: 4px 6px; border-radius: 6px; }
 .ed-rt-exp-x:hover { background: rgba(127,127,127,.15); color: inherit; }
+.ed-exp-dltext { width: 100%; }
