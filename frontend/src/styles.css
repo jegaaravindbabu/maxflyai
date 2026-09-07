@@ -1378,3 +1378,16 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 @keyframes vfxloop-zoom    {0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 @keyframes vfxloop-sway    {0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
 @keyframes vfxloop-float   {0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+
+/* ===== Export panel — clean settings-first layout (ceyonai) ===== */
+.ed-exp { display: flex; flex-direction: column; gap: 12px; }
+.ed-exp-label { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; opacity: .55; }
+.ed-exp-field { display: flex; flex-direction: column; gap: 6px; }
+.ed-exp-field > label { font-size: 12px; font-weight: 600; opacity: .8; }
+.ed-exp-est { font-size: 11.5px; opacity: .72; background: rgba(127,127,127,.10); border: 1px solid rgba(127,127,127,.18); border-radius: 8px; padding: 8px 10px; line-height: 1.35; }
+.ed-exp-go { width: 100%; font-size: 15px; font-weight: 700; padding: 12px; margin-top: 2px; }
+.ed-exp-sec { border-top: 1px solid rgba(127,127,127,.15); padding-top: 12px; margin-top: 2px; display: flex; flex-direction: column; gap: 8px; }
+.ed-exp-sub { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; opacity: .55; }
+.ed-exp-acc { display: flex; align-items: center; justify-content: space-between; width: 100%; background: transparent; border: 0; padding: 2px 0; cursor: pointer; font-size: 13px; font-weight: 600; color: inherit; }
+.ed-exp-acc:hover { opacity: .85; }
+.ed-exp-chev { opacity: .55; font-size: 14px; }

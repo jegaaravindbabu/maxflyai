@@ -154,6 +154,7 @@ function fmtT(ms: number) {
 
 export function EditorPage({ projectId }: { projectId: string }) {
   const [proj, setProj] = useState<ProjectDetail | null>(null);
+  const [loadErr, setLoadErr] = useState<string | null>(null);
   const [lang, setLang] = useState("ta-IN");
   const [mode, setMode] = useState("transcribe");
   const [showTranslit, setShowTranslit] = useState(true);
@@ -215,6 +216,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [curMs, setCurMs] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [exports, setExports] = useState<{ fmt: string; url?: string; status: string; error?: string }[]>([]);
+  const [expRes, setExpRes] = useState("auto");   // export resolution: auto|1080|720|480
+  const [nleOpen, setNleOpen] = useState(false);  // "Export for Editor" section collapsed by default
   const [rail, setRail] = useState<"uploads" | "captions" | "texts" | "images" | "broll" | "tools" | "retake" | "zoom" | "filters" | "canvas" | "export">("captions");
   const [rightTab, setRightTab] = useState<"styles" | "settings" | "animation">("styles");
   const [capPart, setCapPart] = useState<"top" | "big" | "bottom">("bottom");
@@ -247,7 +250,12 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [mediaEl, setMediaEl] = useState<HTMLMediaElement | null>(null);
 
-  const load = useCallback(() => api.getProject(projectId).then(setProj).catch(() => {}), [projectId]);
+  const load = useCallback(() => {
+    setLoadErr(null);
+    return api.getProject(projectId)
+      .then((p) => { setProj(p); setLoadErr(null); })
+      .catch((e) => setLoadErr(String(e?.message || e || "Failed to load project")));
+  }, [projectId]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => { api.captionStyles().then((r) => setStyles(r.styles)).catch(() => {}); }, []);
   useEffect(() => {
@@ -329,7 +337,26 @@ export function EditorPage({ projectId }: { projectId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rail]);
 
-  if (!proj) return <div className="ed-loading muted">Loading editor…</div>;
+  if (!proj) {
+    if (loadErr) {
+      const is401 = /\b401\b|bearer|invalid token/i.test(loadErr);
+      return (
+        <div className="ed-loading" style={{ flexDirection: "column", gap: 12, textAlign: "center", padding: 24 }}>
+          <div style={{ fontWeight: 700 }}>Couldn't load this project</div>
+          <div className="muted" style={{ maxWidth: 460, fontSize: 13 }}>
+            {is401 ? "Your session may have expired. Please sign in again."
+              : "Something went wrong loading the editor. Check your connection and retry."}
+          </div>
+          <div className="muted" style={{ fontSize: 11, opacity: .6 }}>{loadErr}</div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => load()}>↻ Retry</button>
+            <button className="secondary" onClick={() => { window.location.hash = "#/app"; }}>Back to projects</button>
+          </div>
+        </div>
+      );
+    }
+    return <div className="ed-loading muted">Loading editor…</div>;
+  }
 
   const dur = proj.duration_ms || 1;
   const cues = proj.cues || [];
@@ -340,6 +367,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const wordStyles = styles.filter((x) => WORD_STYLES.includes(x.id));
   const overlayText = activeCue ? (showTranslit && activeCue.translit_text ? activeCue.translit_text : activeCue.text) : "";
   const effStyle = animOn ? capStyle : "classic";
+  const _resMul = expRes === "1080" ? 1.6 : expRes === "720" ? 1.1 : expRes === "480" ? 0.8 : 1.2;
+  const _estSec = Math.round((dur / 1000) * _resMul + 12);
+  const estText = _estSec <= 75 ? "Estimated time: under a minute" : `Estimated time: about ${Math.round(_estSec / 60)} min (based on video length)`;
   const activeLayer = filterLayers.find((l) => curMs >= l.start_ms && curMs < l.end_ms);
   const filterPreviewCss = selLayer
     ? cssForFilter(curFilter, adjust)
@@ -521,11 +551,11 @@ export function EditorPage({ projectId }: { projectId: string }) {
   function upsertExport(fmt: string, patch: { url?: string; status: string; error?: string }) {
     setExports((prev) => [{ fmt, ...patch }, ...prev.filter((e) => e.fmt !== fmt)]);
   }
-  async function doExport(fmt: string) {
+  async function doExport(fmt: string, resolution = "auto") {
     const style = animOn ? capStyle : "classic";
     upsertExport(fmt, { status: "processing" });
     try {
-      const r = await api.exportSub(projectId, fmt, showTranslit, true, style, enhanceAudio, audioVol, playRate, enhanceStrength);
+      const r = await api.exportSub(projectId, fmt, showTranslit, true, style, enhanceAudio, audioVol, playRate, enhanceStrength, resolution);
       const eid = r.export_id;
       for (let i = 0; i < 120; i++) {
         await new Promise((res) => setTimeout(res, 1500));
@@ -1345,46 +1375,76 @@ export function EditorPage({ projectId }: { projectId: string }) {
           {rail === "export" && (
             <>
               <div className="ed-left-head"><h3>Export</h3></div>
-              <div className="card">
-                <div className="np-label">Subtitles</div>
-                <div className="ed-exp-btns">
-                  <button className="secondary" onClick={() => doExport("srt")}>SRT</button>
-                  <button className="secondary" onClick={() => doExport("vtt")}>VTT</button>
-                  <button className="secondary" onClick={() => doExport("ass")}>ASS</button>
+              <div className="card ed-exp">
+                <div className="ed-exp-label">Export settings</div>
+
+                <div className="ed-exp-field">
+                  <label>Format</label>
+                  <Dropdown value="mp4" onChange={() => {}} options={[{ value: "mp4", label: "MP4" }]} />
                 </div>
-                <div className="np-label" style={{ marginTop: 14 }}>Video</div>
-                <button style={{ width: "100%" }} onClick={() => doExport("mp4")}>Export MP4 (burned-in)</button>
-                <div className="np-label" style={{ marginTop: 16 }}>Export to your editor (NLE)</div>
-                <div className="ed-nle">
-                  <div className="ed-nle-row">
-                    <div className="ed-nle-info">
-                      <div className="ed-nle-t">DaVinci Resolve / Final Cut</div>
-                      <div className="ed-nle-s">Video + captions as editable text, cuts applied</div>
-                    </div>
-                    <button className="secondary" onClick={() => doExport("fcpxml")}>FCPXML</button>
-                  </div>
-                  <div className="ed-nle-row">
-                    <div className="ed-nle-info">
-                      <div className="ed-nle-t">Premiere Pro</div>
-                      <div className="ed-nle-s">Import SRT as an editable caption track</div>
-                    </div>
+
+                <div className="ed-exp-field">
+                  <label>Resolution</label>
+                  <Dropdown value={expRes} onChange={setExpRes} options={[
+                    { value: "auto", label: "Auto (source)" },
+                    { value: "1080", label: "1080p" },
+                    { value: "720", label: "720p" },
+                    { value: "480", label: "480p" },
+                  ]} />
+                </div>
+
+                <div className="ed-exp-est">{estText}</div>
+
+                <button className="ed-exp-go" onClick={() => doExport("mp4", expRes)}>⬇ Export</button>
+
+                <div className="ed-exp-sec">
+                  <div className="ed-exp-sub">Subtitles</div>
+                  <div className="ed-exp-btns">
                     <button className="secondary" onClick={() => doExport("srt")}>SRT</button>
-                  </div>
-                  <div className="ed-nle-row">
-                    <div className="ed-nle-info">
-                      <div className="ed-nle-t">Cut list — any editor</div>
-                      <div className="ed-nle-s">CMX3600 EDL of the silence / retake cuts</div>
-                    </div>
-                    <button className="secondary" onClick={() => doExport("edl")}>EDL</button>
-                  </div>
-                  <div className="ed-nle-row">
-                    <div className="ed-nle-info">
-                      <div className="ed-nle-t">Full project (.zip)</div>
-                      <div className="ed-nle-s">Video, voice + music stems, captions & timeline</div>
-                    </div>
-                    <button className="secondary" onClick={() => doExport("bundle")}>ZIP</button>
+                    <button className="secondary" onClick={() => doExport("vtt")}>VTT</button>
+                    <button className="secondary" onClick={() => doExport("ass")}>ASS</button>
                   </div>
                 </div>
+
+                <div className="ed-exp-sec">
+                  <button className="ed-exp-acc" onClick={() => setNleOpen((v) => !v)}>
+                    <span>Export for Editor</span>
+                    <span className="ed-exp-chev">{nleOpen ? "⌄" : "›"}</span>
+                  </button>
+                  {nleOpen && (
+                    <div className="ed-nle">
+                      <div className="ed-nle-row">
+                        <div className="ed-nle-info">
+                          <div className="ed-nle-t">DaVinci Resolve / Final Cut</div>
+                          <div className="ed-nle-s">Video + captions as editable text, cuts applied</div>
+                        </div>
+                        <button className="secondary" onClick={() => doExport("fcpxml")}>FCPXML</button>
+                      </div>
+                      <div className="ed-nle-row">
+                        <div className="ed-nle-info">
+                          <div className="ed-nle-t">Premiere Pro</div>
+                          <div className="ed-nle-s">Import SRT as an editable caption track</div>
+                        </div>
+                        <button className="secondary" onClick={() => doExport("srt")}>SRT</button>
+                      </div>
+                      <div className="ed-nle-row">
+                        <div className="ed-nle-info">
+                          <div className="ed-nle-t">Cut list — any editor</div>
+                          <div className="ed-nle-s">CMX3600 EDL of the silence / retake cuts</div>
+                        </div>
+                        <button className="secondary" onClick={() => doExport("edl")}>EDL</button>
+                      </div>
+                      <div className="ed-nle-row">
+                        <div className="ed-nle-info">
+                          <div className="ed-nle-t">Full project (.zip)</div>
+                          <div className="ed-nle-s">Video, voice + music stems, captions & timeline</div>
+                        </div>
+                        <button className="secondary" onClick={() => doExport("bundle")}>ZIP</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {exports.length > 0 && (
                   <div className="ed-exp-results">
                     {exports.map((e) => (

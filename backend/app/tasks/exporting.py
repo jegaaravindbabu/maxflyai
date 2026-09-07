@@ -142,10 +142,35 @@ def _load_enabled_cuts(db, project_id: str) -> list[dict]:
     return cuts
 
 
+def _target_dims(sw: int, sh: int, resolution: str = "auto"):
+    """Pick output (w, h) + scale filter from a requested resolution.
+    'auto' keeps the source but caps the long side to 1280 (memory-safe).
+    '1080'/'720'/'480' target that many pixels on the SHORT side, so vertical
+    9:16 clips read as 1080x1920 / 720x1280 / 480x854 -- downscale only, with a
+    hard 1920 long-side ceiling. Even dimensions for H.264."""
+    sw = int(sw or 0); sh = int(sh or 0)
+    if sw < 2 or sh < 2:
+        return sw, sh, None
+    short = min(sw, sh); longest = max(sw, sh)
+    def _even(x):
+        return max(2, (int(round(x)) // 2) * 2)
+    if resolution in ("1080", "720", "480"):
+        tgt = int(resolution)
+        sc = min(1.0, tgt / float(short))
+        if longest * sc > 1920:
+            sc = 1920.0 / longest
+    else:  # auto
+        sc = 1280.0 / longest if longest > 1280 else 1.0
+    if sc >= 0.999:
+        return sw, sh, None
+    ow, oh = _even(sw * sc), _even(sh * sc)
+    return ow, oh, f"scale={ow}:{oh}"
+
+
 def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                apply_cuts: bool = True, style: str = "classic",
                enhance_audio: bool = False, volume: float = 1.0, speed: float = 1.0,
-               enhance_strength: int = 50,
+               enhance_strength: int = 50, resolution: str = "auto",
                export_id: str | None = None) -> dict:
     db = SessionLocal()
     try:
@@ -217,16 +242,10 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
             # (storage.path() is a DOWNLOAD helper and 404s on a not-yet-created key.)
             fd, out_path = tempfile.mkstemp(suffix="_captioned.mp4"); os.close(fd)
             vinfo = ffmpeg_utils.video_info(video_src)
-            # cap resolution to keep the encode within Render's 512MB memory
+            # output dims from the requested resolution (short-side target),
+            # with a hard long-side ceiling so the encode stays within memory
             sw, sh = vinfo["width"], vinfo["height"]
-            longest = max(sw, sh)
-            if longest > 1280:
-                sc = 1280.0 / longest
-                ow = max(2, (round(sw * sc) // 2) * 2)
-                oh = max(2, (round(sh * sc) // 2) * 2)
-                scale_vf = f"scale={ow}:{oh}"
-            else:
-                ow, oh, scale_vf = sw, sh, None
+            ow, oh, scale_vf = _target_dims(sw, sh, resolution)
             # auto-zoom prefilter (against the capped dims)
             zoom_prefilter = None
             zsegs = _load_zoom_segments(db, project_id)
@@ -439,11 +458,12 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
 def run_export_job(export_id: str, project_id: str, fmt: str, use_translit: bool,
                    apply_cuts: bool, style: str, enhance_audio: bool,
                    volume: float = 1.0, speed: float = 1.0,
-                   enhance_strength: int = 50) -> None:
+                   enhance_strength: int = 50, resolution: str = "auto") -> None:
     """Background entry: run the export, mark the Export row error on failure."""
     try:
         run_export(project_id, fmt, use_translit, apply_cuts, style, enhance_audio,
-                   volume, speed, enhance_strength=enhance_strength, export_id=export_id)
+                   volume, speed, enhance_strength=enhance_strength,
+                   resolution=resolution, export_id=export_id)
     except Exception as e:
         db = SessionLocal()
         try:
@@ -466,8 +486,8 @@ def export_task(self, export_id: str, project_id: str, fmt: str = "srt",
                 use_translit: bool = False, apply_cuts: bool = True,
                 style: str = "classic", enhance_audio: bool = False,
                 volume: float = 1.0, speed: float = 1.0,
-                enhance_strength: int = 50) -> None:
+                enhance_strength: int = 50, resolution: str = "auto") -> None:
     """Celery entry for exports. Mirrors run_export_job so the Export row is
     marked error on failure; retries once on transient errors."""
     run_export_job(export_id, project_id, fmt, use_translit, apply_cuts, style,
-                   enhance_audio, volume, speed, enhance_strength)
+                   enhance_audio, volume, speed, enhance_strength, resolution)

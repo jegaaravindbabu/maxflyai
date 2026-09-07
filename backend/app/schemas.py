@@ -150,6 +150,7 @@ class CaptionEditRequest(BaseModel):
 
 class ExportRequest(BaseModel):
     format: str = "srt"   # srt|vtt|ass|mp4
+    resolution: str = "auto"  # auto|1080|720|480 (short-side target for mp4)
     use_translit: bool = False
     apply_cuts: bool = True   # apply enabled silence/manual cuts (ripple-delete)
     style: str = "classic"    # caption animation preset (ass/mp4)
