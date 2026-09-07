@@ -18,6 +18,11 @@ import re
 import httpx
 
 
+def _content_type(key: str) -> str:
+    import mimetypes
+    return mimetypes.guess_type(key)[0] or "application/octet-stream"
+
+
 def _safe_filename(filename: str) -> str:
     """Slugify an upload filename so the storage key has no spaces or other
     characters that break download URL matching (e.g. 'AE 1.mp4')."""
@@ -58,6 +63,14 @@ class LocalStorage:
 
     def url(self, key: str) -> str:
         return f"/media/{key}"
+
+    def delete(self, key: str) -> bool:
+        try:
+            os.remove(os.path.join(self.base, key)); return True
+        except FileNotFoundError:
+            return False
+        except Exception:
+            return False
 
 
 class SupabaseStorage:
@@ -125,6 +138,14 @@ class SupabaseStorage:
         signed = r.json().get("signedURL", "")
         return f"{self.base}/storage/v1{signed}" if signed else ""
 
+    def delete(self, key: str) -> bool:
+        try:
+            with httpx.Client(timeout=30) as c:
+                r = c.delete(self._obj_url(key), headers=self._h)
+            return r.status_code < 400
+        except Exception:
+            return False
+
 
 class R2Storage:
     """Cloudflare R2 via the S3 API (boto3). No egress fees."""
@@ -143,11 +164,13 @@ class R2Storage:
 
     def save_upload(self, tmp_path: str, filename: str) -> str:
         key = f"{uuid.uuid4()}_{_safe_filename(filename)}"
-        self.s3.upload_file(tmp_path, self.bucket, key)
+        self.s3.upload_file(tmp_path, self.bucket, key,
+                            ExtraArgs={"ContentType": _content_type(key)})
         return key
 
     def write_bytes(self, key: str, data: bytes) -> str:
-        self.s3.put_object(Bucket=self.bucket, Key=key, Body=data)
+        self.s3.put_object(Bucket=self.bucket, Key=key, Body=data,
+                           ContentType=_content_type(key))
         return key
 
     def path(self, key: str) -> str:
@@ -161,6 +184,12 @@ class R2Storage:
             "get_object", Params={"Bucket": self.bucket, "Key": key},
             ExpiresIn=expires_in)
 
+    def delete(self, key: str) -> bool:
+        try:
+            self.s3.delete_object(Bucket=self.bucket, Key=key); return True
+        except Exception:
+            return False
+
 
 def get_storage():
     b = (settings.storage_backend or "local").lower()
@@ -168,9 +197,25 @@ def get_storage():
         return SupabaseStorage(settings.supabase_url,
                                settings.supabase_service_role_key,
                                settings.supabase_bucket)
-    if b == "r2" and settings.r2_account_id:
-        return R2Storage(settings.r2_account_id, settings.r2_access_key_id,
-                         settings.r2_secret_access_key, settings.r2_bucket)
+    if b == "r2":
+        missing = [k for k, v in {
+            "R2_ACCOUNT_ID": settings.r2_account_id,
+            "R2_ACCESS_KEY_ID": settings.r2_access_key_id,
+            "R2_SECRET_ACCESS_KEY": settings.r2_secret_access_key,
+            "R2_BUCKET": settings.r2_bucket,
+        }.items() if not v]
+        if missing:
+            import logging
+            logging.getLogger(__name__).error(
+                "STORAGE_BACKEND=r2 but missing %s; falling back to supabase/local",
+                ", ".join(missing))
+        else:
+            return R2Storage(settings.r2_account_id, settings.r2_access_key_id,
+                             settings.r2_secret_access_key, settings.r2_bucket)
+        if settings.supabase_url and settings.supabase_service_role_key:
+            return SupabaseStorage(settings.supabase_url,
+                                   settings.supabase_service_role_key,
+                                   settings.supabase_bucket)
     return LocalStorage(settings.storage_local_dir)
 
 

@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./maxfly.sqlite3"
     redis_url: str = ""
     run_mode: str = "local"   # local (in-process pool) | celery
+    max_concurrent_exports: int = 3      # per-user simultaneous MP4 renders
+    export_retention_days: int = 14      # auto-delete rendered exports older than this
     arnndn_model_path: str = ""   # optional AI denoise model (.rnnn) for audio enhance
     razorpay_key_id: str = ""
     razorpay_key_secret: str = ""
