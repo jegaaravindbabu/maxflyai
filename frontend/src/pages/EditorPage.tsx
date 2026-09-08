@@ -160,6 +160,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [capStyle, setCapStyle] = useState("classic");
   const [animOn, setAnimOn] = useState(true);
   const [capSettings, setCapSettings] = useState<Record<string, any>>({});
+  const [customiseOpen, setCustomiseOpen] = useState(true);
   const [stylesTab, setStylesTab] = useState<"lines" | "words" | "saved">("lines");
   const [savedStyles, setSavedStyles] = useState<{ id: string; name: string; style: string; settings: any }[]>([]);
   const [infoDismissed, setInfoDismissed] = useState(false);
@@ -1719,7 +1720,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                       <div key={st.id} className={"ed-preset-card" + (capStyle === st.id ? " active" : "")} onClick={() => setCapStyle(st.id)}>
                         <div className="ed-preset-name">{st.label}</div>
                         <div className="ed-preset-stage">
-                          <span className={"cap cap-" + st.id} key={st.id}>Welcome to the <span className="cap-emph">future</span><br />of editing</span>
+                          <span className={"cap cap-" + st.id} key={st.id}>Welcome to the <span className="cap-emph">future</span><br />of ceyonai editing</span>
                         </div>
                         {capStyle === st.id && <div className="ed-showcase-check">✓</div>}
                       </div>
@@ -1727,9 +1728,59 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   </div>
                   <div className="ed-swatches" style={{ marginTop: 14 }}>
                     {SWATCHES.map((sw) => (
-                      <span key={sw.color} className={"ed-swatch" + (capStyle === sw.style ? " active" : "")}
-                        style={{ background: sw.color }} title={sw.style} onClick={() => setCapStyle(sw.style)} />
+                      <span key={sw.color} className={"ed-swatch" + (capSettings.text_color === sw.color ? " active" : "")}
+                        style={{ background: sw.color }} title={sw.color} onClick={() => saveCapSetting({ text_color: sw.color })} />
                     ))}
+                  </div>
+
+                  <div className="ed-cust">
+                    <button className="ed-cust-head" onClick={() => setCustomiseOpen((v) => !v)}>
+                      <span>Customise</span><span className="ed-cust-chev">{customiseOpen ? "⌄" : "›"}</span>
+                    </button>
+                    {customiseOpen && (
+                      <div className="ed-cust-body">
+                        <div className="ed-cust-sec">Colours</div>
+                        <div className="ed-cust-row">
+                          <span>Text colour</span>
+                          <label className="ed-color">
+                            <input type="color" value={capSettings.text_color || "#ffffff"} onChange={(e) => saveCapSetting({ text_color: e.target.value })} />
+                            <span>{(capSettings.text_color || "#ffffff").toUpperCase()}</span>
+                          </label>
+                        </div>
+                        <div className="ed-cust-row">
+                          <span>Highlight colour</span>
+                          <label className="ed-color">
+                            <input type="color" value={capSettings.highlight_color || "#ffe11a"} onChange={(e) => saveCapSetting({ highlight_color: e.target.value })} />
+                            <span>{(capSettings.highlight_color || "#ffe11a").toUpperCase()}</span>
+                          </label>
+                        </div>
+                        <div className="ed-cust-row">
+                          <span>Word highlight box</span>
+                          <div className="ed-hlbox">
+                            <button className={"ed-hlbox-none" + (!capSettings.highlight_box ? " on" : "")} onClick={() => saveCapSetting({ highlight_box: "" })}>None</button>
+                            <label className="ed-color"><input type="color" value={capSettings.highlight_box || "#7c3aed"} onChange={(e) => saveCapSetting({ highlight_box: e.target.value })} /></label>
+                          </div>
+                        </div>
+                        <div className="ed-cust-sec" style={{ marginTop: 14 }}>Typography</div>
+                        <div className="ed-cust-row col">
+                          <span>Font</span>
+                          <Dropdown value={capSettings.font || ""} onChange={(v) => saveCapSetting({ font: v })} options={[
+                            { value: "", label: "Default" },
+                            { value: "Anton", label: "Anton" },
+                            { value: "Bebas Neue", label: "Bebas Neue" },
+                            { value: "Poppins", label: "Poppins" },
+                            { value: "Montserrat", label: "Montserrat" },
+                            { value: "Pacifico", label: "Pacifico (script)" },
+                            { value: "Arial Black", label: "Arial Black" },
+                          ]} />
+                        </div>
+                        <div className="ed-cs-slider" style={{ marginTop: 12 }}>
+                          <div className="ed-cs-slabel"><span>Size</span><span>{capSettings.size || 64}</span></div>
+                          <input type="range" min={40} max={140} step={1} value={capSettings.size || 64}
+                            onChange={(e) => saveCapSetting({ size: +e.target.value })} />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </>
               )}

@@ -286,6 +286,22 @@ def _emphasize(text: str, word: str, accent: str, primary: str,
         return text
 
 
+def _ass_color(hexstr):
+    """#RRGGBB (or #RGB) -> ASS &H00BBGGRR. Returns None if not a valid hex."""
+    if not hexstr:
+        return None
+    try:
+        h = str(hexstr).strip().lstrip("#")
+        if len(h) == 3:
+            h = "".join(c * 2 for c in h)
+        if len(h) != 6:
+            return None
+        r, g, b = h[0:2], h[2:4], h[4:6]
+        return ("&H00" + b + g + r).upper()
+    except Exception:
+        return None
+
+
 def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False,
               settings: dict | None = None) -> str:
     p = dict(PRESETS.get(style, PRESETS[DEFAULT]))   # copy so overrides don't mutate presets
@@ -304,6 +320,22 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
         p["outline_w"] = st["outline_w"]
     if st.get("shadow") is not None:
         p["shadow"] = st["shadow"]
+    if st.get("size"):
+        try:
+            p["size"] = int(float(st["size"]))
+        except Exception:
+            pass
+    _tc = _ass_color(st.get("text_color"))
+    if _tc:
+        p["primary"] = _tc
+    _hc = _ass_color(st.get("highlight_color"))
+    if _hc:
+        p["secondary"] = _hc
+    _hb = _ass_color(st.get("highlight_box"))
+    if _hb:
+        p["back"] = _hb
+        p["border_style"] = 3
+        p["outline_w"] = max(int(p.get("outline_w", 3) or 3), 4)
     spacing = float(st.get("spacing", 0) or 0)
     glow = bool(st.get("glow"))
     speed = float(st.get("speed", 1.0) or 1.0)

@@ -38,6 +38,8 @@ export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings }: P
 
   const dyn: React.CSSProperties = {};
   if (st.font && FONT_MAP[st.font]) dyn.fontFamily = FONT_MAP[st.font];
+  if (st.text_color) dyn.color = st.text_color;
+  if (st.size) { const _f = Number(st.size) / 64; if (_f > 0) dyn.fontSize = _f.toFixed(3) + "em"; }
   if (st.bold === -1) dyn.fontWeight = 800 as any;
   const _lg = typeof st.letter_gap === "number" ? st.letter_gap : st.spacing;
   if (typeof _lg === "number") dyn.letterSpacing = _lg + "px";
@@ -55,6 +57,8 @@ export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings }: P
   if (st.big_case === "upper") emphStyle.textTransform = "uppercase";
   else if (st.big_case === "lower") emphStyle.textTransform = "lowercase";
   else if (st.big_case === "title") emphStyle.textTransform = "capitalize";
+  if (st.highlight_color) emphStyle.color = st.highlight_color;
+  if (st.highlight_box) { emphStyle.background = st.highlight_box; emphStyle.padding = "0 .1em"; emphStyle.borderRadius = "4px"; }
 
   const speed = Math.max(0.3, st.speed || 1);
   const wordDur = (0.45 / speed).toFixed(2) + "s";
@@ -83,6 +87,9 @@ export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings }: P
       else if (passed) cw += " capword-passed";
 
       const wStyle: React.CSSProperties = isEmph(w) ? { ...emphStyle } : {};
+      const _hl = on || isEmph(w);
+      if (_hl && st.highlight_color) wStyle.color = st.highlight_color;
+      if (_hl && st.highlight_box) { wStyle.background = st.highlight_box; wStyle.padding = "0 .12em"; wStyle.borderRadius = "4px"; }
       if (perWordMotion) {
         if (arrived) {
           cw += " capword-move capset-" + anim;
