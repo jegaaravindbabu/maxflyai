@@ -42,9 +42,12 @@ const CS_FONTS: [string, string][] = [
   ["Pacifico", "Pacifico (script)"], ["Caveat", "Caveat (script)"],
 ];
 const ANIM_PRESETS: [string, string][] = [
-  ["", "None"], ["fade", "Fade"], ["slide_up", "Slide Up"], ["slide_down", "Slide Down"],
-  ["slide_left", "Slide Left"], ["slide_right", "Slide Right"], ["pop", "Pop"],
-  ["bounce", "Bounce"], ["rotate", "Rotate"], ["flip", "Flip"],
+  ["", "None"], ["fade", "Fade"], ["fade_blur", "Fade Blur"],
+  ["type_on", "Type On"], ["type_expand", "Type Expand"], ["scale", "Scale"],
+  ["pop", "Pop"], ["bounce", "Bounce"], ["bounce_drop", "Bounce Drop"],
+  ["slide_up", "Slide Up"], ["slide_down", "Slide Down"],
+  ["slide_left", "Slide Left"], ["slide_right", "Slide Right"],
+  ["rotate", "Rotate"], ["flip", "Flip"],
 ];
 
 // ---- Video-element animation picker (In / Loop / Out) ----
@@ -2157,13 +2160,35 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
                 <div className="ed-anim-lbl" style={{ marginTop: 16 }}>WHAT MOVES</div>
                 <div className="ed-seg-row">
-                  {([["caption", "Caption"], ["word", "Word"]] as [string, string][]).map(([v, l]) => (
-                    <div key={v} className={"ed-seg-btn" + ((capSettings.scope || "caption") === v ? " active" : "")}
-                      onClick={() => saveCapSetting({ scope: v })}>{l}</div>
-                  ))}
+                  {([["caption", "Caption"], ["line", "Line"], ["word", "Word"]] as [string, string][]).map(([v, l]) => {
+                    const sc = capSettings.scope || "caption";
+                    const grp = sc === "line" ? "line" : sc === "single" ? "word" : "caption";
+                    return (
+                      <div key={v} className={"ed-seg-btn" + (grp === v ? " active" : "")}
+                        onClick={() => saveCapSetting({ scope: v === "line" ? "line" : v === "word" ? "single" : (capSettings.cap_mode === "each_word" ? "word" : "caption") })}>{l}</div>
+                    );
+                  })}
                 </div>
+                {((capSettings.scope || "caption") === "caption" || capSettings.scope === "word") && (
+                  <div className="ed-seg-row" style={{ marginTop: 8, maxWidth: 280 }}>
+                    {([["each_word", "Each word"], ["block", "As one block"]] as [string, string][]).map(([v, l]) => {
+                      const isEach = (capSettings.scope || "caption") === "word";
+                      const active = (v === "each_word") === isEach;
+                      return (
+                        <div key={v} className={"ed-seg-btn" + (active ? " active" : "")}
+                          onClick={() => saveCapSetting({ scope: v === "each_word" ? "word" : "caption", cap_mode: v })}>{l}</div>
+                      );
+                    })}
+                  </div>
+                )}
                 <div className="np-sub" style={{ marginTop: 8 }}>
-                  {capSettings.scope === "word" ? "Each word pops in on its own, right when it's spoken." : "The whole caption animates in as one block."}
+                  {(() => {
+                    const sc = capSettings.scope || "caption";
+                    return sc === "single" ? "Only the emphasised word animates \u2014 set it in Caption settings \u2192 Emphasized word."
+                      : sc === "line" ? "Each line animates in separately."
+                      : sc === "word" ? "Each word pops in on its own, right when it's spoken."
+                      : "The whole caption animates in as one block.";
+                  })()}
                 </div>
 
                 <div className="ed-anim-lbl" style={{ marginTop: 18 }}>ANIMATION</div>

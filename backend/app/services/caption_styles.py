@@ -194,6 +194,16 @@ def _anim_prefix(anim: str | None, dur_ms: int, speed: float = 1.0) -> str:
         return f"{{\\frz-25\\t(0,{d(220)},\\frz0)\\fad({d(120)},0)}}"
     if anim == "flip":
         return f"{{\\fry90\\t(0,{d(220)},\\fry0)\\fad({d(80)},0)}}"
+    if anim == "fade_blur":
+        return f"{{\\blur6\\fad({d(200)},{d(120)})\\t(0,{d(220)},\\blur0)}}"
+    if anim == "type_on":
+        return f"{{\\fad({d(90)},{d(60)})\\fscx92\\t(0,{d(140)},\\fscx100)}}"
+    if anim == "type_expand":
+        return f"{{\\fsp16\\fad({d(120)},{d(80)})\\t(0,{d(240)},\\fsp0)}}"
+    if anim == "scale":
+        return f"{{\\fscx70\\fscy70\\t(0,{d(170)},\\fscx100\\fscy100)\\fad({d(90)},{d(60)})}}"
+    if anim == "bounce_drop":
+        return f"{{\\an2\\move(960,930,960,970,0,{d(240)})\\fscy115\\t(0,{d(120)},\\fscy94)\\t({d(120)},{d(240)},\\fscy100)\\fad({d(80)},0)}}"
     if anim == "glow":
         return "{\\blur4}"
     return ""
@@ -253,7 +263,8 @@ def _karaoke_text(text: str, dur_ms: int, emph: str = "", accent: str = "", prim
 
 # Motion presets that animate each word in individually (word scope).
 _WORD_MOTION = {"fade", "slide_up", "slide_down", "slide_left", "slide_right",
-                "pop", "bounce", "rotate", "flip"}
+                "pop", "bounce", "rotate", "flip",
+                "fade_blur", "type_on", "type_expand", "scale", "bounce_drop"}
 
 
 def _word_tag(anim: str, ti: int, D: int) -> str:
@@ -271,7 +282,17 @@ def _word_tag(anim: str, ti: int, D: int) -> str:
         return f"{{\\frz-14\\alpha&HFF&\\t({ti},{t2},\\frz0\\alpha&H00&)}}"
     if anim == "flip":
         return f"{{\\fry90\\alpha&HFF&\\t({ti},{t2},\\fry0\\alpha&H00&)}}"
-    # fade + all slide_* fall back to a clean per-word fade-in
+    if anim == "fade_blur":
+        return f"{{\\blur6\\alpha&HFF&\\t({ti},{t2},\\blur0\\alpha&H00&)}}"
+    if anim == "type_expand":
+        return f"{{\\fsp14\\alpha&HFF&\\t({ti},{t2},\\fsp0\\alpha&H00&)}}"
+    if anim == "scale":
+        return f"{{\\fscx60\\fscy60\\alpha&HFF&\\t({ti},{t2},\\fscx100\\fscy100\\alpha&H00&)}}"
+    if anim == "bounce_drop":
+        d1 = ti + int((t2 - ti) * 0.55)
+        return (f"{{\\fscy55\\alpha&HFF&\\t({ti},{d1},\\fscy112\\alpha&H00&)"
+                f"\\t({d1},{t2},\\fscy100)}}")
+    # type_on + fade + all slide_* fall back to a clean per-word fade-in (cascade = typewriter feel)
     return f"{{\\alpha&HFF&\\t({ti},{t2},\\alpha&H00&)}}"
 
 
@@ -298,6 +319,42 @@ def _word_anim_text(text: str, dur_ms: int, anim: str, speed: float = 1.0, emph:
         wtxt = ("{" + o_extra + "}" + _case_str(w, case) + "{" + c_extra + "}") if _wmatch(w, emph) else w
         out.append(_word_tag(anim, ti, D) + wtxt + " ")
     return "".join(out).strip()
+
+
+_ANIM_RESET = "{\\fscx100\\fscy100\\alpha&H00&\\blur0\\fsp0\\frz0\\fry0}"
+
+
+def _single_anim_text(text: str, dur_ms: int, anim: str, speed: float = 1.0, emph: str = "",
+                      accent: str = "", primary: str = "", case=None, alpha=None, base_alpha: str = "00") -> str:
+    """Only the emphasised / selected word animates; the rest appear immediately."""
+    if not emph:
+        return _word_anim_text(text, dur_ms, anim, speed, emph, accent, primary, case, alpha, base_alpha)
+    plain = text.replace("\n", " \\N ")
+    words = [w for w in plain.split(" ") if w != ""]
+    D = max(80, int(280 / max(0.3, speed)))
+    out = []
+    for w in words:
+        if w == "\\N":
+            out.append("\\N"); continue
+        if _wmatch(w, emph):
+            out.append(_word_tag(anim, 0, D) + _case_str(w, case) + _ANIM_RESET + " ")
+        else:
+            out.append(_case_str(w, case) + " ")
+    return "".join(out).strip()
+
+
+def _line_anim_text(text: str, dur_ms: int, anim: str, speed: float = 1.0, emph: str = "",
+                    accent: str = "", primary: str = "", case=None, alpha=None, base_alpha: str = "00") -> str:
+    """Each line animates in separately, staggered across the cue."""
+    lines = text.split("\n")
+    n = max(1, len(lines))
+    D = max(120, int(320 / max(0.3, speed)))
+    gap = int(dur_ms * 0.22) if n > 1 else 0
+    out = []
+    for i, ln in enumerate(lines):
+        ti = min(i * gap, max(0, dur_ms - D))
+        out.append(_word_tag(anim, ti, D) + _case_str(ln, case) + _ANIM_RESET)
+    return "\\N".join(out)
 
 
 def _emphasize(text: str, word: str, accent: str, primary: str,
@@ -515,7 +572,7 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
         # opacity is applied inline in the plain/whole-caption path only (karaoke and
         # per-word paths tokenise on spaces, so an inline alpha span there would break
         # the per-word timing tags).
-        _karaoke_mode = (anim == "karaoke") or (scope == "word" and anim in _WORD_MOTION)
+        _karaoke_mode = (anim == "karaoke") or (scope in ("word", "single", "line") and anim in _WORD_MOTION)
         if ("\n" in txt) and (top_case in ("upper", "lower", "title") or top_alpha):
             _first, _rest = txt.split("\n", 1)
             _first = _case_str(_first, top_case)
@@ -528,8 +585,13 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
         if anim == "karaoke":
             body = _karaoke_text(txt, dur, em, emcol, p["primary"], big_case, big_alpha, base_alpha)
             prefix = glow_tag + "{\\fad(80,80)}"
-        elif scope == "word" and anim in _WORD_MOTION:
-            body = _word_anim_text(txt, dur, anim, speed, em, emcol, p["primary"], big_case, big_alpha, base_alpha)
+        elif scope in ("word", "single", "line") and anim in _WORD_MOTION:
+            if scope == "single":
+                body = _single_anim_text(txt, dur, anim, speed, em, emcol, p["primary"], big_case, big_alpha, base_alpha)
+            elif scope == "line":
+                body = _line_anim_text(txt, dur, anim, speed, em, emcol, p["primary"], big_case, big_alpha, base_alpha)
+            else:
+                body = _word_anim_text(txt, dur, anim, speed, em, emcol, p["primary"], big_case, big_alpha, base_alpha)
             prefix = glow_tag
         else:
             if _word_ov:

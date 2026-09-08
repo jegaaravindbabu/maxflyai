@@ -49,7 +49,7 @@ export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings, wor
   const st = settings || {};
   const animOn = st.anim_enabled !== false;
   const anim: string = animOn && st.anim && st.anim !== "none" ? st.anim : "";
-  const wordScope = st.scope === "word";
+  const wordScope = st.scope === "word" || st.scope === "single";
   const fillStyle = FILL_STYLES.includes(styleId) || styleId.startsWith("word_") || styleId === "anton_gold";
   const wov = wordOverrides || {};
   const hasWordOv = Object.keys(wov).length > 0;
