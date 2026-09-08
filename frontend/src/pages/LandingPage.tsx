@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const CAPTION_LANGS = ["Tamil", "Thanglish", "Telugu", "Malayalam", "Hindi", "English"];
+const CAPTION_LANGS = ["Tamil", "Hindi", "Telugu", "Kannada", "Malayalam", "Bengali", "Marathi", "Thanglish", "English"];
 
 const STYLES = ["Neon", "Karaoke", "Bold Pop", "Minimal", "Highlight", "Wave"];
 
@@ -78,19 +78,19 @@ export function LandingPage() {
 
       {/* Hero */}
       <section className="lp-hero">
-        <div className="lp-eyebrow">✦ MADE FOR TAMIL &amp; INDIC CREATORS</div>
-        <h1 className="lp-hero-title">Captions that finally<br />get <span className="grad">Tamil.</span></h1>
+        <div className="lp-eyebrow">✦ MADE FOR INDIAN CREATORS</div>
+        <h1 className="lp-hero-title">Your language,<br /><span className="grad">captioned perfectly.</span></h1>
         <p className="lp-hero-sub">
-          Upload your video — ceyonai captions it in Tamil, Thanglish or your language,
-          gets the spelling and code-switching right, then trims the silences and retakes.
-          Done in minutes, right in your browser.
+          Tamil, Hindi, Telugu, Kannada, Bengali — whatever you speak, ceyonai captions
+          your video accurately, nails the English-mix, then cuts the silences and retakes.
+          Minutes, not hours. All in your browser.
         </p>
         <div className="lp-hero-cta">
           <button className="lp-btn lg" onClick={start}>Start captioning free</button>
           <button className="lp-ghost lg" onClick={() => go("pricing")}>See plans</button>
         </div>
-        <div className="lp-stars">★★★★★ <span>Made with Tamil creators, for Tamil creators</span></div>
-        <div className="lp-hero-video"><VideoBox label="See it caption a Tamil clip" /></div>
+        <div className="lp-stars">★★★★★ <span>Made in India, for Indian creators</span></div>
+        <div className="lp-hero-video"><VideoBox label="See it caption your language" /></div>
       </section>
 
       {/* Feature spotlight 1 — captions */}
