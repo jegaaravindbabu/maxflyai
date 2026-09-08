@@ -1436,3 +1436,21 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 /* ===== Neon-on-Charcoal: dotted grid backdrop on the landing (D theme) ===== */
 .lp { background-image: radial-gradient(rgba(255,255,255,.04) 1px, transparent 1px); background-size: 22px 22px; }
 .lp-nav { background: rgba(14,15,18,.85); }
+
+/* ===== Export process modal (HyproAI-style: rendering -> ready) ===== */
+.ex-modal-bg { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.62); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.ex-modal { width: 100%; max-width: 420px; background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 26px 24px; text-align: center; box-shadow: 0 30px 80px -20px rgba(0,0,0,.7); }
+.ex-title { font-size: 20px; font-weight: 800; }
+.ex-title em { color: var(--accent); font-style: normal; }
+.ex-sub { color: var(--muted); font-size: 13px; margin: 4px 0 18px; }
+.ex-sub.err { color: #ff6b6b; word-break: break-word; }
+.ex-prog { height: 8px; border-radius: 999px; background: var(--panel-2); overflow: hidden; }
+.ex-prog-fill { height: 100%; background: var(--grad); border-radius: 999px; transition: width .5s ease; }
+.ex-prog-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 8px; }
+.ex-note { font-size: 11.5px; color: var(--muted); line-height: 1.5; margin: 16px 0 18px; opacity: .85; }
+.ex-btns { display: flex; gap: 10px; }
+.ex-b { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); text-decoration: none; transition: opacity .15s, transform .1s; }
+.ex-b:hover { opacity: .92; }
+.ex-b.go, .ex-b.hide { background: var(--grad); color: var(--on-accent); border: 0; }
+.ex-b.go, .ex-b.open { margin-bottom: 10px; }
+.ex-b.close { background: transparent; border: 0; color: var(--muted); width: auto; margin: 4px auto 0; padding: 6px 14px; }

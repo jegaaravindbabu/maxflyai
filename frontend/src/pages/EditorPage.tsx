@@ -218,6 +218,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [expRes, setExpRes] = useState("auto");   // export resolution: auto|1080|720|480
   const [nleOpen, setNleOpen] = useState(false);  // "Export for Editor" section collapsed by default
   const [expOpen, setExpOpen] = useState(false);  // right-side export panel (HyproAI-style)
+  const [expJob, setExpJob] = useState<{ fmt: string; status: "rendering" | "ready" | "error"; pct: number; url?: string; error?: string; open: boolean } | null>(null);
+  const progRef = useRef<number | undefined>(undefined);
   const [rail, setRail] = useState<"uploads" | "captions" | "texts" | "images" | "broll" | "tools" | "retake" | "zoom" | "filters" | "canvas" | "export">("captions");
   const [rightTab, setRightTab] = useState<"styles" | "settings" | "animation">("styles");
   const [capPart, setCapPart] = useState<"top" | "big" | "bottom">("bottom");
@@ -551,20 +553,52 @@ export function EditorPage({ projectId }: { projectId: string }) {
   function upsertExport(fmt: string, patch: { url?: string; status: string; error?: string }) {
     setExports((prev) => [{ fmt, ...patch }, ...prev.filter((e) => e.fmt !== fmt)]);
   }
+  function exBeep() {
+    try {
+      const AC = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!AC) return;
+      const a = new AC(); const osc = a.createOscillator(); const g = a.createGain();
+      osc.connect(g); g.connect(a.destination); osc.type = "sine"; osc.frequency.value = 880; g.gain.value = 0.05;
+      osc.start(); setTimeout(() => { try { osc.stop(); a.close(); } catch {} }, 180);
+    } catch { /* no sound available */ }
+  }
   async function doExport(fmt: string, resolution = "auto") {
     const style = animOn ? capStyle : "classic";
     upsertExport(fmt, { status: "processing" });
+    setExpJob({ fmt, status: "rendering", pct: 0, open: true });
+    if (progRef.current) window.clearInterval(progRef.current);
+    // smooth simulated progress toward ~92% while the server renders
+    progRef.current = window.setInterval(() => {
+      setExpJob((j) => (j && j.status === "rendering" ? { ...j, pct: Math.min(92, j.pct + Math.max(1, (92 - j.pct) * 0.08)) } : j));
+    }, 700);
     try {
       const r = await api.exportSub(projectId, fmt, showTranslit, true, style, enhanceAudio, audioVol, playRate, enhanceStrength, resolution);
       const eid = r.export_id;
-      for (let i = 0; i < 120; i++) {
+      for (let i = 0; i < 160; i++) {
         await new Promise((res) => setTimeout(res, 1500));
         const list = await api.listExports(projectId);
         const row = list.find((x) => x.id === eid);
-        if (row && row.status !== "processing") { upsertExport(fmt, { url: row.url || undefined, status: row.status, error: row.error || undefined }); return; }
+        if (row && row.status !== "processing") {
+          if (progRef.current) window.clearInterval(progRef.current);
+          if (row.status === "ready" && row.url) {
+            upsertExport(fmt, { url: row.url, status: "ready" });
+            setExpJob({ fmt, status: "ready", pct: 100, url: row.url, open: true });
+            exBeep();
+          } else {
+            upsertExport(fmt, { status: "error", error: row.error || undefined });
+            setExpJob({ fmt, status: "error", pct: 0, error: row.error || "Export failed", open: true });
+          }
+          return;
+        }
       }
+      if (progRef.current) window.clearInterval(progRef.current);
       upsertExport(fmt, { status: "error" });
-    } catch { upsertExport(fmt, { status: "error" }); }
+      setExpJob({ fmt, status: "error", pct: 0, error: "Timed out — please try again.", open: true });
+    } catch (e: any) {
+      if (progRef.current) window.clearInterval(progRef.current);
+      upsertExport(fmt, { status: "error" });
+      setExpJob({ fmt, status: "error", pct: 0, error: String(e?.message || e), open: true });
+    }
   }
 
   async function generateZoom() {
@@ -1498,17 +1532,6 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   )}
                 </div>
 
-                {exports.length > 0 && (
-                  <div className="ed-exp-results">
-                    {exports.map((e) => (
-                      e.status === "ready" && e.url ? (
-                        <a key={e.fmt} href={api.mediaUrl(e.url)} target="_blank" rel="noreferrer" download className="ed-exp-dl">↓ {e.fmt.toUpperCase()}</a>
-                      ) : (
-                        <span key={e.fmt} className={"ed-exp-stat " + (e.status === "error" ? "err" : "")} title={e.error || ""}>{e.fmt.toUpperCase()} {e.status === "error" ? "failed" : "…"}{e.status === "error" && e.error ? ": " + e.error.slice(0, 140) : ""}</span>
-                      )
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -2065,6 +2088,42 @@ export function EditorPage({ projectId }: { projectId: string }) {
         </div>
         </div>
       </div>
+      {expJob && expJob.open && (
+        <div className="ex-modal-bg" role="dialog" aria-modal="true">
+          <div className="ex-modal">
+            {expJob.status === "rendering" && (
+              <>
+                <div className="ex-title">Export is happening</div>
+                <div className="ex-sub">Relax — we'll chime when it's ready.</div>
+                <div className="ex-prog"><div className="ex-prog-fill" style={{ width: `${Math.round(expJob.pct)}%` }} /></div>
+                <div className="ex-prog-row"><span>Rendering… {Math.round(expJob.pct)}%</span><span>{expJob.pct < 45 ? "a moment…" : "under a minute left"}</span></div>
+                <div className="ex-note">Keep this tab open — you can switch tabs and keep working. We'll chime the moment your video is ready.</div>
+                <div className="ex-btns">
+                  <button className="ex-b hide" onClick={() => setExpJob((j) => (j ? { ...j, open: false } : j))}>Hide — keep exporting</button>
+                  <button className="ex-b cancel" onClick={() => { if (progRef.current) window.clearInterval(progRef.current); setExpJob(null); }}>Cancel export</button>
+                </div>
+              </>
+            )}
+            {expJob.status === "ready" && (
+              <>
+                <div className="ex-title">Export <em>ready</em></div>
+                <div className="ex-sub">Your {expJob.fmt.toUpperCase()} is ready.</div>
+                <a className="ex-b go" href={expJob.url ? api.mediaUrl(expJob.url) : "#"} download>⬇ Download</a>
+                <a className="ex-b open" href={expJob.url ? api.mediaUrl(expJob.url) : "#"} target="_blank" rel="noreferrer">↗ Open in new tab</a>
+                <button className="ex-b close" onClick={() => setExpJob(null)}>Close</button>
+              </>
+            )}
+            {expJob.status === "error" && (
+              <>
+                <div className="ex-title">Export failed</div>
+                <div className="ex-sub err">{expJob.error}</div>
+                <button className="ex-b go" onClick={() => doExport(expJob.fmt, expRes)}>Try again</button>
+                <button className="ex-b close" onClick={() => setExpJob(null)}>Close</button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
