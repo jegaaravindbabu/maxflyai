@@ -79,18 +79,18 @@ export function LandingPage() {
       {/* Hero */}
       <section className="lp-hero">
         <div className="lp-eyebrow">✦ MADE FOR INDIAN CREATORS</div>
-        <h1 className="lp-hero-title">Your language,<br /><span className="grad">captioned perfectly.</span></h1>
+        <h1 className="lp-hero-title">Edit your video in<br /><span className="grad">minutes, not hours.</span></h1>
         <p className="lp-hero-sub">
-          Tamil, Hindi, Telugu, Kannada, Bengali — whatever you speak, ceyonai captions
-          your video accurately, nails the English-mix, then cuts the silences and retakes.
-          Minutes, not hours. All in your browser.
+          Upload once and ceyonai does the boring part — auto-captions in your language,
+          cuts the dead air and retakes, and hands you a finished cut in minutes.
+          Tamil, Hindi, Telugu &amp; every Indian language, right in your browser.
         </p>
         <div className="lp-hero-cta">
-          <button className="lp-btn lg" onClick={start}>Start captioning free</button>
+          <button className="lp-btn lg" onClick={start}>Start editing free</button>
           <button className="lp-ghost lg" onClick={() => go("pricing")}>See plans</button>
         </div>
         <div className="lp-stars">★★★★★ <span>Made in India, for Indian creators</span></div>
-        <div className="lp-hero-video"><VideoBox label="See it caption your language" /></div>
+        <div className="lp-hero-video"><VideoBox label="See a raw clip become a reel" /></div>
       </section>
 
       {/* Feature spotlight 1 — captions */}
