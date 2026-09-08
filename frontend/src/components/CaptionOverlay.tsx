@@ -22,6 +22,20 @@ const FONT_MAP: Record<string, string> = {
   "Montserrat": "Montserrat, sans-serif",
   "Pacifico": "Pacifico, cursive",
   "Arial Black": "\"Arial Black\", sans-serif",
+  "Oswald": "Oswald, sans-serif",
+  "Bangers": "Bangers, cursive",
+  "Fredoka": "Fredoka, sans-serif",
+  "Luckiest Guy": "\"Luckiest Guy\", cursive",
+  "Permanent Marker": "\"Permanent Marker\", cursive",
+  "Righteous": "Righteous, sans-serif",
+  "Alfa Slab One": "\"Alfa Slab One\", serif",
+  "Titan One": "\"Titan One\", sans-serif",
+  "Kanit": "Kanit, sans-serif",
+  "Archivo Black": "\"Archivo Black\", sans-serif",
+  "Caveat": "Caveat, cursive",
+  "Lato": "Lato, sans-serif",
+  "Rubik": "Rubik, sans-serif",
+  "Teko": "Teko, sans-serif",
 };
 
 // Renders the active caption with the chosen animation.
@@ -41,6 +55,7 @@ export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings }: P
   if (st.text_color) dyn.color = st.text_color;
   if (st.size) { const _f = Number(st.size) / 64; if (_f > 0) dyn.fontSize = _f.toFixed(3) + "em"; }
   if (st.bold === -1) dyn.fontWeight = 800 as any;
+  if (st.weight) dyn.fontWeight = Number(st.weight) as any;
   const _lg = typeof st.letter_gap === "number" ? st.letter_gap : st.spacing;
   if (typeof _lg === "number") dyn.letterSpacing = _lg + "px";
   if (typeof st.word_gap === "number" && st.word_gap) dyn.wordSpacing = st.word_gap + "px";

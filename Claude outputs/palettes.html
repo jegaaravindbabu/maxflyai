@@ -1,0 +1,85 @@
+<title>ceyonai palettes</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+         background: #07080d; color: #e9ecf6; padding: 28px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #8b92ab; margin: 0 0 24px; font-size: 13px; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; max-width: 980px; }
+  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+  .opt { border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,.08); }
+  .opt-head { padding: 14px 16px; display: flex; align-items: baseline; justify-content: space-between; }
+  .opt-name { font-size: 16px; font-weight: 800; letter-spacing: .2px; }
+  .opt-tag { font-size: 11px; opacity: .7; }
+  /* mini mock */
+  .mock { display: flex; height: 190px; }
+  .mk-side { width: 52px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 14px; padding-top: 14px; }
+  .mk-dot { width: 22px; height: 22px; border-radius: 7px; opacity: .5; }
+  .mk-dot.on { opacity: 1; }
+  .mk-body { flex: 1; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .mk-word { font-weight: 800; font-size: 15px; }
+  .mk-word .ai { }
+  .mk-cap { align-self: flex-start; font-weight: 800; font-size: 13px; padding: 5px 10px; border-radius: 7px; background: rgba(0,0,0,.4); }
+  .mk-cap b { }
+  .mk-btn { align-self: flex-start; color: #fff; font-weight: 700; font-size: 12.5px; padding: 8px 16px; border-radius: 9px; border: 0; }
+  .mk-card { margin-top: auto; border-radius: 10px; padding: 10px 12px; font-size: 12px; }
+  .mk-card .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; opacity: .55; }
+  .sw { display: flex; gap: 0; }
+  .sw div { flex: 1; height: 34px; display: flex; align-items: flex-end; justify-content: center; font-size: 9px; padding-bottom: 3px; font-family: ui-monospace, monospace; color: rgba(255,255,255,.75); }
+</style>
+
+<h1>ceyonai — colour direction options</h1>
+<p class="sub">Same dark, pro editor feel; different accent + tuned neutrals. Each card is a mini mock of the sidebar, wordmark, a caption chip, and the primary Export button. Tell me a number and I'll apply it across the whole app.</p>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const P = [
+  { name: "1 · Indigo Nova", tag: "violet / indigo — modern AI",
+    bg:"#0b0e17", panel:"#141826", panel2:"#1d2233", side:"#0d1020", border:"#2a3042",
+    accent:"#6366f1", accent2:"#a78bfa" },
+  { name: "2 · Teal Reef", tag: "teal / aqua — fresh, trustworthy",
+    bg:"#0a0e12", panel:"#111820", panel2:"#18222c", side:"#0a1216", border:"#24313b",
+    accent:"#14b8a6", accent2:"#2dd4bf" },
+  { name: "3 · Azure Pro", tag: "electric blue — clean SaaS",
+    bg:"#0b0e16", panel:"#121723", panel2:"#1a2130", side:"#0c1120", border:"#263042",
+    accent:"#3b82f6", accent2:"#60a5fa" },
+  { name: "4 · Magenta Pop", tag: "vivid pink — bold, stands out",
+    bg:"#0c0a12", panel:"#17121f", panel2:"#221a2c", side:"#100a18", border:"#2f2440",
+    accent:"#db2777", accent2:"#f472b6" },
+];
+const grid = document.getElementById("grid");
+for (const p of P) {
+  const grad = `linear-gradient(120deg, ${p.accent}, ${p.accent2})`;
+  grid.insertAdjacentHTML("beforeend", `
+    <div class="opt" style="background:${p.bg}">
+      <div class="opt-head" style="background:${p.panel}">
+        <span class="opt-name">${p.name}</span>
+        <span class="opt-tag">${p.tag}</span>
+      </div>
+      <div class="mock">
+        <div class="mk-side" style="background:${p.side}">
+          <div class="mk-dot on" style="background:${grad}"></div>
+          <div class="mk-dot" style="background:${p.panel2}"></div>
+          <div class="mk-dot" style="background:${p.panel2}"></div>
+          <div class="mk-dot" style="background:${p.panel2}"></div>
+        </div>
+        <div class="mk-body">
+          <div class="mk-word">ceyon<span class="ai" style="color:${p.accent2}">ai</span></div>
+          <div class="mk-cap">Vanakkam <b style="color:${p.accent2}">nanba</b></div>
+          <button class="mk-btn" style="background:${grad}">⬇ Export</button>
+          <div class="mk-card" style="background:${p.panel}; border:1px solid ${p.border}">
+            <div class="lbl">Resolution</div>1080p
+          </div>
+        </div>
+      </div>
+      <div class="sw">
+        <div style="background:${p.bg}">${p.bg}</div>
+        <div style="background:${p.panel2}">${p.panel2}</div>
+        <div style="background:${p.accent}">${p.accent}</div>
+        <div style="background:${p.accent2}">${p.accent2}</div>
+      </div>
+    </div>`);
+}
+</script>

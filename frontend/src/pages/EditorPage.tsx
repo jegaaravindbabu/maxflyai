@@ -34,8 +34,12 @@ const WORD_STYLES = ["karaoke", "highlight", "anton_gold",
   "word_marker", "word_ghost", "word_comic", "word_hlbox"];
 const CS_FONTS: [string, string][] = [
   ["", "Default (Inter)"], ["Anton", "Anton"], ["Bebas Neue", "Bebas Neue"],
-  ["Poppins", "Poppins"], ["Montserrat", "Montserrat"], ["Pacifico", "Pacifico (script)"],
-  ["Arial Black", "Arial Black"],
+  ["Oswald", "Oswald"], ["Teko", "Teko"], ["Poppins", "Poppins"], ["Montserrat", "Montserrat"],
+  ["Kanit", "Kanit"], ["Lato", "Lato"], ["Rubik", "Rubik"], ["Fredoka", "Fredoka"],
+  ["Righteous", "Righteous"], ["Archivo Black", "Archivo Black"], ["Arial Black", "Arial Black"],
+  ["Alfa Slab One", "Alfa Slab One"], ["Titan One", "Titan One"], ["Bangers", "Bangers"],
+  ["Luckiest Guy", "Luckiest Guy"], ["Permanent Marker", "Permanent Marker (script)"],
+  ["Pacifico", "Pacifico (script)"], ["Caveat", "Caveat (script)"],
 ];
 const ANIM_PRESETS: [string, string][] = [
   ["", "None"], ["fade", "Fade"], ["slide_up", "Slide Up"], ["slide_down", "Slide Down"],
@@ -1849,9 +1853,15 @@ export function EditorPage({ projectId }: { projectId: string }) {
                     onMouseUp={(e) => saveCapSetting({ size: +(e.target as HTMLInputElement).value })} />
                 </div>
                 <div className="ed-cs-row" style={{ marginTop: 12 }}><span>Weight</span>
-                  <select value={String(capSettings.bold ?? 0)} onChange={(e) => saveCapSetting({ bold: +e.target.value })}>
-                    <option value="0">Regular</option>
-                    <option value="-1">Bold</option>
+                  <select value={String(capSettings.weight ?? (capSettings.bold === -1 ? 700 : 400))}
+                    onChange={(e) => saveCapSetting({ weight: +e.target.value, bold: +e.target.value >= 600 ? -1 : 0 })}>
+                    <option value="300">Light</option>
+                    <option value="400">Regular</option>
+                    <option value="500">Medium</option>
+                    <option value="600">SemiBold</option>
+                    <option value="700">Bold</option>
+                    <option value="800">ExtraBold</option>
+                    <option value="900">Black</option>
                   </select>
                 </div>
                 <div className="ed-cs-toggle-row"><span>Italic</span>

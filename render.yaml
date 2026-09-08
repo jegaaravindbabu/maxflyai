@@ -100,3 +100,14 @@ services:
           type: keyvalue
           name: maxfly-redis
           property: connectionString
+
+  # ---- Nightly storage cleanup (delete exports older than retention) ----
+  - type: cron
+    name: maxfly-cleanup
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    schedule: "0 3 * * *"            # 03:00 UTC daily
+    dockerCommand: python -m app.jobs.cleanup
+    envVars:
+      - fromGroup: maxfly-shared

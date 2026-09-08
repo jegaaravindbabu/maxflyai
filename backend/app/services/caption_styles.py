@@ -45,6 +45,20 @@ _FONT_FALLBACKS = {
     "Montserrat":  ["Montserrat", "Poppins", "Nunito Sans", "DejaVu Sans"],
     "Arial Black": ["Arial Black", "Archivo Black", "DejaVu Sans"],
     "Arial":       ["Arial", "Liberation Sans", "DejaVu Sans", "Helvetica"],
+    "Oswald":         ["Oswald", "Bebas Neue", "Archivo Narrow", "DejaVu Sans"],
+    "Bangers":        ["Bangers", "Luckiest Guy", "Anton", "DejaVu Sans"],
+    "Fredoka":        ["Fredoka", "Poppins", "Nunito Sans", "DejaVu Sans"],
+    "Luckiest Guy":   ["Luckiest Guy", "Bangers", "Anton", "DejaVu Sans"],
+    "Permanent Marker": ["Permanent Marker", "Pacifico", "Comic Sans MS", "DejaVu Sans"],
+    "Righteous":      ["Righteous", "Poppins", "DejaVu Sans"],
+    "Alfa Slab One":  ["Alfa Slab One", "Archivo Black", "Arial Black", "DejaVu Sans"],
+    "Titan One":      ["Titan One", "Fredoka", "Archivo Black", "DejaVu Sans"],
+    "Kanit":          ["Kanit", "Poppins", "DejaVu Sans"],
+    "Archivo Black":  ["Archivo Black", "Arial Black", "DejaVu Sans"],
+    "Caveat":         ["Caveat", "Pacifico", "Dancing Script", "DejaVu Sans"],
+    "Lato":           ["Lato", "Nunito Sans", "DejaVu Sans"],
+    "Rubik":          ["Rubik", "Montserrat", "DejaVu Sans"],
+    "Teko":           ["Teko", "Oswald", "Bebas Neue", "DejaVu Sans"],
 }
 _DEFAULT_FALLBACK = ["DejaVu Sans", "Liberation Sans", "Arial"]
 
@@ -342,6 +356,11 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
     p["font"] = resolve_font(p["font"])
     if st.get("bold") is not None:
         p["bold"] = st["bold"]
+    if st.get("weight") is not None:
+        try:
+            p["bold"] = -1 if int(st["weight"]) >= 600 else 0
+        except Exception:
+            pass
     if st.get("outline_w") is not None:
         p["outline_w"] = st["outline_w"]
     if st.get("shadow") is not None:
