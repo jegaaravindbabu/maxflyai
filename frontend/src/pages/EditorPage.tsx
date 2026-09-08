@@ -165,6 +165,10 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [capStyle, setCapStyle] = useState("classic");
   const [animOn, setAnimOn] = useState(true);
   const [capSettings, setCapSettings] = useState<Record<string, any>>({});
+  const [capOverrides, setCapOverrides] = useState<Record<string, any>>({});
+  const [wordOverrides, setWordOverrides] = useState<Record<string, Record<string, any>>>({});
+  const [selWord, setSelWord] = useState<number>(-1);
+  const [styleClip, setStyleClip] = useState<Record<string, any> | null>(null);
   const [customiseOpen, setCustomiseOpen] = useState(true);
   const [stylesTab, setStylesTab] = useState<"lines" | "words" | "saved">("lines");
   // Looping clock so the word-style preview cards animate on their own (like HyproAI).
@@ -305,6 +309,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
     api.listProjects().then(setMyMedia).catch(() => {});
     api.listBrolls(projectId).then(setBrolls).catch(() => {});
     api.getCaptionSettings(projectId).then((r) => setCapSettings(r || {})).catch(() => {});
+    api.getCaptionOverrides(projectId).then((r) => setCapOverrides(r || {})).catch(() => {});
+    api.getWordOverrides(projectId).then((r) => setWordOverrides(r || {})).catch(() => {});
     api.listSavedStyles(projectId).then(setSavedStyles).catch(() => {});
     api.getCanvas(projectId).then((r) => setCanvas(r || {})).catch(() => {});
   }, [projectId]);
@@ -381,6 +387,47 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const lineStyles = styles.filter((x) => !WORD_STYLES.includes(x.id));
   const wordStyles = styles.filter((x) => WORD_STYLES.includes(x.id));
   const overlayText = activeCue ? (showTranslit && activeCue.translit_text ? activeCue.translit_text : activeCue.text) : "";
+  // Per-caption + per-word style overrides (Paste-to / Single Words).
+  const _cidx = String(activeIdx);
+  const effSettings = activeIdx >= 0 ? { ...capSettings, ...(capOverrides[_cidx] || {}) } : capSettings;
+  const activeWordOv = wordOverrides[_cidx] || {};
+  const activeWords = overlayText ? overlayText.split(/\s+/).filter(Boolean) : [];
+  function copyStyle() { setStyleClip({ ...effSettings }); }
+  function pasteStyleTo(scope: "caption" | "all") {
+    if (!styleClip) return;
+    if (scope === "all") {
+      setCapSettings((pr) => ({ ...pr, ...styleClip }));
+      api.setCaptionSettings(projectId, styleClip).catch(() => {});
+    } else if (activeIdx >= 0) {
+      const c = _cidx;
+      setCapOverrides((pr) => ({ ...pr, [c]: { ...(pr[c] || {}), ...styleClip } }));
+      api.setCaptionOverride(projectId, activeIdx, styleClip).catch(() => {});
+    }
+  }
+  function setWordOv(w: number, patch: Record<string, any>) {
+    if (activeIdx < 0) return;
+    const c = _cidx;
+    setWordOverrides((pr) => {
+      const cm = { ...(pr[c] || {}) };
+      cm[String(w)] = { ...(cm[String(w)] || {}), ...patch };
+      return { ...pr, [c]: cm };
+    });
+    api.setWordOverride(projectId, activeIdx, w, patch).catch(() => {});
+  }
+  function clearWordOv(w: number) {
+    if (activeIdx < 0) return;
+    const c = _cidx;
+    setWordOverrides((pr) => {
+      const cm = { ...(pr[c] || {}) };
+      delete cm[String(w)];
+      const next = { ...pr };
+      if (Object.keys(cm).length) next[c] = cm; else delete next[c];
+      return next;
+    });
+    api.setWordOverride(projectId, activeIdx, w, {}, true).catch(() => {});
+  }
+  const selWordSafe = selWord >= 0 && selWord < activeWords.length ? selWord : -1;
+  const selWordOv = selWordSafe >= 0 ? (activeWordOv[String(selWordSafe)] || {}) : {};
   const effStyle = animOn ? capStyle : "classic";
   const _resMul = expRes === "1080" ? 1.6 : expRes === "720" ? 1.1 : expRes === "480" ? 0.8 : 1.2;
   const _estSec = Math.round((dur / 1000) * _resMul + 12);
@@ -1436,7 +1483,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             <VideoPreview ref={videoRef} src={mediaSrc} videoStyle={videoFxStyle}
               overlay={<>
                 {activeCue && overlayText && !isHidden("captions") ? (
-                  <CaptionOverlay text={overlayText} styleId={effStyle} cue={activeCue} curMs={curMs} keyId={activeIdx} settings={capSettings} />
+                  <CaptionOverlay text={overlayText} styleId={effStyle} cue={activeCue} curMs={curMs} keyId={activeIdx} settings={effSettings} wordOverrides={activeWordOv} selWord={selWordSafe} />
                 ) : null}
                 {!isHidden("text") && overlays.filter((o) => curMs >= o.start_ms && curMs < o.end_ms).map((o) => (
                   <div key={o.id} className={"ed-ovl" + (selOv === o.id ? " sel" : "")}
@@ -1839,6 +1886,19 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
           {topTab === "text" && rightTab === "settings" && (
             <div className="ed-rt-body">
+              {/* ---- Paste to ---- */}
+              <div className="ed-pasteto">
+                <button className="ed-pasteto-copy" onClick={copyStyle} title="Copy this caption's style">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                  Copy style
+                </button>
+                <select className="ed-pasteto-sel" value="" disabled={!styleClip}
+                  onChange={(e) => { if (e.target.value) { pasteStyleTo(e.target.value as "caption" | "all"); e.target.value = ""; } }}>
+                  <option value="">{styleClip ? "Paste to…" : "Copy first"}</option>
+                  <option value="caption">This caption only</option>
+                  <option value="all">All captions</option>
+                </select>
+              </div>
               {/* ---- TEXT ---- */}
               <div className="ed-cs-card">
                 <div className="ed-cs-card-h">Text</div>
@@ -2012,6 +2072,46 @@ export function EditorPage({ projectId }: { projectId: string }) {
                     <span className="ed-switch-track" />
                   </label>
                 </div>
+              </div>
+
+              <div className="ed-cs-divider" />
+              <div className="ed-cs-card">
+                <div className="ed-cs-card-h">Single words</div>
+                <div className="np-sub" style={{ marginTop: -2, marginBottom: 10 }}>
+                  {activeIdx < 0 ? "Play to a caption, then pick a word to give it its own colour, size or glow." : "Pick a word in this caption to give it its own colour, size or glow."}
+                </div>
+                {activeIdx >= 0 && activeWords.length > 0 && (
+                  <div className="ed-words-chips">
+                    {activeWords.map((w, i) => (
+                      <button key={i} type="button"
+                        className={"ed-word-chip" + (selWordSafe === i ? " sel" : "") + (activeWordOv[String(i)] ? " has" : "")}
+                        onClick={() => setSelWord(selWordSafe === i ? -1 : i)}>{w}</button>
+                    ))}
+                  </div>
+                )}
+                {activeIdx >= 0 && selWordSafe >= 0 && (
+                  <div className="ed-word-ctl">
+                    <div className="ed-cs-row"><span>Colour</span>
+                      <label className="ed-color">
+                        <input type="color" value={selWordOv.color || "#ffe11a"} onChange={(e) => setWordOv(selWordSafe, { color: e.target.value })} />
+                        <span>{(selWordOv.color || "#FFE11A").toUpperCase()}</span>
+                      </label>
+                    </div>
+                    <div className="ed-cs-slider" style={{ marginTop: 12 }}>
+                      <div className="ed-cs-slabel"><span>Size</span><span>{selWordOv.size ?? (effSettings.size ?? 64)}</span></div>
+                      <input type="range" min={24} max={220} step={1} value={selWordOv.size ?? (effSettings.size ?? 64)}
+                        onChange={(e) => { const v = +e.target.value; setWordOverrides((pr) => { const cm = { ...(pr[_cidx] || {}) }; cm[String(selWordSafe)] = { ...(cm[String(selWordSafe)] || {}), size: v }; return { ...pr, [_cidx]: cm }; }); }}
+                        onMouseUp={(e) => api.setWordOverride(projectId, activeIdx, selWordSafe, { size: +(e.target as HTMLInputElement).value }).catch(() => {})} />
+                    </div>
+                    <div className="ed-cs-toggle-row"><span>Glow</span>
+                      <label className="ed-switch">
+                        <input type="checkbox" checked={!!selWordOv.glow} onChange={(e) => setWordOv(selWordSafe, { glow: e.target.checked })} />
+                        <span className="ed-switch-track" />
+                      </label>
+                    </div>
+                    <button className="ed-addcap" style={{ marginTop: 12 }} onClick={() => { clearWordOv(selWordSafe); setSelWord(-1); }}>Reset this word</button>
+                  </div>
+                )}
               </div>
 
               <div className="ed-cs-divider" />

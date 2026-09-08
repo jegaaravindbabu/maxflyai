@@ -27,7 +27,7 @@ def _load_cues(db, project_id: str) -> list[dict]:
               .filter(CaptionCue.project_id == project_id)
               .order_by(CaptionCue.idx).all())
     return [{"start_ms": r.start_ms, "end_ms": r.end_ms, "text": r.text,
-             "translit_text": r.translit_text} for r in rows]
+             "translit_text": r.translit_text, "idx": r.idx, "oidx": r.idx} for r in rows]
 
 
 def _load_zoom_segments(db, project_id: str) -> list[dict]:
@@ -49,6 +49,18 @@ def _load_capsettings(db, project_id: str) -> dict | None:
              .filter(Edit.project_id == project_id, Edit.enabled == True,  # noqa: E712
                      Edit.type == "capsettings").order_by(Edit.created_at.desc()).first())
     return (row.payload_json or None) if row else None
+
+
+def _load_overrides(db, project_id: str) -> dict:
+    """Per-caption + per-word style overrides for the ASS builder."""
+    caprow = (db.query(Edit)
+                .filter(Edit.project_id == project_id, Edit.type == "capoverrides")
+                .order_by(Edit.created_at.desc()).first())
+    wordrow = (db.query(Edit)
+                 .filter(Edit.project_id == project_id, Edit.type == "wordoverrides")
+                 .order_by(Edit.created_at.desc()).first())
+    return {"caption": (caprow.payload_json or {}) if caprow else {},
+            "words": (wordrow.payload_json or {}) if wordrow else {}}
 
 
 def _load_videofx(db, project_id: str) -> dict | None:
@@ -186,7 +198,7 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
         suffix = "_clean" if cuts else ""
 
         if fmt == "ass":
-            content = build_ass(cues, style, use_translit, _load_capsettings(db, project_id))
+            content = build_ass(cues, style, use_translit, _load_capsettings(db, project_id), _load_overrides(db, project_id))
             key = f"exports/{project_id}{suffix}.ass"
             storage.write_bytes(key, content.encode("utf-8"))
         elif fmt in SERIALIZERS:
@@ -224,7 +236,7 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
             if abs(vol - 1.0) > 1e-3:
                 _af.append(f"volume={vol:.3f}")
             audio_filter = ",".join(_af) if _af else None
-            ass = build_ass(cues, style, use_translit, _load_capsettings(db, project_id))
+            ass = build_ass(cues, style, use_translit, _load_capsettings(db, project_id), _load_overrides(db, project_id))
             overlays = _load_overlays(db, project_id)
             if overlays:
                 for o in overlays:
@@ -405,7 +417,7 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                 with open(os.path.join(work, "captions.srt"), "w", encoding="utf-8") as fh:
                     fh.write(SERIALIZERS["srt"](cues, use_translit))
                 with open(os.path.join(work, "captions.ass"), "w", encoding="utf-8") as fh:
-                    fh.write(build_ass(cues, style, use_translit, _load_capsettings(db, project_id)))
+                    fh.write(build_ass(cues, style, use_translit, _load_capsettings(db, project_id), _load_overrides(db, project_id)))
                 fcp = timeline_export.build_fcpxml_multitrack(
                     project.name or "maxfly", total_ms, "video.mp4", "voice.wav", music_name,
                     cues=cues, fps_num=info["fps_num"], fps_den=info["fps_den"],

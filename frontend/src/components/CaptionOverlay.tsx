@@ -13,6 +13,8 @@ interface Props {
   curMs: number;
   keyId: number;
   settings?: any;
+  wordOverrides?: Record<string, any>;
+  selWord?: number;
 }
 
 const FONT_MAP: Record<string, string> = {
@@ -43,12 +45,14 @@ const FONT_MAP: Record<string, string> = {
 //  - scope "word" (or karaoke/highlight styles): each word is timed to the
 //    playhead — it can karaoke-fill (highlight current word) and/or pop/bounce
 //    in on its own as it is spoken.
-export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings }: Props) {
+export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings, wordOverrides, selWord }: Props) {
   const st = settings || {};
   const animOn = st.anim_enabled !== false;
   const anim: string = animOn && st.anim && st.anim !== "none" ? st.anim : "";
   const wordScope = st.scope === "word";
   const fillStyle = FILL_STYLES.includes(styleId) || styleId.startsWith("word_") || styleId === "anton_gold";
+  const wov = wordOverrides || {};
+  const hasWordOv = Object.keys(wov).length > 0;
 
   const dyn: React.CSSProperties = {};
   if (st.font && FONT_MAP[st.font]) dyn.fontFamily = FONT_MAP[st.font];
@@ -90,7 +94,7 @@ export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings }: P
 
   // ----- WORD-BY-WORD mode -----
   const perWordMotion = wordScope && animOn && MOTION.has(anim);
-  if (perWordMotion || fillStyle) {
+  if (perWordMotion || fillStyle || hasWordOv || (typeof selWord === "number" && selWord >= 0)) {
     const words = text.split(/\s+/).filter(Boolean);
     const totalChars = words.reduce((a, w) => a + w.length, 0) || 1;
     const dur = Math.max(cue.end_ms - cue.start_ms, 1);
@@ -121,6 +125,13 @@ export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings }: P
           wStyle.opacity = 0;   // not spoken yet — pops in when the playhead reaches it
         }
       }
+      const _wd = wov[String(i)];
+      if (_wd) {
+        if (_wd.color) wStyle.color = _wd.color;
+        if (_wd.size) { const _wf = Number(_wd.size) / Number(st.size || 64); if (_wf > 0) wStyle.fontSize = _wf.toFixed(3) + "em"; }
+        if (_wd.glow) wStyle.textShadow = "0 0 8px currentColor, 0 0 3px #000";
+      }
+      if (typeof selWord === "number" && selWord === i) cw += " capword-sel";
       return <span key={i} className={cw} style={wStyle}>{w}{" "}</span>;
     });
 

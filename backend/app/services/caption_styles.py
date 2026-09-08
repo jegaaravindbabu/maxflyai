@@ -342,8 +342,78 @@ def _ass_color(hexstr):
         return None
 
 
+def _cap_inline(delta: dict) -> str:
+    """Inline ASS override tags for a single caption's per-caption style delta.
+    Only the keys present in `delta` are emitted, so an empty delta -> "" and the
+    caption renders identically to the global style."""
+    if not delta:
+        return ""
+    t = ""
+    if delta.get("font"):
+        t += "\\fn" + resolve_font(delta["font"])
+    if delta.get("size"):
+        try: t += "\\fs" + str(int(float(delta["size"])))
+        except Exception: pass
+    _c = _ass_color(delta.get("text_color"))
+    if _c:
+        t += "\\1c" + _c + "&"
+    if delta.get("weight") is not None:
+        try: t += "\\b" + ("1" if int(delta["weight"]) >= 600 else "0")
+        except Exception: pass
+    elif delta.get("bold") is not None:
+        t += "\\b" + ("1" if delta["bold"] == -1 else "0")
+    if delta.get("italic") is not None:
+        t += "\\i" + ("1" if delta["italic"] else "0")
+    if delta.get("underline") is not None:
+        t += "\\u" + ("1" if delta["underline"] else "0")
+    if delta.get("align"):
+        t += "\\an" + str({"left": 1, "center": 2, "right": 3}.get(delta["align"], 2))
+    if delta.get("letter_gap") is not None:
+        try: t += "\\fsp" + ("%g" % float(delta["letter_gap"]))
+        except Exception: pass
+    if delta.get("glow"):
+        t += "\\blur3"
+    return t
+
+
+def _word_override_body(txt: str, wov: dict, primary: str, base_size: int, case=None) -> str:
+    """Render a caption body with per-word overrides (colour / size / glow).
+    Words are indexed globally across the caption, matching the editor's
+    `text.split(/\s+/)` indexing; newlines become ASS line breaks."""
+    parts = re.split(r"(\s+)", txt)
+    gi = 0
+    out = []
+    for part in parts:
+        if part == "":
+            continue
+        if part.strip() == "":
+            out.append("\\N" if "\n" in part else " ")
+            continue
+        w = _case_str(part, case)
+        wd = wov.get(str(gi))
+        gi += 1
+        if wd:
+            on = ""
+            _c = _ass_color(wd.get("color"))
+            if _c:
+                on += "\\1c" + _c + "&"
+            if wd.get("size"):
+                try: on += "\\fs" + str(int(float(wd["size"])))
+                except Exception: pass
+            if wd.get("glow"):
+                on += "\\blur4"
+            if on:
+                reset = "\\1c" + primary + "&\\fs" + str(int(base_size)) + "\\blur0"
+                out.append("{" + on + "}" + w + "{" + reset + "}")
+            else:
+                out.append(w)
+        else:
+            out.append(w)
+    return "".join(out)
+
+
 def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False,
-              settings: dict | None = None) -> str:
+              settings: dict | None = None, overrides: dict | None = None) -> str:
     p = dict(PRESETS.get(style, PRESETS[DEFAULT]))   # copy so overrides don't mutate presets
     spacing = 0.0
     anim = p.get("anim")
@@ -430,7 +500,15 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
 
     lines = [_header(p, spacing, margin_l, margin_r, margin_v, italic, underline, alignment)]
     glow_tag = alpha_tag + ("{\\blur3}" if glow else "")
-    for c in cues:
+    _ov = overrides or {}
+    _cap_ovs = _ov.get("caption") or {}
+    _word_ovs = _ov.get("words") or {}
+    for _i, c in enumerate(cues):
+        _cidx = str(c.get("oidx", c.get("idx", _i)))
+        _cap_ov = _cap_ovs.get(_cidx) or {}
+        _word_ov = _word_ovs.get(_cidx) or {}
+        _cap_pre = _cap_inline(_cap_ov)
+        _base_size = int(float(_cap_ov["size"])) if _cap_ov.get("size") else p["size"]
         txt = (c.get("translit_text") if use_translit and c.get("translit_text") else c["text"]) or ""
         txt = _case(txt)
         # Top line = first line of a two-line caption. Case is safe in every mode;
@@ -454,10 +532,17 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
             body = _word_anim_text(txt, dur, anim, speed, em, emcol, p["primary"], big_case, big_alpha, base_alpha)
             prefix = glow_tag
         else:
-            body = txt.replace("\n", "\\N")
-            if em:
-                body = _emphasize(body, em, emcol, p["primary"], big_case, big_alpha, base_alpha, big_size=big_size, big_glow=big_glow, base_size=p["size"])
+            if _word_ov:
+                body = _word_override_body(txt, _word_ov, p["primary"], _base_size)
+                if em:
+                    body = _emphasize(body, em, emcol, p["primary"], big_case, big_alpha, base_alpha, big_size=big_size, big_glow=big_glow, base_size=_base_size)
+            else:
+                body = txt.replace("\n", "\\N")
+                if em:
+                    body = _emphasize(body, em, emcol, p["primary"], big_case, big_alpha, base_alpha, big_size=big_size, big_glow=big_glow, base_size=p["size"])
             prefix = glow_tag + _anim_prefix(anim, dur, speed)
+        if _cap_pre:
+            prefix = "{" + _cap_pre + "}" + prefix
         lines.append(
             f"Dialogue: {layer},{_ms_to_ass(c['start_ms'])},{_ms_to_ass(c['end_ms'])},"
             f"Default,,0,0,0,,{prefix}{body}"

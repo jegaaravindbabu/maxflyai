@@ -388,6 +388,82 @@ def set_caption_settings(project_id: str, body: CapSettingsIn, db: Session = Dep
     return merged
 
 
+class CapOverrideIn(BaseModel):
+    idx: int
+    settings: dict = {}
+    clear: bool = False
+
+
+@router.get("/{project_id}/caption-overrides")
+def get_caption_overrides(project_id: str, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    row = (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "capoverrides")
+             .order_by(Edit.created_at.desc()).first())
+    return row.payload_json if row else {}
+
+
+@router.post("/{project_id}/caption-overrides")
+def set_caption_override(project_id: str, body: CapOverrideIn, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    row = (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "capoverrides")
+             .order_by(Edit.created_at.desc()).first())
+    data = dict(row.payload_json or {}) if row else {}
+    key = str(body.idx)
+    if body.clear:
+        data.pop(key, None)
+    else:
+        cur = dict(data.get(key) or {})
+        cur.update({k: v for k, v in body.settings.items() if v is not None})
+        data[key] = cur
+    if row:
+        row.payload_json = data
+    else:
+        db.add(Edit(project_id=project_id, type="capoverrides", payload_json=data, enabled=True))
+    db.commit()
+    return data
+
+
+class WordOverrideIn(BaseModel):
+    idx: int
+    word: int
+    settings: dict = {}
+    clear: bool = False
+
+
+@router.get("/{project_id}/word-overrides")
+def get_word_overrides(project_id: str, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    row = (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "wordoverrides")
+             .order_by(Edit.created_at.desc()).first())
+    return row.payload_json if row else {}
+
+
+@router.post("/{project_id}/word-overrides")
+def set_word_override(project_id: str, body: WordOverrideIn, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    row = (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "wordoverrides")
+             .order_by(Edit.created_at.desc()).first())
+    data = dict(row.payload_json or {}) if row else {}
+    ci, wi = str(body.idx), str(body.word)
+    wmap = dict(data.get(ci) or {})
+    if body.clear:
+        wmap.pop(wi, None)
+    else:
+        cur = dict(wmap.get(wi) or {})
+        cur.update({k: v for k, v in body.settings.items() if v is not None})
+        wmap[wi] = cur
+    if wmap:
+        data[ci] = wmap
+    else:
+        data.pop(ci, None)
+    if row:
+        row.payload_json = data
+    else:
+        db.add(Edit(project_id=project_id, type="wordoverrides", payload_json=data, enabled=True))
+    db.commit()
+    return data
+
+
 class SavedStyleIn(BaseModel):
     name: str
     style: str = "classic"

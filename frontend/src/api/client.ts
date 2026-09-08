@@ -216,6 +216,25 @@ export const api = {
     }));
   },
 
+  async getCaptionOverrides(id: string) {
+    return j<Record<string, any>>(await afetch(`${BASE}/api/projects/${id}/caption-overrides`));
+  },
+  async setCaptionOverride(id: string, idx: number, settings: Record<string, any>, clear = false) {
+    return j<Record<string, any>>(await afetch(`${BASE}/api/projects/${id}/caption-overrides`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idx, settings, clear }),
+    }));
+  },
+  async getWordOverrides(id: string) {
+    return j<Record<string, any>>(await afetch(`${BASE}/api/projects/${id}/word-overrides`));
+  },
+  async setWordOverride(id: string, idx: number, word: number, settings: Record<string, any>, clear = false) {
+    return j<Record<string, any>>(await afetch(`${BASE}/api/projects/${id}/word-overrides`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idx, word, settings, clear }),
+    }));
+  },
+
   async getVideoFx(id: string) {
     return j<any>(await afetch(`${BASE}/api/projects/${id}/videofx`));
   },

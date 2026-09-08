@@ -752,6 +752,21 @@ video.ed-imgovl { object-fit: cover; }
 .ed-cs-toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; font-size: 13px; color: var(--text); }
 .ed-cs-standalone { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px; margin-top: 12px; }
 .ed-cs-standalone { font-size: 13px; color: var(--text); }
+/* Paste-to control */
+.ed-pasteto { display: flex; gap: 8px; align-items: center; margin: 2px 0 12px; }
+.ed-pasteto-copy { display: inline-flex; align-items: center; gap: 6px; background: var(--panel-2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.ed-pasteto-copy:hover { border-color: #3a3f57; }
+.ed-pasteto-sel { flex: 1; background: var(--panel-2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; }
+.ed-pasteto-sel:disabled { opacity: .55; }
+/* Single words */
+.ed-words-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ed-word-chip { background: var(--panel); border: 1px solid var(--border); color: var(--text); border-radius: 7px; padding: 5px 9px; font-size: 12px; cursor: pointer; transition: border-color .12s, background .12s; }
+.ed-word-chip:hover { border-color: #3a3f57; }
+.ed-word-chip.has { border-color: var(--accent); }
+.ed-word-chip.sel { background: var(--grad); color: var(--on-accent); border-color: transparent; font-weight: 700; }
+.ed-word-ctl { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); }
+/* selected word outline in preview */
+.capword-sel { outline: 2px dashed var(--accent); outline-offset: 2px; border-radius: 3px; }
 
 /* ===== Editor · Canvas backdrop ===== */
 .ed-canvas-frame { display: flex; align-items: center; justify-content: center; max-height: 100%; }
