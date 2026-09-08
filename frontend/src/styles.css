@@ -1399,3 +1399,36 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .ed-rt-exp-x { background: transparent; border: 0; font-size: 15px; line-height: 1; cursor: pointer; color: var(--muted); padding: 4px 6px; border-radius: 6px; }
 .ed-rt-exp-x:hover { background: rgba(127,127,127,.15); color: inherit; }
 .ed-exp-dltext { width: 100%; }
+
+/* ===== Landing page — OpusClip-style restyle (fonts + polish, scoped to .lp) ===== */
+.lp { font-family: "Inter", -apple-system, "Segoe UI", Roboto, "Noto Sans Tamil", sans-serif; -webkit-font-smoothing: antialiased; }
+.lp h1, .lp h2, .lp-hero-title, .lp-center-h, .lp-logo-name, .lp-price-amt, .lp-final h2 {
+  font-family: "Space Grotesk", "Inter", system-ui, sans-serif; }
+
+/* bigger, tighter, more confident headings */
+.lp-hero-title { font-size: clamp(44px, 8vw, 84px); font-weight: 700; letter-spacing: -.035em; line-height: 1.0; }
+.lp h2 { font-size: clamp(30px, 4.4vw, 50px); font-weight: 700; letter-spacing: -.03em; line-height: 1.06; }
+.lp-hero-sub, .lp-center-p, .lp-feat-text p { font-size: clamp(15px, 1.5vw, 18px); line-height: 1.7; }
+
+/* more breathing room between sections (OpusClip is airy) */
+.lp-hero, .lp-feat, .lp-styles, .lp-grid-sec, .lp-pricing, .lp-reviews, .lp-faq, .lp-contact, .lp-final { padding-top: 104px; padding-bottom: 104px; }
+.lp-hero { padding-top: 84px; }
+
+/* eyebrow + accents on violet (were hardcoded red) */
+.lp-eyebrow { color: var(--accent-2); background: rgba(124,58,237,.12); border-color: rgba(124,58,237,.30); letter-spacing: 2.5px; }
+.lp-video::after { background: radial-gradient(60% 60% at 50% 40%, rgba(124,58,237,.18), transparent 70%); }
+.lp-take.bad { text-decoration-color: rgba(124,58,237,.5); }
+
+/* softer, rounder cards with a gentle hover lift */
+.lp-video, .lp-style-card { border-radius: 20px; }
+.lp-fcard, .lp-price-card, .lp-review, .lp-take, .lp-wave, .lp-faq-item { border-radius: 16px; }
+.lp-fcard, .lp-style-card, .lp-price-card, .lp-review { transition: transform .18s ease, border-color .18s ease; }
+.lp-fcard:hover, .lp-style-card:hover, .lp-review:hover { transform: translateY(-4px); border-color: rgba(167,139,250,.4); }
+.lp-price-card.popular { box-shadow: 0 0 0 1px var(--accent), 0 20px 60px -20px rgba(124,58,237,.5); }
+
+/* primary buttons get a soft violet glow */
+.lp-btn { box-shadow: 0 8px 24px -10px rgba(124,58,237,.6); }
+.lp-btn.lg { padding: 15px 30px; }
+
+/* nav wordmark a touch bigger/tighter */
+.lp-logo-name { font-size: 20px; letter-spacing: -.02em; }
