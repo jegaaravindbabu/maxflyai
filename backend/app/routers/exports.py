@@ -50,8 +50,7 @@ def export(project_id: str, body: ExportRequest, db: Session = Depends(get_db),
     return {"export_id": exp.id, "status": "processing", "format": body.format}
 
 
-@router.get("/{project_id}/exports")
-def _download_name(project: Project | None, key: str, fmt: str) -> str:
+def _download_name(project: "Project | None", key: str, fmt: str) -> str:
     stem = ((project.source_filename if project else None) or (project.name if project else None) or "ceyonai-export")
     stem = re.sub(r"\.[^.]+$", "", stem)
     stem = re.sub(r"[^A-Za-z0-9._-]+", "_", stem).strip("_") or "export"
@@ -59,6 +58,7 @@ def _download_name(project: Project | None, key: str, fmt: str) -> str:
     return f"ceyonai-{stem}.{ext}"
 
 
+@router.get("/{project_id}/exports")
 def list_exports(project_id: str, db: Session = Depends(get_db),
     _owner: Project = Depends(owned_project)):
     rows = (db.query(Export).filter(Export.project_id == project_id)
