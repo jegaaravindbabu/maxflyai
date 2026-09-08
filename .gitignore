@@ -49,3 +49,6 @@ backend/scripts/_batch_raw.json
 **/.env.production
 .env.*
 !.env.example
+
+Claude outputs/
+*.old.bak
