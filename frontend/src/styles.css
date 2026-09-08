@@ -1,16 +1,16 @@
 :root {
-  --bg: #0b0d14;
-  --panel: #12141f;
-  --panel-2: #1a1d2b;
-  --border: #262a3b;
-  --text: #e9ecf6;
-  --muted: #8b92ab;
-  --accent: #7c3aed;        /* violet */
-  --accent-2: #a78bfa;      /* light violet */
+  --bg: #0e0f12;        /* charcoal */
+  --panel: #15171b;
+  --panel-2: #1b1e24;
+  --border: #262a30;
+  --text: #f0f2ee;
+  --muted: #9aa08f;
+  --accent: #c6ff3a;        /* electric lime */
+  --accent-2: #d8ff70;      /* light lime */
   --ok: #22c55e;            /* green (success, distinct from brand) */
-  --sidebar: #0e1018;
-  --grad: linear-gradient(120deg, #7c3aed, #a78bfa);
-  --on-accent: #ffffff;     /* white text on red buttons */
+  --sidebar: #0b0c0f;
+  --grad: linear-gradient(120deg, #c6ff3a, #a8e62c);
+  --on-accent: #12160a;     /* dark text on lime buttons */
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text);
@@ -1415,20 +1415,24 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .lp-hero { padding-top: 84px; }
 
 /* eyebrow + accents on violet (were hardcoded red) */
-.lp-eyebrow { color: var(--accent-2); background: rgba(124,58,237,.12); border-color: rgba(124,58,237,.30); letter-spacing: 2.5px; }
-.lp-video::after { background: radial-gradient(60% 60% at 50% 40%, rgba(124,58,237,.18), transparent 70%); }
-.lp-take.bad { text-decoration-color: rgba(124,58,237,.5); }
+.lp-eyebrow { color: var(--accent); background: rgba(198,255,58,.12); border-color: rgba(198,255,58,.30); letter-spacing: 2.5px; }
+.lp-video::after { background: radial-gradient(60% 60% at 50% 40%, rgba(198,255,58,.18), transparent 70%); }
+.lp-take.bad { text-decoration-color: rgba(198,255,58,.45); }
 
 /* softer, rounder cards with a gentle hover lift */
 .lp-video, .lp-style-card { border-radius: 20px; }
 .lp-fcard, .lp-price-card, .lp-review, .lp-take, .lp-wave, .lp-faq-item { border-radius: 16px; }
 .lp-fcard, .lp-style-card, .lp-price-card, .lp-review { transition: transform .18s ease, border-color .18s ease; }
-.lp-fcard:hover, .lp-style-card:hover, .lp-review:hover { transform: translateY(-4px); border-color: rgba(167,139,250,.4); }
-.lp-price-card.popular { box-shadow: 0 0 0 1px var(--accent), 0 20px 60px -20px rgba(124,58,237,.5); }
+.lp-fcard:hover, .lp-style-card:hover, .lp-review:hover { transform: translateY(-4px); border-color: rgba(198,255,58,.4); }
+.lp-price-card.popular { box-shadow: 0 0 0 1px var(--accent), 0 20px 60px -20px rgba(198,255,58,.45); }
 
 /* primary buttons get a soft violet glow */
-.lp-btn { box-shadow: 0 8px 24px -10px rgba(124,58,237,.6); }
+.lp-btn { box-shadow: 0 8px 24px -10px rgba(198,255,58,.5); }
 .lp-btn.lg { padding: 15px 30px; }
 
 /* nav wordmark a touch bigger/tighter */
 .lp-logo-name { font-size: 20px; letter-spacing: -.02em; }
+
+/* ===== Neon-on-Charcoal: dotted grid backdrop on the landing (D theme) ===== */
+.lp { background-image: radial-gradient(rgba(255,255,255,.04) 1px, transparent 1px); background-size: 22px 22px; }
+.lp-nav { background: rgba(14,15,18,.85); }
