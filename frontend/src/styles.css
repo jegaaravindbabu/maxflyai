@@ -483,6 +483,11 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
 .ed-mon-tr svg { width: 20px; height: 20px; display: block; }
 .ed-mon-tr-play svg { width: 26px; height: 26px; }
 .ed-mon-replace svg { width: 13px; height: 13px; display: block; }
+/* Monitor backdrop: contain the preview in a centered band so empty space reads intentional */
+.ed-stage { max-width: 560px; width: 100%; margin: 0 auto; padding: 18px;
+  background: radial-gradient(130% 100% at 50% 0%, #16181f 0%, #0b0c0f 72%);
+  border: 1px solid var(--border); border-radius: 16px; }
+.ed-mon-bar { max-width: 560px; width: 100%; margin: 6px auto 0; }
 .ed-stage .preview-wrap { height: 100%; max-height: 100%; max-width: 100%;
   aspect-ratio: var(--v-aspect, 9 / 16); margin: auto; }
 .ed-zoombar { width: 100%; display: flex; align-items: center; gap: 12px; font-size: 12px;
