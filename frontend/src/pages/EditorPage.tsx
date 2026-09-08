@@ -1705,9 +1705,18 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   </div>
                 ))}
                 <span className="spacer" />
-                <button className={"ed-sub2-icon" + (styleSearchOpen ? " on" : "")} title="Search styles"
-                  onClick={() => { setStyleSearchOpen((v) => !v); if (styleSearchOpen) setStyleSearch(""); }}>🔍</button>
-                <button className="ed-sub2-icon" title="Save current style" onClick={saveCurrentStyle}>⇧</button>
+                <div className="ed-sub2-icons">
+                  <button className="ed-sub2-icon" title="How styles work" aria-label="Info" onClick={() => setInfoDismissed(false)}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><line x1="12" y1="11" x2="12" y2="16" /><line x1="12" y1="7.6" x2="12.01" y2="7.6" /></svg>
+                  </button>
+                  <button className={"ed-sub2-icon" + (styleSearchOpen ? " on" : "")} title="Search styles" aria-label="Search"
+                    onClick={() => { setStyleSearchOpen((v) => !v); if (styleSearchOpen) setStyleSearch(""); }}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                  </button>
+                  <button className="ed-sub2-icon" title="Save current style" aria-label="Save style" onClick={saveCurrentStyle}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><path d="M17 21v-8H7v8" /><path d="M7 3v5h8" /></svg>
+                  </button>
+                </div>
               </div>
               {styleSearchOpen && (
                 <input className="ed-style-search" autoFocus placeholder="Search styles…" value={styleSearch}

@@ -436,8 +436,9 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
 .ed-rt-tabs { display: flex; border-bottom: 1px solid var(--border); }
 .ed-rt-tab { flex: 1; text-align: center; padding: 14px; color: var(--muted); font-weight: 700; cursor: pointer; }
 .ed-rt-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
-.ed-rt-sub { display: flex; gap: 8px; padding: 14px; }
-.ed-rt-subtab { padding: 8px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; color: var(--muted); background: var(--panel-2); }
+.ed-rt-sub { display: flex; gap: 6px; padding: 12px 14px; }
+.ed-rt-subtab { padding: 8px 13px; border-radius: 20px; font-size: 12.5px; font-weight: 600; cursor: pointer; color: var(--muted); background: var(--panel-2); transition: color .15s ease, background .15s ease; }
+.ed-rt-subtab:hover:not(.active) { color: var(--text); }
 .ed-rt-subtab.active { background: var(--grad); color: var(--on-accent); font-weight: 700; }
 .ed-rt-body { padding: 0 14px 20px; }
 .ed-hint-box { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
@@ -719,8 +720,13 @@ video.ed-imgovl { object-fit: cover; }
   margin-bottom: 14px; padding-bottom: 2px; }
 .ed-sub2-tab { padding: 8px 2px; color: var(--muted); font-weight: 700; font-size: 14px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
 .ed-sub2-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-.ed-sub2-icon { background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
-  width: 30px; height: 30px; border-radius: 7px; padding: 0; font-size: 14px; }
+.ed-sub2-icons { display: flex; align-items: center; gap: 6px; }
+.ed-sub2-icon { display: inline-flex; align-items: center; justify-content: center;
+  background: var(--panel-2); border: 1px solid var(--border); color: var(--muted);
+  width: 32px; height: 32px; border-radius: 8px; padding: 0; cursor: pointer;
+  transition: color .15s ease, border-color .15s ease, background .15s ease; }
+.ed-sub2-icon svg { width: 16px; height: 16px; display: block; }
+.ed-sub2-icon:hover { color: var(--text); border-color: #3a3f57; background: var(--panel); }
 .ed-hint-x { display: flex; align-items: flex-start; gap: 10px; justify-content: space-between; }
 .ed-hint-x button { background: transparent; color: var(--muted); font-size: 16px; padding: 0 4px; line-height: 1; }
 .ed-preset-list { display: flex; flex-direction: column; gap: 12px; }
