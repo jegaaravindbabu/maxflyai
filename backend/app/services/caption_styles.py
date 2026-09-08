@@ -28,6 +28,10 @@ ORANGE = "&H001A7AFF"      # #FF7A1A
 PINK   = "&H00A34FFF"      # #FF4FA3
 GREEN  = "&H006AE82E"      # #2EE86A
 PURPLE = "&H00FF5CB1"      # #B15CFF
+BLUE   = "&H00F6823B"      # sapphire #3B82F6
+GOLD   = "&H0018C5F5"      # #F5C518
+EMERALD= "&H008AD910"      # #10D98A
+CORAL  = "&H003D6BFF"      # #FF6B3D
 
 # ---- Font availability: fall back cleanly instead of libass silently
 # swapping a missing display font for a plain serif/Arial. Each display font
@@ -102,6 +106,12 @@ PRESETS = {
     "montserrat": {"label": "Montserrat",        "font": "Montserrat",      "size": 66, "bold": 0,  "primary": WHITE,  "secondary": DIMWHITE, "outline": BLACK, "back": BOX,   "border_style": 1, "outline_w": 4, "shadow": 1, "anim": "pop"},
     "script":     {"label": "Script",            "font": "Pacifico",        "size": 74, "bold": 0,  "primary": WHITE,  "secondary": DIMWHITE, "outline": BLACK, "back": BOX,   "border_style": 1, "outline_w": 3, "shadow": 2, "anim": "fade"},
     "script_gold":{"label": "Script gold",       "font": "Pacifico",        "size": 74, "bold": 0,  "primary": YELLOW, "secondary": WHITE,    "outline": BLACK, "back": "&H00000000", "border_style": 1, "outline_w": 2, "shadow": 3, "anim": "glow"},
+    "whiteout":     {"label": "Whiteout",         "font": "Arial Black", "size": 78, "bold": -1, "primary": WHITE,   "secondary": DIMWHITE, "outline": BLACK,   "back": "&H00000000", "border_style": 1, "outline_w": 5, "shadow": 2, "anim": "pop", "upper": True},
+    "sapphire":     {"label": "Sapphire Script",  "font": "Pacifico",    "size": 76, "bold": 0,  "primary": WHITE,   "secondary": BLUE,     "outline": BLACK,   "back": BOX,          "border_style": 1, "outline_w": 3, "shadow": 2, "anim": "fade"},
+    "gold_rush":    {"label": "Gold Rush",        "font": "Anton",       "size": 84, "bold": 0,  "primary": WHITE,   "secondary": GOLD,     "outline": BLACK,   "back": BOX,          "border_style": 1, "outline_w": 5, "shadow": 2, "anim": "pop", "upper": True},
+    "neon_emerald": {"label": "Neon Emerald",     "font": "Montserrat",  "size": 68, "bold": 0,  "primary": EMERALD, "secondary": WHITE,    "outline": EMERALD, "back": "&H00000000", "border_style": 1, "outline_w": 2, "shadow": 0, "anim": "glow"},
+    "sunset_script":{"label": "Sunset Script",    "font": "Pacifico",    "size": 76, "bold": 0,  "primary": CORAL,   "secondary": WHITE,    "outline": BLACK,   "back": BOX,          "border_style": 1, "outline_w": 3, "shadow": 2, "anim": "fade"},
+    "ceyonai_special":{"label": "ceyonai Special","font": "Montserrat",  "size": 70, "bold": 0,  "primary": WHITE,   "secondary": ORANGE,   "outline": BLACK,   "back": BOX,          "border_style": 1, "outline_w": 3, "shadow": 1, "anim": "fade"},
     # ---- word-by-word ("Words" tab): each spoken word highlights via \kf ----
     "word_sunset": {"label": "Sunset script words", "font": "Pacifico",     "size": 74, "bold": 0,  "primary": ORANGE, "secondary": WHITE,    "outline": BLACK, "back": BOX, "border_style": 1, "outline_w": 3, "shadow": 2, "anim": "karaoke"},
     "word_outline":{"label": "Outline caps",        "font": "Arial Black",  "size": 72, "bold": -1, "primary": YELLOW, "secondary": WHITE,    "outline": BLACK, "back": BOX, "border_style": 1, "outline_w": 6, "shadow": 1, "anim": "karaoke", "upper": True},

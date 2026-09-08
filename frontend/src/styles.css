@@ -1469,3 +1469,16 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .ed-hlbox { display: inline-flex; align-items: center; gap: 8px; }
 .ed-hlbox-none { background: var(--panel-2); border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 5px 10px; font-size: 12px; cursor: pointer; }
 .ed-hlbox-none.on { border-color: var(--accent); color: var(--text); }
+
+/* ===== New named line presets (preview cards) ===== */
+.cap-whiteout { font-family: "Arial Black", system-ui, sans-serif; text-transform: uppercase; color: #fff; background: transparent; text-shadow: 2px 2px 0 #000, 0 0 6px #000; }
+.cap-sapphire { font-family: "Pacifico", cursive; color: #fff; text-shadow: 2px 2px 4px #000; }
+.cap-sapphire .cap-emph { color: #3b82f6; }
+.cap-gold_rush { font-family: "Anton", system-ui, sans-serif; text-transform: uppercase; color: #fff; letter-spacing: .5px; text-shadow: 2px 2px 0 #000; }
+.cap-gold_rush .cap-emph { color: #f5c518; }
+.cap-neon_emerald { font-family: "Montserrat", system-ui, sans-serif; font-weight: 800; color: #10d98a; background: rgba(0,0,0,.35); text-shadow: 0 0 8px #10d98a, 0 0 16px #10d98a, 0 0 2px #fff; }
+.cap-neon_emerald .cap-emph { color: #fff; }
+.cap-sunset_script { font-family: "Pacifico", cursive; color: #ff6b3d; text-shadow: 2px 2px 4px #000; }
+.cap-sunset_script .cap-emph { color: #fff; }
+.cap-ceyonai_special { font-family: "Montserrat", system-ui, sans-serif; font-weight: 800; color: #fff; text-shadow: 1px 2px 3px #000; }
+.cap-ceyonai_special .cap-emph { color: #ff7a1a; font-family: "Pacifico", cursive; font-weight: 400; }

@@ -1720,7 +1720,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                       <div key={st.id} className={"ed-preset-card" + (capStyle === st.id ? " active" : "")} onClick={() => setCapStyle(st.id)}>
                         <div className="ed-preset-name">{st.label}</div>
                         <div className="ed-preset-stage">
-                          <span className={"cap cap-" + st.id} key={st.id}>Welcome to the <span className="cap-emph">future</span><br />of ceyonai editing</span>
+                          <span className={"cap cap-" + st.id} key={st.id} style={{ color: capSettings.text_color || undefined, fontFamily: capSettings.font ? undefined : undefined }}>Welcome to the <span className="cap-emph" style={{ color: capSettings.highlight_color || undefined }}>future</span><br />of ceyonai editing</span>
                         </div>
                         {capStyle === st.id && <div className="ed-showcase-check">✓</div>}
                       </div>
