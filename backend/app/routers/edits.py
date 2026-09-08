@@ -450,8 +450,15 @@ def set_word_override(project_id: str, body: WordOverrideIn, db: Session = Depen
         wmap.pop(wi, None)
     else:
         cur = dict(wmap.get(wi) or {})
-        cur.update({k: v for k, v in body.settings.items() if v is not None})
-        wmap[wi] = cur
+        for k, v in body.settings.items():
+            if v is None:
+                cur.pop(k, None)   # null clears a single field (e.g. bring a moved word back inline)
+            else:
+                cur[k] = v
+        if cur:
+            wmap[wi] = cur
+        else:
+            wmap.pop(wi, None)
     if wmap:
         data[ci] = wmap
     else:

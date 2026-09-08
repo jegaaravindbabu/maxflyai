@@ -130,6 +130,7 @@ export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings, wor
         if (_wd.color) wStyle.color = _wd.color;
         if (_wd.size) { const _wf = Number(_wd.size) / Number(st.size || 64); if (_wf > 0) wStyle.fontSize = _wf.toFixed(3) + "em"; }
         if (_wd.glow) wStyle.textShadow = "0 0 8px currentColor, 0 0 3px #000";
+        if (_wd.x != null && _wd.y != null) wStyle.visibility = "hidden";  // moved out to the frame layer
       }
       if (typeof selWord === "number" && selWord === i) cw += " capword-sel";
       return <span key={i} className={cw} style={wStyle}>{w}{" "}</span>;

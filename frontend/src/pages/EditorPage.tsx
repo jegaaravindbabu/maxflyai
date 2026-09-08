@@ -431,6 +431,31 @@ export function EditorPage({ projectId }: { projectId: string }) {
   }
   const selWordSafe = selWord >= 0 && selWord < activeWords.length ? selWord : -1;
   const selWordOv = selWordSafe >= 0 ? (activeWordOv[String(selWordSafe)] || {}) : {};
+  const movedWords = activeWords
+    .map((w, i) => ({ i, w, wd: activeWordOv[String(i)] as any }))
+    .filter((x) => x.wd && x.wd.x != null && x.wd.y != null);
+  function startDragWord(e: ReactMouseEvent, i: number) {
+    e.preventDefault(); e.stopPropagation();
+    setSelWord(i);
+    if (activeIdx < 0) return;
+    const parent = (e.currentTarget as HTMLElement).offsetParent as HTMLElement | null;
+    if (!parent) return;
+    const rect = parent.getBoundingClientRect();
+    let lx = 50, ly = 50;
+    const c = _cidx;
+    const move = (ev: MouseEvent) => {
+      lx = Math.max(0, Math.min(100, ((ev.clientX - rect.left) / rect.width) * 100));
+      ly = Math.max(0, Math.min(100, ((ev.clientY - rect.top) / rect.height) * 100));
+      setWordOverrides((pr) => { const cm = { ...(pr[c] || {}) }; cm[String(i)] = { ...(cm[String(i)] || {}), x: lx, y: ly }; return { ...pr, [c]: cm }; });
+    };
+    const up = () => {
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", up);
+      api.setWordOverride(projectId, activeIdx, i, { x: lx, y: ly }).catch(() => {});
+    };
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", up);
+  }
   const effStyle = animOn ? capStyle : "classic";
   const _resMul = expRes === "1080" ? 1.6 : expRes === "720" ? 1.1 : expRes === "480" ? 0.8 : 1.2;
   const _estSec = Math.round((dur / 1000) * _resMul + 12);
@@ -1484,6 +1509,19 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   : canvas.bg_type === "blur" ? "#0a0c13" : (canvas.color || "#000000"),
               } : undefined}>
             <VideoPreview ref={videoRef} src={mediaSrc} videoStyle={videoFxStyle}
+              frameOverlay={!isHidden("captions") && movedWords.length > 0 ? (
+                <>
+                  {movedWords.map(({ i, w, wd }) => (
+                    <div key={i}
+                      className={"ed-wordmove" + (selWordSafe === i ? " sel" : "")}
+                      style={{ left: wd.x + "%", top: wd.y + "%",
+                        color: wd.color || effSettings.text_color || "#fff",
+                        fontSize: Math.max(12, ((Number(wd.size) || Number(effSettings.size) || 64) / 64) * 22) + "px",
+                        textShadow: wd.glow ? "0 0 8px currentColor, 0 0 3px #000" : "0 1px 2px rgba(0,0,0,.6)" }}
+                      onMouseDown={(e) => startDragWord(e, i)}>{w}</div>
+                  ))}
+                </>
+              ) : null}
               overlay={<>
                 {activeCue && overlayText && !isHidden("captions") ? (
                   <CaptionOverlay text={overlayText} styleId={effStyle} cue={activeCue} curMs={curMs} keyId={activeIdx} settings={effSettings} wordOverrides={activeWordOv} selWord={selWordSafe} />
@@ -2112,6 +2150,27 @@ export function EditorPage({ projectId }: { projectId: string }) {
                         <span className="ed-switch-track" />
                       </label>
                     </div>
+                    <div className="ed-cs-slabel" style={{ marginTop: 14, color: "var(--muted)" }}><span>MOVE ON VIDEO</span><span /></div>
+                    {(selWordOv.x == null || selWordOv.y == null) ? (
+                      <button className="ed-addcap" style={{ marginTop: 6 }} onClick={() => setWordOv(selWordSafe, { x: 50, y: 78 })}>Lift word out &amp; place</button>
+                    ) : (
+                      <>
+                        <div className="ed-cs-slider" style={{ marginTop: 6 }}>
+                          <div className="ed-cs-slabel"><span>X</span><span>{Math.round(selWordOv.x)}%</span></div>
+                          <input type="range" min={0} max={100} step={1} value={Math.round(selWordOv.x)}
+                            onChange={(e) => { const v = +e.target.value; setWordOverrides((pr) => { const cm = { ...(pr[_cidx] || {}) }; cm[String(selWordSafe)] = { ...(cm[String(selWordSafe)] || {}), x: v }; return { ...pr, [_cidx]: cm }; }); }}
+                            onMouseUp={(e) => api.setWordOverride(projectId, activeIdx, selWordSafe, { x: +(e.target as HTMLInputElement).value }).catch(() => {})} />
+                        </div>
+                        <div className="ed-cs-slider">
+                          <div className="ed-cs-slabel"><span>Y</span><span>{Math.round(selWordOv.y)}%</span></div>
+                          <input type="range" min={0} max={100} step={1} value={Math.round(selWordOv.y)}
+                            onChange={(e) => { const v = +e.target.value; setWordOverrides((pr) => { const cm = { ...(pr[_cidx] || {}) }; cm[String(selWordSafe)] = { ...(cm[String(selWordSafe)] || {}), y: v }; return { ...pr, [_cidx]: cm }; }); }}
+                            onMouseUp={(e) => api.setWordOverride(projectId, activeIdx, selWordSafe, { y: +(e.target as HTMLInputElement).value }).catch(() => {})} />
+                        </div>
+                        <div className="np-sub" style={{ marginTop: 4 }}>Or just drag the word on the video.</div>
+                        <button className="ed-addcap" style={{ marginTop: 8 }} onClick={() => setWordOv(selWordSafe, { x: null, y: null })}>Bring back inline</button>
+                      </>
+                    )}
                     <button className="ed-addcap" style={{ marginTop: 12 }} onClick={() => { clearWordOv(selWordSafe); setSelWord(-1); }}>Reset this word</button>
                   </div>
                 )}

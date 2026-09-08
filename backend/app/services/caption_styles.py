@@ -469,6 +469,69 @@ def _word_override_body(txt: str, wov: dict, primary: str, base_size: int, case=
     return "".join(out)
 
 
+def _word_override_split(txt: str, wov: dict, primary: str, base_size: int, case=None):
+    """Like _word_override_body but pulls MOVED words (x/y set) out of the flow:
+    they become an invisible placeholder inline (so the line keeps its layout) plus
+    an entry in `moved` that the caller renders as a separately positioned event."""
+    parts = re.split(r"(\s+)", txt)
+    gi = 0
+    out = []
+    moved = []
+    for part in parts:
+        if part == "":
+            continue
+        if part.strip() == "":
+            out.append("\\N" if "\n" in part else " ")
+            continue
+        w = _case_str(part, case)
+        wd = wov.get(str(gi))
+        gi += 1
+        if wd and wd.get("x") is not None and wd.get("y") is not None:
+            out.append("{\\alpha&HFF&}" + w + "{\\alpha&H00&}")
+            moved.append((w, wd))
+            continue
+        if wd:
+            on = ""
+            _c = _ass_color(wd.get("color"))
+            if _c:
+                on += "\\1c" + _c + "&"
+            if wd.get("size"):
+                try: on += "\\fs" + str(int(float(wd["size"])))
+                except Exception: pass
+            if wd.get("glow"):
+                on += "\\blur4"
+            if on:
+                reset = "\\1c" + primary + "&\\fs" + str(int(base_size)) + "\\blur0"
+                out.append("{" + on + "}" + w + "{" + reset + "}")
+            else:
+                out.append(w)
+        else:
+            out.append(w)
+    return "".join(out), moved
+
+
+def _word_pos_event(w: str, wd: dict, primary: str, base_size: int, layer: int,
+                    start_ass: str, end_ass: str) -> str:
+    """A single moved word rendered as its own centre-anchored, positioned event."""
+    try:
+        x = int(float(wd["x"]) / 100.0 * 1920)
+        y = int(float(wd["y"]) / 100.0 * 1080)
+    except Exception:
+        x, y = 960, 540
+    tag = "\\an5\\pos(%d,%d)" % (x, y)
+    _c = _ass_color(wd.get("color"))
+    if _c:
+        tag += "\\1c" + _c + "&"
+    sz = wd.get("size") or base_size
+    try:
+        tag += "\\fs" + str(int(float(sz)))
+    except Exception:
+        pass
+    if wd.get("glow"):
+        tag += "\\blur4"
+    return f"Dialogue: {layer},{start_ass},{end_ass},Default,,0,0,0,,{{{tag}}}{w}"
+
+
 def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False,
               settings: dict | None = None, overrides: dict | None = None) -> str:
     p = dict(PRESETS.get(style, PRESETS[DEFAULT]))   # copy so overrides don't mutate presets
@@ -593,9 +656,12 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
             else:
                 body = _word_anim_text(txt, dur, anim, speed, em, emcol, p["primary"], big_case, big_alpha, base_alpha)
             prefix = glow_tag
+        _moved = []
+        if anim == "karaoke" or (scope in ("word", "single", "line") and anim in _WORD_MOTION):
+            pass  # body/prefix already set above
         else:
             if _word_ov:
-                body = _word_override_body(txt, _word_ov, p["primary"], _base_size)
+                body, _moved = _word_override_split(txt, _word_ov, p["primary"], _base_size)
                 if em:
                     body = _emphasize(body, em, emcol, p["primary"], big_case, big_alpha, base_alpha, big_size=big_size, big_glow=big_glow, base_size=_base_size)
             else:
@@ -605,10 +671,10 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
             prefix = glow_tag + _anim_prefix(anim, dur, speed)
         if _cap_pre:
             prefix = "{" + _cap_pre + "}" + prefix
-        lines.append(
-            f"Dialogue: {layer},{_ms_to_ass(c['start_ms'])},{_ms_to_ass(c['end_ms'])},"
-            f"Default,,0,0,0,,{prefix}{body}"
-        )
+        _sa, _ea = _ms_to_ass(c['start_ms']), _ms_to_ass(c['end_ms'])
+        lines.append(f"Dialogue: {layer},{_sa},{_ea},Default,,0,0,0,,{prefix}{body}")
+        for _mw, _mwd in _moved:
+            lines.append(_word_pos_event(_mw, _mwd, p["primary"], _base_size, (layer or 0) + 5, _sa, _ea))
     return "\n".join(lines) + "\n"
 
 

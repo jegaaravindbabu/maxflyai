@@ -4,11 +4,12 @@ import { forwardRef, ReactNode, useRef } from "react";
 interface Props {
   src: string;
   overlay?: ReactNode;
+  frameOverlay?: ReactNode;
   videoStyle?: React.CSSProperties;
 }
 
 export const VideoPreview = forwardRef<HTMLVideoElement, Props>(
-  function VideoPreview({ src, overlay, videoStyle }, ref) {
+  function VideoPreview({ src, overlay, frameOverlay, videoStyle }, ref) {
     const wrapRef = useRef<HTMLDivElement>(null);
     // Match the preview box to the clip's real aspect so a portrait clip fits
     // the stage by height (instead of overflowing) and captions stay aligned.
@@ -22,6 +23,7 @@ export const VideoPreview = forwardRef<HTMLVideoElement, Props>(
       <div className="preview-wrap" ref={wrapRef}>
         <video ref={ref} src={src} controls style={videoStyle} onLoadedMetadata={onMeta} />
         {overlay && <div className="caption-overlay">{overlay}</div>}
+        {frameOverlay && <div className="ed-frame-layer">{frameOverlay}</div>}
       </div>
     );
   }

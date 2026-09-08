@@ -547,6 +547,10 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
   text-align: center; white-space: pre-wrap; line-height: 1.2; pointer-events: auto;
   text-shadow: 0 2px 6px rgba(0,0,0,.85), 0 0 2px rgba(0,0,0,.9); max-width: 92%; user-select: none; }
 .ed-ovl.sel { outline: 2px dashed var(--accent); outline-offset: 4px; }
+.ed-frame-layer { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.ed-wordmove { position: absolute; transform: translate(-50%, -50%); cursor: move; pointer-events: auto;
+  font-weight: 800; white-space: nowrap; user-select: none; line-height: 1; }
+.ed-wordmove.sel { outline: 2px dashed var(--accent); outline-offset: 3px; border-radius: 3px; }
 .ed-txt-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .ed-txt-item { background: #0b0d15; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; cursor: pointer; }
 .ed-txt-item:hover { border-color: #3a3f57; }
