@@ -5,11 +5,11 @@
   --border: #262a3b;
   --text: #e9ecf6;
   --muted: #8b92ab;
-  --accent: #ef4444;        /* red */
-  --accent-2: #f87171;      /* light red */
+  --accent: #7c3aed;        /* violet */
+  --accent-2: #a78bfa;      /* light violet */
   --ok: #22c55e;            /* green (success, distinct from brand) */
   --sidebar: #0e1018;
-  --grad: linear-gradient(120deg, #ef4444, #f87171);
+  --grad: linear-gradient(120deg, #7c3aed, #a78bfa);
   --on-accent: #ffffff;     /* white text on red buttons */
 }
 * { box-sizing: border-box; }
