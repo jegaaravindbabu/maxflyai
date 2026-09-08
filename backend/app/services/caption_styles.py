@@ -121,6 +121,10 @@ PRESETS = {
     "word_bubble": {"label": "Bubble words",        "font": "Arial Black",  "size": 70, "bold": -1, "primary": PINK,   "secondary": WHITE,    "outline": BLACK, "back": BOX, "border_style": 1, "outline_w": 6, "shadow": 1, "anim": "karaoke"},
     "word_mono":   {"label": "Mono caps words",     "font": "Bebas Neue",   "size": 88, "bold": 0,  "primary": CYAN,   "secondary": WHITE,    "outline": BLACK, "back": BOX, "border_style": 1, "outline_w": 3, "shadow": 1, "anim": "karaoke", "upper": True},
     "word_purple": {"label": "Purple words",        "font": "Poppins",      "size": 66, "bold": 0,  "primary": PURPLE, "secondary": WHITE,    "outline": BLACK, "back": BOX, "border_style": 1, "outline_w": 4, "shadow": 1, "anim": "karaoke"},
+    "word_marker": {"label": "Marker caps",        "font": "Arial Black", "size": 68, "bold": -1, "primary": BLACK,       "secondary": "&H80000000", "outline": "&H0000FFFF", "back": "&H0000FFFF", "border_style": 3, "outline_w": 4, "shadow": 0, "anim": "karaoke", "upper": True},
+    "word_ghost":  {"label": "Ghost outline",      "font": "Arial Black", "size": 72, "bold": -1, "primary": "&HFFFFFFFF", "secondary": "&H80FFFFFF", "outline": WHITE,        "back": "&H00000000", "border_style": 1, "outline_w": 4, "shadow": 0, "anim": "karaoke", "upper": True},
+    "word_comic":  {"label": "Yellow comic pop",   "font": "Anton",       "size": 82, "bold": 0,  "primary": YELLOW,      "secondary": WHITE,        "outline": BLACK,        "back": "&H00000000", "border_style": 1, "outline_w": 6, "shadow": 2, "anim": "karaoke", "upper": True},
+    "word_hlbox":  {"label": "Purple highlight box","font": "Montserrat", "size": 66, "bold": 0,  "primary": WHITE,       "secondary": WHITE,        "outline": PURPLE,       "back": PURPLE,       "border_style": 3, "outline_w": 4, "shadow": 0, "anim": "karaoke"},
 }
 
 DEFAULT = "classic"

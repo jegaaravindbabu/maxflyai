@@ -1482,3 +1482,13 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .cap-sunset_script .cap-emph { color: #fff; }
 .cap-ceyonai_special { font-family: "Montserrat", system-ui, sans-serif; font-weight: 800; color: #fff; text-shadow: 1px 2px 3px #000; }
 .cap-ceyonai_special .cap-emph { color: #ff7a1a; font-family: "Pacifico", cursive; font-weight: 400; }
+
+/* ===== New word-by-word presets (Words tab preview cards) ===== */
+.cap-word_marker { font-family: "Arial Black", system-ui, sans-serif; text-transform: uppercase; color: #fff; }
+.cap-word_marker .cap-emph { background: #ffe11a; color: #111; padding: 0 4px; border-radius: 3px; }
+.cap-word_ghost { font-family: "Arial Black", system-ui, sans-serif; text-transform: uppercase; color: transparent; -webkit-text-stroke: 1.5px #fff; }
+.cap-word_ghost .cap-emph { color: #fff; -webkit-text-stroke: 0; }
+.cap-word_comic { font-family: "Anton", system-ui, sans-serif; text-transform: uppercase; color: #ffe11a; text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000; }
+.cap-word_comic .cap-emph { color: #fff; }
+.cap-word_hlbox { font-family: "Montserrat", system-ui, sans-serif; font-weight: 800; color: #fff; }
+.cap-word_hlbox .cap-emph { background: #b15cff; color: #fff; padding: 0 6px; border-radius: 4px; }
