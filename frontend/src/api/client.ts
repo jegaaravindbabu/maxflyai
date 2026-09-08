@@ -360,7 +360,7 @@ export const api = {
   },
 
   async listExports(id: string) {
-    return j<{ id: string; format: string; url: string | null; status: string; error?: string | null }[]>(
+    return j<{ id: string; format: string; url: string | null; download_url?: string | null; status: string; error?: string | null }[]>(
       await afetch(`${BASE}/api/projects/${id}/exports`));
   },
 

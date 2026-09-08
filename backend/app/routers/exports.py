@@ -9,6 +9,8 @@ from app.models import Project, Export
 from app.schemas import ExportRequest
 from app.tasks.exporting import run_export_job, export_task
 from app import runner
+from app.services.storage import storage
+import re
 
 router = APIRouter(prefix="/api/projects", tags=["exports"])
 
@@ -49,7 +51,31 @@ def export(project_id: str, body: ExportRequest, db: Session = Depends(get_db),
 
 
 @router.get("/{project_id}/exports")
+def _download_name(project: Project | None, key: str, fmt: str) -> str:
+    stem = ((project.source_filename if project else None) or (project.name if project else None) or "ceyonai-export")
+    stem = re.sub(r"\.[^.]+$", "", stem)
+    stem = re.sub(r"[^A-Za-z0-9._-]+", "_", stem).strip("_") or "export"
+    ext = key.rsplit(".", 1)[-1] if "." in key else fmt
+    return f"ceyonai-{stem}.{ext}"
+
+
 def list_exports(project_id: str, db: Session = Depends(get_db),
     _owner: Project = Depends(owned_project)):
-    return (db.query(Export).filter(Export.project_id == project_id)
+    rows = (db.query(Export).filter(Export.project_id == project_id)
               .order_by(Export.created_at.desc()).all())
+    project = db.get(Project, project_id)
+    out = []
+    for e in rows:
+        download_url = None
+        if e.status == "ready" and e.url:
+            try:
+                key = storage.key_from_url(e.url)
+                download_url = storage.url(key, download_name=_download_name(project, key, e.format))
+            except Exception:
+                download_url = None
+        out.append({
+            "id": e.id, "project_id": e.project_id, "format": e.format,
+            "status": e.status, "url": e.url, "download_url": download_url,
+            "error": e.error, "created_at": e.created_at,
+        })
+    return out

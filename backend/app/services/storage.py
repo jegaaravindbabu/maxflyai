@@ -64,6 +64,9 @@ class LocalStorage:
     def url(self, key: str, expires_in: int = 3600, download_name: str | None = None) -> str:
         return f"/media/{key}"
 
+    def key_from_url(self, url: str) -> str:
+        return url.split("/media/", 1)[-1] if "/media/" in url else url.lstrip("/")
+
     def delete(self, key: str) -> bool:
         try:
             os.remove(os.path.join(self.base, key)); return True
@@ -142,6 +145,15 @@ class SupabaseStorage:
             base += ("&" if "?" in base else "?") + "download=" + quote(download_name)
         return base
 
+    def key_from_url(self, url: str) -> str:
+        from urllib.parse import urlparse, unquote
+        path = urlparse(url).path
+        for m in (f"/object/sign/{self.bucket}/", f"/object/authenticated/{self.bucket}/", f"/object/public/{self.bucket}/", f"/{self.bucket}/"):
+            i = path.find(m)
+            if i >= 0:
+                return unquote(path[i + len(m):])
+        return unquote(path.lstrip("/"))
+
     def delete(self, key: str) -> bool:
         try:
             with httpx.Client(timeout=30) as c:
@@ -188,6 +200,13 @@ class R2Storage:
         if download_name:
             params["ResponseContentDisposition"] = f'attachment; filename="{download_name}"'
         return self.s3.generate_presigned_url("get_object", Params=params, ExpiresIn=expires_in)
+
+    def key_from_url(self, url: str) -> str:
+        from urllib.parse import urlparse, unquote
+        path = urlparse(url).path
+        prefix = f"/{self.bucket}/"
+        i = path.find(prefix)
+        return unquote(path[i + len(prefix):]) if i >= 0 else unquote(path.lstrip("/"))
 
     def delete(self, key: str) -> bool:
         try:

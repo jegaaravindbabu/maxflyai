@@ -218,7 +218,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [expRes, setExpRes] = useState("auto");   // export resolution: auto|1080|720|480
   const [nleOpen, setNleOpen] = useState(false);  // "Export for Editor" section collapsed by default
   const [expOpen, setExpOpen] = useState(false);  // right-side export panel (HyproAI-style)
-  const [expJob, setExpJob] = useState<{ fmt: string; status: "rendering" | "ready" | "error"; pct: number; url?: string; error?: string; open: boolean } | null>(null);
+  const [expJob, setExpJob] = useState<{ fmt: string; status: "rendering" | "ready" | "error"; pct: number; url?: string; downloadUrl?: string; error?: string; open: boolean } | null>(null);
   const progRef = useRef<number | undefined>(undefined);
   const [rail, setRail] = useState<"uploads" | "captions" | "texts" | "images" | "broll" | "tools" | "retake" | "zoom" | "filters" | "canvas" | "export">("captions");
   const [rightTab, setRightTab] = useState<"styles" | "settings" | "animation">("styles");
@@ -582,7 +582,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
           if (progRef.current) window.clearInterval(progRef.current);
           if (row.status === "ready" && row.url) {
             upsertExport(fmt, { url: row.url, status: "ready" });
-            setExpJob({ fmt, status: "ready", pct: 100, url: row.url, open: true });
+            setExpJob({ fmt, status: "ready", pct: 100, url: row.url, downloadUrl: (row as any).download_url || row.url, open: true });
             exBeep();
           } else {
             upsertExport(fmt, { status: "error", error: row.error || undefined });
@@ -2108,7 +2108,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
               <>
                 <div className="ex-title">Export <em>ready</em></div>
                 <div className="ex-sub">Your {expJob.fmt.toUpperCase()} is ready.</div>
-                <a className="ex-b go" href={expJob.url ? api.mediaUrl(expJob.url) : "#"} download>⬇ Download</a>
+                <a className="ex-b go" href={api.mediaUrl(expJob.downloadUrl || expJob.url || "")} download>⬇ Download</a>
                 <a className="ex-b open" href={expJob.url ? api.mediaUrl(expJob.url) : "#"} target="_blank" rel="noreferrer">↗ Open in new tab</a>
                 <button className="ex-b close" onClick={() => setExpJob(null)}>Close</button>
               </>
