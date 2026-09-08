@@ -163,6 +163,13 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [capSettings, setCapSettings] = useState<Record<string, any>>({});
   const [customiseOpen, setCustomiseOpen] = useState(true);
   const [stylesTab, setStylesTab] = useState<"lines" | "words" | "saved">("lines");
+  // Looping clock so the word-style preview cards animate on their own (like HyproAI).
+  const [cardTick, setCardTick] = useState(0);
+  useEffect(() => {
+    if (stylesTab !== "words") return;
+    const _id = setInterval(() => setCardTick((t) => t + 1), 520);
+    return () => clearInterval(_id);
+  }, [stylesTab]);
   const [savedStyles, setSavedStyles] = useState<{ id: string; name: string; style: string; settings: any }[]>([]);
   const [infoDismissed, setInfoDismissed] = useState(false);
   const [canvas, setCanvas] = useState<Record<string, any>>({});
@@ -1721,7 +1728,16 @@ export function EditorPage({ projectId }: { projectId: string }) {
                       <div key={st.id} className={"ed-preset-card" + (capStyle === st.id ? " active" : "")} onClick={() => setCapStyle(st.id)}>
                         <div className="ed-preset-name">{st.label}</div>
                         <div className="ed-preset-stage">
-                          <span className={"cap cap-" + st.id} key={st.id} style={{ color: capSettings.text_color || undefined, fontFamily: capSettings.font ? undefined : undefined }}>Welcome to the <span className="cap-emph" style={{ color: capSettings.highlight_color || undefined }}>future</span><br />of ceyonai editing</span>
+                          {stylesTab === "words" ? (
+                            <span className={"cap cap-" + st.id} style={{ color: capSettings.text_color || undefined }}>
+                              {["Welcome", "to", "the", "future", "of", "ceyonai", "editing"].map((w, i) => (
+                                <span key={i} className={"capword" + ((cardTick % 7) === i ? " capword-on" : "")}
+                                  style={(cardTick % 7) === i && capSettings.highlight_color ? { color: capSettings.highlight_color } : undefined}>{w}{i === 3 ? <br /> : " "}</span>
+                              ))}
+                            </span>
+                          ) : (
+                            <span className={"cap cap-" + st.id} key={st.id} style={{ color: capSettings.text_color || undefined }}>Welcome to the <span className="cap-emph" style={{ color: capSettings.highlight_color || undefined }}>future</span><br />of ceyonai editing</span>
+                          )}
                         </div>
                         {capStyle === st.id && <div className="ed-showcase-check">✓</div>}
                       </div>

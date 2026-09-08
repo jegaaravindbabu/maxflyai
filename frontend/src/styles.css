@@ -1497,6 +1497,8 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .capword { display: inline-block; transition: transform .18s cubic-bezier(.2,1.5,.4,1), color .12s ease; }
 .capword-on { transform: scale(1.18); }
 /* active-word colour per word preset (matches each preset's accent) */
+/* preview cards: non-active words keep the preset's base colour; active word pops via .capword-on below */
+.ed-preset-stage .capword { color: inherit; }
 .cap-word_sunset .capword-on { color: #FF7A1A; }
 .cap-word_outline .capword-on { color: #FFE11A; }
 .cap-word_neon   .capword-on { color: #4CD6FF; text-shadow: 0 0 8px #4CD6FF, 0 0 2px #fff; }
