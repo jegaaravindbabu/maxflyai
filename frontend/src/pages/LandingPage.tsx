@@ -5,10 +5,10 @@ const CAPTION_LANGS = ["Tamil", "Thanglish", "Telugu", "Malayalam", "Hindi", "En
 const STYLES = ["Neon", "Karaoke", "Bold Pop", "Minimal", "Highlight", "Wave"];
 
 const CREATOR_FEATURES = [
-  { ic: "🎚", title: "Audio cleanup", sub: "One-tap enhance, denoise, and level your voice track." },
-  { ic: "✨", title: "Caption animations", sub: "Word-by-word pops, karaoke fills, and bounce effects." },
-  { ic: "☁", title: "Cloud editing", sub: "Everything runs in your browser — nothing to install." },
-  { ic: "🚫", title: "No watermark", sub: "Your exports are clean, even on the free plan." },
+  { ic: "🎚", title: "Studio-clean audio", sub: "One tap to denoise and level your voice. Phone-mic recordings that sound pro." },
+  { ic: "✨", title: "Captions that pop", sub: "Word-by-word reveals, karaoke fills, bounce — the styles that stop the scroll." },
+  { ic: "☁", title: "Nothing to install", sub: "Runs fully in your browser. Any laptop, any place — just upload and go." },
+  { ic: "🚫", title: "Zero watermark", sub: "Clean exports on every plan, free included. Your video carries your name, not ours." },
 ];
 
 const EDITORS = ["Premiere Pro", "DaVinci Resolve", "After Effects", "Final Cut Pro"];
@@ -16,24 +16,24 @@ const EDITORS = ["Premiere Pro", "DaVinci Resolve", "After Effects", "Final Cut 
 const PLANS = [
   { name: "FREE", price: "₹0", per: "/mo", feats: ["5 min / month", "720p export", "No watermark"], cta: "Start free" },
   { name: "STARTER", price: "₹399", per: "/mo", feats: ["25 min / month", "1080p export", "10 GB storage"], cta: "Get Starter" },
-  { name: "CREATOR", price: "₹799", per: "/mo", feats: ["80 min / month", "4K export", "All animations"], cta: "Get Creator", popular: true },
+  { name: "CREATOR", price: "₹799", per: "/mo", feats: ["80 min / month", "4K export", "All caption styles"], cta: "Get Creator", popular: true },
   { name: "PRO", price: "₹2,499", per: "/mo", feats: ["250 min / month", "5 team seats", "Priority AI"], cta: "Get Pro" },
 ];
 
 const REVIEWS = [
-  { n: "Sneha Reddy", r: "Cut my editing time from 3 hours to 20 minutes. The Thanglish captions are shockingly accurate.", h: "YouTuber · 240K" },
-  { n: "Arjun Menon", r: "The retake remover alone is worth it. It finds every 'wait, let me say that again' and cleans it.", h: "Course creator" },
-  { n: "Kavya Nair", r: "Finally a captioning tool that gets Tamil right. Exports straight to Premiere too.", h: "Reels creator" },
-  { n: "Vishal Kumar", r: "Silence remover turned my rambly 12-min video into a tight 8. My retention jumped.", h: "Tech reviewer" },
+  { n: "Sneha Reddy", r: "Cut my editing time from 3 hours to 20 minutes. And the Thanglish captions are spot on — no fixing spellings by hand anymore.", h: "YouTuber" },
+  { n: "Arjun Menon", r: "The retake remover alone is worth it. It finds every 'wait, let me say that again' and quietly cleans it up.", h: "Course creator" },
+  { n: "Kavya Nair", r: "Finally a tool that gets Tamil right instead of turning it into English mush. Exports straight to Premiere too.", h: "Reels creator" },
+  { n: "Vishal Kumar", r: "It turned my rambly 12-minute video into a tight 8. Retention jumped the same week.", h: "Tech reviewer" },
 ];
 
 const FAQS = [
-  { q: "Do I need to install anything?", a: "No. ceyonai runs entirely in your browser. Upload a video, get captions, and export — no downloads, no plugins." },
-  { q: "Which languages are supported?", a: "Tamil, Thanglish, Telugu, Malayalam, Hindi and English, with transliteration and translation built in." },
-  { q: "What's the difference between silence and retake remover?", a: "Silence remover cuts dead air and long pauses. Retake remover detects repeated takes ('let me say that again') and keeps only your best one." },
-  { q: "Can it export to editors?", a: "Yes — export to Premiere Pro, DaVinci Resolve, After Effects and Final Cut, plus SRT / VTT / TXT." },
-  { q: "Is there a watermark on exports?", a: "No watermark on any plan, including the free tier." },
-  { q: "How accurate are the captions?", a: "Very — ceyonai is tuned specifically for Indian languages and accents, so Tamil and Thanglish come out clean." },
+  { q: "Do I need to install anything?", a: "Nope. ceyonai runs entirely in your browser. Upload a video, get captions, export — no downloads, no plugins, works on any laptop." },
+  { q: "Which languages does it caption?", a: "Tamil, Thanglish, Telugu, Malayalam, Hindi and English — with transliteration and translation built in. Code-switching (Tamil + English in one line) is handled properly." },
+  { q: "How accurate are the Tamil captions really?", a: "That's the whole point of ceyonai. It uses an Indic speech engine tuned for Indian languages and accents, so your words come out written right — not Anglicised guesses you have to retype." },
+  { q: "What's the difference between silence and retake remover?", a: "Silence remover cuts dead air and long pauses. Retake remover spots repeated takes ('let me say that again') and keeps only your best one — then trims the rest automatically." },
+  { q: "Can I take it into my editor?", a: "Yes. Export straight to Premiere Pro, DaVinci Resolve, After Effects and Final Cut, plus SRT / VTT / TXT if you just want the text." },
+  { q: "Is there a watermark?", a: "Never. No watermark on any plan, including the free tier." },
 ];
 
 function VideoBox({ portrait, label }: { portrait?: boolean; label?: string }) {
@@ -78,26 +78,27 @@ export function LandingPage() {
 
       {/* Hero */}
       <section className="lp-hero">
-        <div className="lp-eyebrow">✦ BUILT FOR INDIAN CREATORS</div>
-        <h1 className="lp-hero-title">Skip the boring<br />parts of <span className="grad">editing.</span></h1>
+        <div className="lp-eyebrow">✦ MADE FOR TAMIL &amp; INDIC CREATORS</div>
+        <h1 className="lp-hero-title">Captions that finally<br />get <span className="grad">Tamil.</span></h1>
         <p className="lp-hero-sub">
-          ceyonai removes silences, cuts retakes, and adds beautiful regional-language
-          subtitles — automatically. Tamil, Thanglish &amp; more, in seconds.
+          Upload your video — ceyonai captions it in Tamil, Thanglish or your language,
+          gets the spelling and code-switching right, then trims the silences and retakes.
+          Done in minutes, right in your browser.
         </p>
         <div className="lp-hero-cta">
-          <button className="lp-btn lg" onClick={start}>Start editing free</button>
+          <button className="lp-btn lg" onClick={start}>Start captioning free</button>
           <button className="lp-ghost lg" onClick={() => go("pricing")}>See plans</button>
         </div>
-        <div className="lp-stars">★★★★★ <span>Loved by 2,000+ creators</span></div>
-        <div className="lp-hero-video"><VideoBox label="Watch ceyonai in action" /></div>
+        <div className="lp-stars">★★★★★ <span>Made with Tamil creators, for Tamil creators</span></div>
+        <div className="lp-hero-video"><VideoBox label="See it caption a Tamil clip" /></div>
       </section>
 
       {/* Feature spotlight 1 — captions */}
       <section className="lp-feat" id="features">
         <div className="lp-feat-text">
-          <div className="lp-tag">TEXT ENGINE</div>
-          <h2>Caption it <span className="grad">yours.</span></h2>
-          <p>Add strong regional captions in one tap. Type in Tamil, Thanglish or English — ceyonai keeps the meaning and the vibe.</p>
+          <div className="lp-tag">REGIONAL CAPTIONS</div>
+          <h2>It speaks <span className="grad">your language.</span></h2>
+          <p>Tamil, Thanglish, Telugu, Malayalam, Hindi — ceyonai gets the words, the spellings and the English-Tamil mix right the first time. No more fixing "vanakkam" into something that isn't a word.</p>
           <div className="lp-lang">
             {CAPTION_LANGS.map((l) => (
               <button key={l} className={"lp-chip" + (lang === l ? " on" : "")} onClick={() => setLang(l)}>{l}</button>
@@ -111,8 +112,8 @@ export function LandingPage() {
       <section className="lp-feat reverse">
         <div className="lp-feat-text">
           <div className="lp-tag">RETAKE REMOVER</div>
-          <h2>Only your <span className="grad">best take.</span></h2>
-          <p>Fumbled a line and said it again? ceyonai detects repeated takes and quietly keeps the clean one — so you never scrub the timeline hunting for it.</p>
+          <h2>Keep only your <span className="grad">best take.</span></h2>
+          <p>Fumbled a line and said it again? ceyonai catches the repeated takes and quietly keeps the clean one — so you never scrub the timeline hunting for "the good one."</p>
           <div className="lp-takes">
             <div className="lp-take bad"><span>TAKE 01</span> so guys, welcome back to my chann—</div>
             <div className="lp-take bad"><span>TAKE 02</span> so guys, welcome back to the sh— wait</div>
@@ -126,8 +127,8 @@ export function LandingPage() {
       <section className="lp-feat">
         <div className="lp-feat-text">
           <div className="lp-tag">SILENCE REMOVER</div>
-          <h2>Dead air? <span className="grad">Gone.</span></h2>
-          <p>Those long "uhh… wait" moments that kill your pacing? ceyonai finds every awkward pause and trims it, so your video always moves.</p>
+          <h2>Dead air, <span className="grad">deleted.</span></h2>
+          <p>Every "ummm", every long pause that kills your pacing — trimmed automatically. Your video stays tight, so your viewers stay too.</p>
           <div className="lp-wave">
             <div className="lp-wave-bars">{Array.from({ length: 40 }).map((_, i) => (
               <span key={i} style={{ height: `${20 + Math.abs(Math.sin(i * 0.7)) * 60}%` }} />
@@ -141,8 +142,8 @@ export function LandingPage() {
       {/* Caption styles strip */}
       <section className="lp-styles">
         <div className="lp-tag center">CAPTION STYLES</div>
-        <h2 className="lp-center-h">Every style, <span className="grad">built in.</span></h2>
-        <p className="lp-center-p">Neon, karaoke, bold pop and more — one click and your captions match your channel.</p>
+        <h2 className="lp-center-h">Styles that <span className="grad">stop the scroll.</span></h2>
+        <p className="lp-center-p">Neon, karaoke, bold pop and more — one tap and your captions match your channel, animated word-by-word like the big creators.</p>
         <div className="lp-style-row">
           {STYLES.map((s) => (
             <div className="lp-style-card" key={s}><span className="lp-play sm">▶</span><div>{s}</div></div>
@@ -153,11 +154,11 @@ export function LandingPage() {
       {/* Feature grid */}
       <section className="lp-grid-sec">
         <div className="lp-tag center">MORE FEATURES</div>
-        <h2 className="lp-center-h">Built for <span className="grad">creators.</span></h2>
+        <h2 className="lp-center-h">Everything else you <span className="grad">need.</span></h2>
         <div className="lp-export">
           <div className="lp-export-l">
-            <div className="lp-export-title">Export to editors</div>
-            <div className="lp-export-sub">Send captions and cuts straight into your NLE — no re-work.</div>
+            <div className="lp-export-title">Export to your editor</div>
+            <div className="lp-export-sub">Send captions and cuts straight into your NLE — no retyping, no re-work.</div>
           </div>
           <div className="lp-export-chips">
             {EDITORS.map((e) => <span key={e} className="lp-echip">{e}</span>)}
@@ -177,8 +178,8 @@ export function LandingPage() {
       {/* Pricing */}
       <section className="lp-pricing" id="pricing">
         <div className="lp-tag center">PRICING</div>
-        <h2 className="lp-center-h">Simple plans, <span className="grad">real value.</span></h2>
-        <p className="lp-center-p">Start free. Upgrade when your channel does.</p>
+        <h2 className="lp-center-h">Simple pricing, <span className="grad">no surprises.</span></h2>
+        <p className="lp-center-p">Start free. Upgrade only when your channel grows.</p>
         <div className="lp-price-grid">
           {PLANS.map((p) => (
             <div className={"lp-price-card" + (p.popular ? " popular" : "")} key={p.name}>
@@ -196,7 +197,7 @@ export function LandingPage() {
       {/* Reviews */}
       <section className="lp-reviews" id="reviews">
         <div className="lp-tag center">REVIEWS</div>
-        <h2 className="lp-center-h">They said it, <span className="grad">not us.</span></h2>
+        <h2 className="lp-center-h">Creators are <span className="grad">into it.</span></h2>
         <div className="lp-review-grid">
           {REVIEWS.map((r) => (
             <div className="lp-review" key={r.n}>
@@ -228,13 +229,13 @@ export function LandingPage() {
       <section className="lp-contact" id="contact">
         <div className="lp-tag center">CONTACT</div>
         <h2 className="lp-center-h">Talk to us, <span className="grad">we're human.</span></h2>
-        <p className="lp-center-p">Questions, feedback, or a partnership? Reach out any time.</p>
+        <p className="lp-center-p">Questions, feedback, or a partnership? Reach out any time — we actually reply.</p>
         <a className="lp-btn lg" href="mailto:support@ceyonai.com">Email support@ceyonai.com</a>
       </section>
 
       {/* Final CTA */}
       <section className="lp-final">
-        <h2>Stop losing hours <span className="grad">to editing.</span></h2>
+        <h2>Your next video, <span className="grad">captioned in minutes.</span></h2>
         <button className="lp-btn lg" onClick={start}>Start for free</button>
       </section>
 
@@ -249,7 +250,7 @@ export function LandingPage() {
           <button onClick={() => go("reviews")}>Reviews</button>
           <a href="mailto:support@ceyonai.com">Contact</a>
         </div>
-        <div className="lp-foot-copy">© 2026 ceyonai — AI video editing for Indian creators.</div>
+        <div className="lp-foot-copy">© 2026 ceyonai — AI captions &amp; editing for Indian creators.</div>
       </footer>
     </div>
   );
