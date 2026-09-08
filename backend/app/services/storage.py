@@ -61,7 +61,7 @@ class LocalStorage:
     def path(self, key: str) -> str:
         return os.path.join(self.base, key)
 
-    def url(self, key: str) -> str:
+    def url(self, key: str, expires_in: int = 3600, download_name: str | None = None) -> str:
         return f"/media/{key}"
 
     def delete(self, key: str) -> bool:
@@ -128,7 +128,7 @@ class SupabaseStorage:
             f.write(r.content)
         return local
 
-    def url(self, key: str, expires_in: int = 3600) -> str:
+    def url(self, key: str, expires_in: int = 3600, download_name: str | None = None) -> str:
         with httpx.Client(timeout=30) as c:
             r = c.post(f"{self.base}/storage/v1/object/sign/{self.bucket}/{key}",
                        headers={**self._h, "Content-Type": "application/json"},
@@ -136,7 +136,11 @@ class SupabaseStorage:
         if r.status_code >= 400:
             return ""
         signed = r.json().get("signedURL", "")
-        return f"{self.base}/storage/v1{signed}" if signed else ""
+        base = f"{self.base}/storage/v1{signed}" if signed else ""
+        if base and download_name:
+            from urllib.parse import quote
+            base += ("&" if "?" in base else "?") + "download=" + quote(download_name)
+        return base
 
     def delete(self, key: str) -> bool:
         try:
@@ -179,10 +183,11 @@ class R2Storage:
             self.s3.download_file(self.bucket, key, local)
         return local
 
-    def url(self, key: str, expires_in: int = 3600) -> str:
-        return self.s3.generate_presigned_url(
-            "get_object", Params={"Bucket": self.bucket, "Key": key},
-            ExpiresIn=expires_in)
+    def url(self, key: str, expires_in: int = 3600, download_name: str | None = None) -> str:
+        params = {"Bucket": self.bucket, "Key": key}
+        if download_name:
+            params["ResponseContentDisposition"] = f'attachment; filename="{download_name}"'
+        return self.s3.generate_presigned_url("get_object", Params=params, ExpiresIn=expires_in)
 
     def delete(self, key: str) -> bool:
         try:

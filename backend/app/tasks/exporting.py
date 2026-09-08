@@ -440,13 +440,19 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
         else:
             raise ValueError(f"unsupported export format: {fmt}")
 
+        import re as _re
+        _stem = (project.source_filename or project.name or "ceyonai-export")
+        _stem = _re.sub(r"\.[^.]+$", "", _stem)
+        _stem = _re.sub(r"[^A-Za-z0-9._-]+", "_", _stem).strip("_") or "export"
+        _ext = key.rsplit(".", 1)[-1] if "." in key else fmt
+        _dl = f"ceyonai-{_stem}.{_ext}"
         if export_id:
             exp = db.get(Export, export_id)
             exp.format = fmt
-            exp.url = storage.url(key)
+            exp.url = storage.url(key, download_name=_dl)
             exp.status = "ready"
         else:
-            exp = Export(project_id=project_id, format=fmt, url=storage.url(key), status="ready")
+            exp = Export(project_id=project_id, format=fmt, url=storage.url(key, download_name=_dl), status="ready")
             db.add(exp)
         db.commit()
         return {"export_id": exp.id, "url": exp.url, "format": fmt,
