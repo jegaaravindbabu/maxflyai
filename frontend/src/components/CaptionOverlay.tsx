@@ -34,7 +34,7 @@ export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings }: P
   const animOn = st.anim_enabled !== false;
   const anim: string = animOn && st.anim && st.anim !== "none" ? st.anim : "";
   const wordScope = st.scope === "word";
-  const fillStyle = FILL_STYLES.includes(styleId);
+  const fillStyle = FILL_STYLES.includes(styleId) || styleId.startsWith("word_") || styleId === "anton_gold";
 
   const dyn: React.CSSProperties = {};
   if (st.font && FONT_MAP[st.font]) dyn.fontFamily = FONT_MAP[st.font];

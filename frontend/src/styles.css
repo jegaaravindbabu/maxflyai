@@ -1492,3 +1492,21 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .cap-word_comic .cap-emph { color: #fff; }
 .cap-word_hlbox { font-family: "Montserrat", system-ui, sans-serif; font-weight: 800; color: #fff; }
 .cap-word_hlbox .cap-emph { background: #b15cff; color: #fff; padding: 0 6px; border-radius: 4px; }
+
+/* ===== Word-by-word slight animation: active word pops + highlights ===== */
+.capword { display: inline-block; transition: transform .18s cubic-bezier(.2,1.5,.4,1), color .12s ease; }
+.capword-on { transform: scale(1.18); }
+/* active-word colour per word preset (matches each preset's accent) */
+.cap-word_sunset .capword-on { color: #FF7A1A; }
+.cap-word_outline .capword-on { color: #FFE11A; }
+.cap-word_neon   .capword-on { color: #4CD6FF; text-shadow: 0 0 8px #4CD6FF, 0 0 2px #fff; }
+.cap-word_gold   .capword-on { color: #FFD21E; }
+.cap-word_green  .capword-on { color: #2EE86A; }
+.cap-word_bubble .capword-on { color: #FF4FA3; }
+.cap-word_mono   .capword-on { color: #4CD6FF; }
+.cap-word_purple .capword-on { color: #B15CFF; }
+.cap-anton_gold  .capword-on { color: #FFD21E; }
+.cap-word_marker .capword-on { background: #ffe11a; color: #111; padding: 0 4px; border-radius: 3px; }
+.cap-word_ghost  .capword-on { color: #fff; -webkit-text-stroke: 0; }
+.cap-word_comic  .capword-on { color: #fff; }
+.cap-word_hlbox  .capword-on { background: #b15cff; color: #fff; padding: 0 6px; border-radius: 4px; }
