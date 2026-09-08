@@ -42,7 +42,7 @@ export function SettingsPage() {
   const [sounds, setSounds] = usePref("maxfly:pref:sounds", true);
   const [scopeWarn, setScopeWarn] = usePref("maxfly:pref:scopeWarn", true);
 
-  const mail = email || "guest@maxfly.ai";
+  const mail = email || "guest@ceyonai.com";
   const name = email ? email.split("@")[0].replace(/[._-]+/g, " ") : "Creator";
   const planLabel = me?.label || "Free Plan";
   const since = memberSince();

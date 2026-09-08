@@ -89,7 +89,7 @@ export function RetakeRemover({ projectId, onSeek }: Props) {
   return (
     <div className="rtk">
       <p className="rtk-intro">
-        Fumbled a line and said it again? maxfly finds near-duplicate takes and keeps
+        Fumbled a line and said it again? ceyonai finds near-duplicate takes and keeps
         only your best (last) one. Nothing is deleted — cuts apply at export and can be undone.
       </p>
 

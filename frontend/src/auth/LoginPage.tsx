@@ -62,7 +62,7 @@ export function LoginPage() {
       <div className="auth-left">
         <div className="auth-logo">
           <span className="auth-logo-mark">▶▶</span>
-          <span className="auth-wordmark">maxfly<span>.ai</span></span>
+          <span className="auth-wordmark">ceyon<span>ai</span></span>
         </div>
         <p className="auth-tagline">
           Transform your videos with AI-powered subtitle generation.
@@ -86,7 +86,7 @@ export function LoginPage() {
           <h1 className="auth-welcome">{isIn ? "Welcome Back" : "Create Account"}</h1>
           <p className="auth-welcome-sub">
             {isIn ? "Sign in to continue to " : "Sign up to get started with "}
-            <span className="brand-inline">maxfly<span>.ai</span></span>
+            <span className="brand-inline">ceyon<span>ai</span></span>
           </p>
 
           <button className="auth-google-btn" onClick={google} type="button">

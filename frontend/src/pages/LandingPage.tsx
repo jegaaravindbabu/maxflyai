@@ -28,12 +28,12 @@ const REVIEWS = [
 ];
 
 const FAQS = [
-  { q: "Do I need to install anything?", a: "No. maxfly runs entirely in your browser. Upload a video, get captions, and export — no downloads, no plugins." },
+  { q: "Do I need to install anything?", a: "No. ceyonai runs entirely in your browser. Upload a video, get captions, and export — no downloads, no plugins." },
   { q: "Which languages are supported?", a: "Tamil, Thanglish, Telugu, Malayalam, Hindi and English, with transliteration and translation built in." },
   { q: "What's the difference between silence and retake remover?", a: "Silence remover cuts dead air and long pauses. Retake remover detects repeated takes ('let me say that again') and keeps only your best one." },
   { q: "Can it export to editors?", a: "Yes — export to Premiere Pro, DaVinci Resolve, After Effects and Final Cut, plus SRT / VTT / TXT." },
   { q: "Is there a watermark on exports?", a: "No watermark on any plan, including the free tier." },
-  { q: "How accurate are the captions?", a: "Very — maxfly is tuned specifically for Indian languages and accents, so Tamil and Thanglish come out clean." },
+  { q: "How accurate are the captions?", a: "Very — ceyonai is tuned specifically for Indian languages and accents, so Tamil and Thanglish come out clean." },
 ];
 
 function VideoBox({ portrait, label }: { portrait?: boolean; label?: string }) {
@@ -61,7 +61,7 @@ export function LandingPage() {
         <div className="lp-nav-in">
           <a className="lp-logo" href="#/">
             <span className="lp-logo-mark">▶</span>
-            <span className="lp-logo-name">maxfly<span>.ai</span></span>
+            <span className="lp-logo-name">ceyon<span>ai</span></span>
           </a>
           <nav className="lp-links">
             <button onClick={() => go("features")}>Features</button>
@@ -81,7 +81,7 @@ export function LandingPage() {
         <div className="lp-eyebrow">✦ BUILT FOR INDIAN CREATORS</div>
         <h1 className="lp-hero-title">Skip the boring<br />parts of <span className="grad">editing.</span></h1>
         <p className="lp-hero-sub">
-          maxfly removes silences, cuts retakes, and adds beautiful regional-language
+          ceyonai removes silences, cuts retakes, and adds beautiful regional-language
           subtitles — automatically. Tamil, Thanglish &amp; more, in seconds.
         </p>
         <div className="lp-hero-cta">
@@ -89,7 +89,7 @@ export function LandingPage() {
           <button className="lp-ghost lg" onClick={() => go("pricing")}>See plans</button>
         </div>
         <div className="lp-stars">★★★★★ <span>Loved by 2,000+ creators</span></div>
-        <div className="lp-hero-video"><VideoBox label="Watch maxfly in action" /></div>
+        <div className="lp-hero-video"><VideoBox label="Watch ceyonai in action" /></div>
       </section>
 
       {/* Feature spotlight 1 — captions */}
@@ -97,7 +97,7 @@ export function LandingPage() {
         <div className="lp-feat-text">
           <div className="lp-tag">TEXT ENGINE</div>
           <h2>Caption it <span className="grad">yours.</span></h2>
-          <p>Add strong regional captions in one tap. Type in Tamil, Thanglish or English — maxfly keeps the meaning and the vibe.</p>
+          <p>Add strong regional captions in one tap. Type in Tamil, Thanglish or English — ceyonai keeps the meaning and the vibe.</p>
           <div className="lp-lang">
             {CAPTION_LANGS.map((l) => (
               <button key={l} className={"lp-chip" + (lang === l ? " on" : "")} onClick={() => setLang(l)}>{l}</button>
@@ -112,7 +112,7 @@ export function LandingPage() {
         <div className="lp-feat-text">
           <div className="lp-tag">RETAKE REMOVER</div>
           <h2>Only your <span className="grad">best take.</span></h2>
-          <p>Fumbled a line and said it again? maxfly detects repeated takes and quietly keeps the clean one — so you never scrub the timeline hunting for it.</p>
+          <p>Fumbled a line and said it again? ceyonai detects repeated takes and quietly keeps the clean one — so you never scrub the timeline hunting for it.</p>
           <div className="lp-takes">
             <div className="lp-take bad"><span>TAKE 01</span> so guys, welcome back to my chann—</div>
             <div className="lp-take bad"><span>TAKE 02</span> so guys, welcome back to the sh— wait</div>
@@ -127,7 +127,7 @@ export function LandingPage() {
         <div className="lp-feat-text">
           <div className="lp-tag">SILENCE REMOVER</div>
           <h2>Dead air? <span className="grad">Gone.</span></h2>
-          <p>Those long "uhh… wait" moments that kill your pacing? maxfly finds every awkward pause and trims it, so your video always moves.</p>
+          <p>Those long "uhh… wait" moments that kill your pacing? ceyonai finds every awkward pause and trims it, so your video always moves.</p>
           <div className="lp-wave">
             <div className="lp-wave-bars">{Array.from({ length: 40 }).map((_, i) => (
               <span key={i} style={{ height: `${20 + Math.abs(Math.sin(i * 0.7)) * 60}%` }} />
@@ -229,7 +229,7 @@ export function LandingPage() {
         <div className="lp-tag center">CONTACT</div>
         <h2 className="lp-center-h">Talk to us, <span className="grad">we're human.</span></h2>
         <p className="lp-center-p">Questions, feedback, or a partnership? Reach out any time.</p>
-        <a className="lp-btn lg" href="mailto:support@maxfly.ai">Email support@maxfly.ai</a>
+        <a className="lp-btn lg" href="mailto:support@ceyonai.com">Email support@ceyonai.com</a>
       </section>
 
       {/* Final CTA */}
@@ -241,15 +241,15 @@ export function LandingPage() {
       <footer className="lp-footer">
         <div className="lp-logo">
           <span className="lp-logo-mark">▶</span>
-          <span className="lp-logo-name">maxfly<span>.ai</span></span>
+          <span className="lp-logo-name">ceyon<span>ai</span></span>
         </div>
         <div className="lp-foot-links">
           <button onClick={() => go("features")}>Features</button>
           <button onClick={() => go("pricing")}>Pricing</button>
           <button onClick={() => go("reviews")}>Reviews</button>
-          <a href="mailto:support@maxfly.ai">Contact</a>
+          <a href="mailto:support@ceyonai.com">Contact</a>
         </div>
-        <div className="lp-foot-copy">© 2026 maxfly.ai — AI video editing for Indian creators.</div>
+        <div className="lp-foot-copy">© 2026 ceyonai — AI video editing for Indian creators.</div>
       </footer>
     </div>
   );

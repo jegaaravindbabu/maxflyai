@@ -26,7 +26,7 @@ export function Sidebar({ route, onNewProject }: Props) {
     <aside className="sidebar">
       <div className="sb-logo">
         <div className="mark">▶</div>
-        <div className="name">maxfly<span>.ai</span></div>
+        <div className="name">ceyon<span>ai</span></div>
       </div>
 
       <button className="sb-new" onClick={onNewProject}><span>+ New Project</span></button>
@@ -45,7 +45,7 @@ export function Sidebar({ route, onNewProject }: Props) {
 
       <div className="sb-sub">
         <a className="sb-item"><span className="ic">💬</span><span>Assistants</span></a>
-        <a className="sb-item" href="mailto:support@maxfly.ai"><span className="ic">⚑</span><span>Report a Problem</span></a>
+        <a className="sb-item" href="mailto:support@ceyonai.com"><span className="ic">⚑</span><span>Report a Problem</span></a>
       </div>
 
       <div className="sb-usage">
