@@ -139,7 +139,8 @@ def _ms_to_ass(ms: int) -> str:
 
 
 def _header(p: dict, spacing: float = 0.0,
-            margin_l: int = 80, margin_r: int = 80, margin_v: int = 90) -> str:
+            margin_l: int = 80, margin_r: int = 80, margin_v: int = 90,
+            italic: int = 0, underline: int = 0, alignment: int = 2) -> str:
     return (
         "[Script Info]\n"
         "ScriptType: v4.00+\nPlayResX: 1920\nPlayResY: 1080\nWrapStyle: 2\n\n"
@@ -148,8 +149,8 @@ def _header(p: dict, spacing: float = 0.0,
         "BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, "
         "BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
         f"Style: Default,{p['font']},{p['size']},{p['primary']},{p['secondary']},{p['outline']},"
-        f"{p['back']},{p['bold']},0,0,0,100,100,{spacing:g},0,{p['border_style']},{p['outline_w']},"
-        f"{p['shadow']},2,{margin_l},{margin_r},{margin_v},1\n\n"
+        f"{p['back']},{p['bold']},{italic},{underline},0,100,100,{spacing:g},0,{p['border_style']},{p['outline_w']},"
+        f"{p['shadow']},{alignment},{margin_l},{margin_r},{margin_v},1\n\n"
         "[Events]\n"
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
     )
@@ -286,12 +287,23 @@ def _word_anim_text(text: str, dur_ms: int, anim: str, speed: float = 1.0, emph:
 
 
 def _emphasize(text: str, word: str, accent: str, primary: str,
-               case=None, alpha=None, base_alpha: str = "00") -> str:
-    """Colour a whole-word match (case-insensitive) with the accent, then reset."""
+               case=None, alpha=None, base_alpha: str = "00",
+               big_size=None, big_glow: bool = False, base_size=None) -> str:
+    """Colour a whole-word match (case-insensitive) with the accent, then reset.
+    Optionally bump the emphasized word's size and/or add a glow (reset after)."""
     if not word:
         return text
-    o_extra = "\\1c" + accent + "&" + ("\\alpha&H" + alpha + "&" if alpha else "")
-    c_extra = "\\1c" + primary + "&" + ("\\alpha&H" + base_alpha + "&" if alpha else "")
+    _on = ""
+    _off = ""
+    if big_size and base_size:
+        try:
+            _on += "\\fs" + str(int(float(big_size))); _off += "\\fs" + str(int(base_size))
+        except Exception:
+            pass
+    if big_glow:
+        _on += "\\blur4"; _off += "\\blur0"
+    o_extra = "\\1c" + accent + "&" + ("\\alpha&H" + alpha + "&" if alpha else "") + _on
+    c_extra = "\\1c" + primary + "&" + ("\\alpha&H" + base_alpha + "&" if alpha else "") + _off
     def repl(m):
         return "{" + o_extra + "}" + _case_str(m.group(0), case) + "{" + c_extra + "}"
     try:
@@ -372,6 +384,16 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
     base_alpha = _alpha_hex(op) or "00"
     alpha_tag = ("{\\alpha&H%s&}" % base_alpha) if (op is not None and base_alpha != "00") else ""
     layer = 1 if (st.get("layer") == "front") else 0
+    # HyproAI-parity extras: alignment / italic / underline / background box / emphasized word
+    italic = 1 if st.get("italic") else 0
+    underline = 1 if st.get("underline") else 0
+    alignment = {"left": 1, "center": 2, "right": 3}.get(st.get("align") or "center", 2)
+    if st.get("background"):
+        p["border_style"] = 3
+        p["back"] = "&H80000000"
+    emph_color = _ass_color(st.get("emph_color"))
+    big_size = st.get("big_size")
+    big_glow = bool(st.get("big_glow"))
     # Big word (emphasis) + Top line (first line of a 2-line caption) per-part styling
     big_case = st.get("big_case")
     big_alpha = _alpha_hex(st.get("big_opacity"))
@@ -387,7 +409,7 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
             return t.title()
         return t   # as typed
 
-    lines = [_header(p, spacing, margin_l, margin_r, margin_v)]
+    lines = [_header(p, spacing, margin_l, margin_r, margin_v, italic, underline, alignment)]
     glow_tag = alpha_tag + ("{\\blur3}" if glow else "")
     for c in cues:
         txt = (c.get("translit_text") if use_translit and c.get("translit_text") else c["text"]) or ""
@@ -405,7 +427,7 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
             txt = _first + "\n" + _rest
         dur = max(c["end_ms"] - c["start_ms"], 1)
         em = (st.get("emphasis") or "").strip()
-        emcol = YELLOW if p["primary"] == ACCENT else ACCENT
+        emcol = emph_color or (YELLOW if p["primary"] == ACCENT else ACCENT)
         if anim == "karaoke":
             body = _karaoke_text(txt, dur, em, emcol, p["primary"], big_case, big_alpha, base_alpha)
             prefix = glow_tag + "{\\fad(80,80)}"
@@ -415,7 +437,7 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
         else:
             body = txt.replace("\n", "\\N")
             if em:
-                body = _emphasize(body, em, emcol, p["primary"], big_case, big_alpha, base_alpha)
+                body = _emphasize(body, em, emcol, p["primary"], big_case, big_alpha, base_alpha, big_size=big_size, big_glow=big_glow, base_size=p["size"])
             prefix = glow_tag + _anim_prefix(anim, dur, speed)
         lines.append(
             f"Dialogue: {layer},{_ms_to_ass(c['start_ms'])},{_ms_to_ass(c['end_ms'])},"

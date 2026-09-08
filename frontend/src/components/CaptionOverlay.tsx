@@ -45,6 +45,11 @@ export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings }: P
   if (typeof _lg === "number") dyn.letterSpacing = _lg + "px";
   if (typeof st.word_gap === "number" && st.word_gap) dyn.wordSpacing = st.word_gap + "px";
   if (st.glow) dyn.textShadow = "0 0 10px rgba(255,255,255,.7), 0 0 4px #000";
+  if (st.italic) dyn.fontStyle = "italic";
+  if (st.underline) dyn.textDecoration = "underline";
+  if (st.background) { dyn.background = "rgba(0,0,0,.5)"; dyn.padding = "0.06em 0.28em"; dyn.borderRadius = "6px"; }
+  if (st.align === "left") dyn.textAlign = "left";
+  else if (st.align === "right") dyn.textAlign = "right";
   if (typeof st.opacity === "number" && st.opacity < 100) dyn.opacity = Math.max(0, st.opacity) / 100;
   if (st.case === "upper") dyn.textTransform = "uppercase";
   else if (st.case === "lower") dyn.textTransform = "lowercase";
@@ -58,6 +63,9 @@ export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings }: P
   else if (st.big_case === "lower") emphStyle.textTransform = "lowercase";
   else if (st.big_case === "title") emphStyle.textTransform = "capitalize";
   if (st.highlight_color) emphStyle.color = st.highlight_color;
+  if (st.emph_color) emphStyle.color = st.emph_color;
+  if (st.big_size) { const _bf = Number(st.big_size) / Number(st.size || 64); if (_bf > 0) emphStyle.fontSize = _bf.toFixed(3) + "em"; }
+  if (st.big_glow) emphStyle.textShadow = "0 0 8px currentColor, 0 0 3px #000";
   if (st.highlight_box) { emphStyle.background = st.highlight_box; emphStyle.padding = "0 .1em"; emphStyle.borderRadius = "4px"; }
 
   const speed = Math.max(0.3, st.speed || 1);

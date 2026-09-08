@@ -746,6 +746,12 @@ video.ed-imgovl { object-fit: cover; }
 .ed-sub2-icon.on { background: var(--grad); color: var(--on-accent); border-color: transparent; }
 .ed-style-search { width: 100%; background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
   border-radius: 8px; padding: 9px 12px; font: inherit; margin-bottom: 12px; }
+/* Caption-settings cards (HyproAI-style grouping) */
+.ed-cs-card { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-top: 6px; }
+.ed-cs-card-h { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+.ed-cs-toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; font-size: 13px; color: var(--text); }
+.ed-cs-standalone { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px; margin-top: 12px; }
+.ed-cs-standalone { font-size: 13px; color: var(--text); }
 
 /* ===== Editor · Canvas backdrop ===== */
 .ed-canvas-frame { display: flex; align-items: center; justify-content: center; max-height: 100%; }

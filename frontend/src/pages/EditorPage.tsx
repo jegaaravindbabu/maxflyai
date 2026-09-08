@@ -1835,76 +1835,103 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
           {topTab === "text" && rightTab === "settings" && (
             <div className="ed-rt-body">
-              <div className="np-label">Font</div>
-              <Dropdown value={capSettings.font || ""} searchable placeholder="Search fonts"
-                options={CS_FONTS.map(([v, l]) => ({ value: v, label: l }))}
-                onChange={(v) => saveCapSetting({ font: v })} />
-              <div className="ed-cs-row" style={{ marginTop: 10 }}><span>Weight</span>
-                <select value={String(capSettings.bold ?? 0)} onChange={(e) => saveCapSetting({ bold: +e.target.value })}>
-                  <option value="0">Regular</option>
-                  <option value="-1">SemiBold / Bold</option>
-                </select>
+              {/* ---- TEXT ---- */}
+              <div className="ed-cs-card">
+                <div className="ed-cs-card-h">Text</div>
+                <div className="np-label">Font</div>
+                <Dropdown value={capSettings.font || ""} searchable placeholder="Search fonts"
+                  options={CS_FONTS.map(([v, l]) => ({ value: v, label: l }))}
+                  onChange={(v) => saveCapSetting({ font: v })} />
+                <div className="ed-cs-slider" style={{ marginTop: 12 }}>
+                  <div className="ed-cs-slabel"><span>Size</span><span>{capSettings.size ?? 64}</span></div>
+                  <input type="range" min={24} max={200} step={1} value={capSettings.size ?? 64}
+                    onChange={(e) => setCapSettings((pr) => ({ ...pr, size: +e.target.value }))}
+                    onMouseUp={(e) => saveCapSetting({ size: +(e.target as HTMLInputElement).value })} />
+                </div>
+                <div className="ed-cs-row" style={{ marginTop: 12 }}><span>Weight</span>
+                  <select value={String(capSettings.bold ?? 0)} onChange={(e) => saveCapSetting({ bold: +e.target.value })}>
+                    <option value="0">Regular</option>
+                    <option value="-1">Bold</option>
+                  </select>
+                </div>
+                <div className="ed-cs-toggle-row"><span>Italic</span>
+                  <label className="ed-switch">
+                    <input type="checkbox" checked={!!capSettings.italic} onChange={(e) => saveCapSetting({ italic: e.target.checked })} />
+                    <span className="ed-switch-track" />
+                  </label>
+                </div>
+                <div className="ed-cs-toggle-row"><span>Underline</span>
+                  <label className="ed-switch">
+                    <input type="checkbox" checked={!!capSettings.underline} onChange={(e) => saveCapSetting({ underline: e.target.checked })} />
+                    <span className="ed-switch-track" />
+                  </label>
+                </div>
+                <div className="ed-cs-row" style={{ marginTop: 12 }}><span>Colour</span>
+                  <label className="ed-color">
+                    <input type="color" value={capSettings.text_color || "#ffffff"} onChange={(e) => saveCapSetting({ text_color: e.target.value })} />
+                    <span>{(capSettings.text_color || "#ffffff").toUpperCase()}</span>
+                  </label>
+                </div>
+                <div className="ed-cs-row" style={{ marginTop: 12 }}><span>Align</span>
+                  <select value={capSettings.align || "center"} onChange={(e) => saveCapSetting({ align: e.target.value })}>
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                  </select>
+                </div>
+                <div className="ed-cs-row" style={{ marginTop: 12 }}><span>Case</span>
+                  <select value={capSettings.case || "as_typed"} onChange={(e) => saveCapSetting({ case: e.target.value })}>
+                    <option value="as_typed">As typed</option>
+                    <option value="upper">UPPERCASE</option>
+                    <option value="lower">lowercase</option>
+                    <option value="title">Title Case</option>
+                  </select>
+                </div>
+                <div className="ed-cs-slider" style={{ marginTop: 12 }}>
+                  <div className="ed-cs-slabel"><span>Opacity</span><span>{capSettings.opacity ?? 100}%</span></div>
+                  <input type="range" min={0} max={100} step={1} value={capSettings.opacity ?? 100}
+                    onChange={(e) => setCapSettings((pr) => ({ ...pr, opacity: +e.target.value }))}
+                    onMouseUp={(e) => saveCapSetting({ opacity: +(e.target as HTMLInputElement).value })} />
+                </div>
               </div>
 
-              <div className="ed-seg-row" style={{ marginTop: 16 }}>
-                {([["top", "Top line"], ["big", "Big word"], ["bottom", "Bottom line"]] as [string, string][]).map(([v, l]) => (
-                  <div key={v} className={"ed-seg-btn" + (capPart === v ? " active" : "")} onClick={() => setCapPart(v as any)}>{l}</div>
-                ))}
-              </div>
-              <div className="np-sub" style={{ marginTop: 6 }}>
-                {capPart === "big" ? "Styles the emphasized / highlighted word."
-                  : capPart === "top" ? "Styles the top line of two-line captions."
-                  : "Styles the main caption line — this is what most captions use."}
-              </div>
-
-              <div className="ed-cs-row" style={{ marginTop: 12 }}><span>Case</span>
-                <select value={pget("case", "as_typed")} onChange={(e) => pset("case", e.target.value)}>
-                  <option value="as_typed">As typed</option>
-                  <option value="upper">UPPERCASE</option>
-                  <option value="lower">lowercase</option>
-                  <option value="title">Title Case</option>
-                </select>
-              </div>
-              <div className="ed-cs-slider" style={{ marginTop: 12 }}>
-                <div className="ed-cs-slabel"><span>Opacity</span><span>{pget("opacity", 100)}%</span></div>
-                <input type="range" min={0} max={100} step={1} value={pget("opacity", 100)}
-                  onChange={(e) => pset("opacity", +e.target.value)} />
+              {/* ---- Background ---- */}
+              <div className="ed-cs-toggle-row ed-cs-standalone"><span>Background</span>
+                <label className="ed-switch">
+                  <input type="checkbox" checked={!!capSettings.background} onChange={(e) => saveCapSetting({ background: e.target.checked })} />
+                  <span className="ed-switch-track" />
+                </label>
               </div>
 
               <div className="ed-cs-divider" />
               <div className="ed-anim-lbl">POSITION</div>
               <div className="ed-cs-slider">
-                <div className="ed-cs-slabel"><span>Up / down</span><span>{pget("pos_v", 0)}px</span></div>
-                <input type="range" min={-200} max={200} step={2} value={pget("pos_v", 0)}
-                  onChange={(e) => pset("pos_v", +e.target.value)} />
+                <div className="ed-cs-slabel"><span>Up / down</span><span>{capSettings.pos_v ?? 0}px</span></div>
+                <input type="range" min={-200} max={200} step={2} value={capSettings.pos_v ?? 0}
+                  onChange={(e) => setCapSettings((pr) => ({ ...pr, pos_v: +e.target.value }))}
+                  onMouseUp={(e) => saveCapSetting({ pos_v: +(e.target as HTMLInputElement).value })} />
               </div>
               <div className="ed-cs-slider">
-                <div className="ed-cs-slabel"><span>Left / right</span><span>{pget("pos_h", 0)}px</span></div>
-                <input type="range" min={-200} max={200} step={2} value={pget("pos_h", 0)}
-                  onChange={(e) => pset("pos_h", +e.target.value)} />
+                <div className="ed-cs-slabel"><span>Left / right</span><span>{capSettings.pos_h ?? 0}px</span></div>
+                <input type="range" min={-200} max={200} step={2} value={capSettings.pos_h ?? 0}
+                  onChange={(e) => setCapSettings((pr) => ({ ...pr, pos_h: +e.target.value }))}
+                  onMouseUp={(e) => saveCapSetting({ pos_h: +(e.target as HTMLInputElement).value })} />
               </div>
               <div className="ed-cs-slider">
-                <div className="ed-cs-slabel"><span>Letter gap</span><span>{pget("letter_gap", 0)}px</span></div>
-                <input type="range" min={-6} max={30} step={0.5} value={pget("letter_gap", 0)}
-                  onChange={(e) => pset("letter_gap", +e.target.value)} />
+                <div className="ed-cs-slabel"><span>Letter gap</span><span>{capSettings.letter_gap ?? 0}px</span></div>
+                <input type="range" min={-6} max={30} step={0.5} value={capSettings.letter_gap ?? 0}
+                  onChange={(e) => setCapSettings((pr) => ({ ...pr, letter_gap: +e.target.value }))}
+                  onMouseUp={(e) => saveCapSetting({ letter_gap: +(e.target as HTMLInputElement).value })} />
               </div>
               <div className="ed-cs-slider">
-                <div className="ed-cs-slabel"><span>Word gap</span><span>{pget("word_gap", 0)}px</span></div>
-                <input type="range" min={0} max={40} step={1} value={pget("word_gap", 0)}
-                  onChange={(e) => pset("word_gap", +e.target.value)} />
-              </div>
-
-              <div className="ed-cs-row" style={{ marginTop: 14 }}><span>Layer</span>
-                <div className="ed-seg-row" style={{ maxWidth: 160 }}>
-                  {([["front", "Front"], ["back", "Back"]] as [string, string][]).map(([v, l]) => (
-                    <div key={v} className={"ed-seg-btn" + ((capSettings.layer || "front") === v ? " active" : "")}
-                      onClick={() => saveCapSetting({ layer: v })}>{l}</div>
-                  ))}
-                </div>
+                <div className="ed-cs-slabel"><span>Word gap</span><span>{capSettings.word_gap ?? 0}px</span></div>
+                <input type="range" min={0} max={40} step={1} value={capSettings.word_gap ?? 0}
+                  onChange={(e) => setCapSettings((pr) => ({ ...pr, word_gap: +e.target.value }))}
+                  onMouseUp={(e) => saveCapSetting({ word_gap: +(e.target as HTMLInputElement).value })} />
               </div>
 
               <div className="ed-cs-divider" />
-              <div className="ed-anim-lbl">TEXT EFFECTS</div>
+              <div className="ed-anim-lbl">EFFECTS</div>
               <div className="ed-anim-toggle">
                 <div>
                   <div className="ed-anim-title">Outline</div>
@@ -1949,6 +1976,32 @@ export function EditorPage({ projectId }: { projectId: string }) {
                     onChange={(e) => saveCapSetting({ glow: e.target.checked })} />
                   <span className="ed-switch-track" />
                 </label>
+              </div>
+
+              <div className="ed-cs-divider" />
+              <div className="ed-cs-card">
+                <div className="ed-cs-card-h">Emphasized word</div>
+                <div className="np-sub" style={{ marginTop: -2, marginBottom: 8 }}>How the highlighted word looks. Type the word to emphasize.</div>
+                <input className="ed-style-search" style={{ marginBottom: 12 }} placeholder="Word to emphasize (e.g. free)"
+                  value={capSettings.emphasis || ""} onChange={(e) => saveCapSetting({ emphasis: e.target.value })} />
+                <div className="ed-cs-row"><span>Colour</span>
+                  <label className="ed-color">
+                    <input type="color" value={capSettings.emph_color || "#ff6900"} onChange={(e) => saveCapSetting({ emph_color: e.target.value })} />
+                    <span>{(capSettings.emph_color || "#FF6900").toUpperCase()}</span>
+                  </label>
+                </div>
+                <div className="ed-cs-slider" style={{ marginTop: 12 }}>
+                  <div className="ed-cs-slabel"><span>Size</span><span>{capSettings.big_size ?? (capSettings.size ?? 64)}</span></div>
+                  <input type="range" min={24} max={220} step={1} value={capSettings.big_size ?? (capSettings.size ?? 64)}
+                    onChange={(e) => setCapSettings((pr) => ({ ...pr, big_size: +e.target.value }))}
+                    onMouseUp={(e) => saveCapSetting({ big_size: +(e.target as HTMLInputElement).value })} />
+                </div>
+                <div className="ed-cs-toggle-row"><span>Glow</span>
+                  <label className="ed-switch">
+                    <input type="checkbox" checked={!!capSettings.big_glow} onChange={(e) => saveCapSetting({ big_glow: e.target.checked })} />
+                    <span className="ed-switch-track" />
+                  </label>
+                </div>
               </div>
 
               <div className="ed-cs-divider" />
