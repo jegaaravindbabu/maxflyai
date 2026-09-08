@@ -234,6 +234,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [busy, setBusy] = useState(false);
   const [curMs, setCurMs] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [previewZoom, setPreviewZoom] = useState(1);
+  const [safeZone, setSafeZone] = useState(false);
   const [exports, setExports] = useState<{ fmt: string; url?: string; status: string; error?: string }[]>([]);
   const [expRes, setExpRes] = useState("auto");   // export resolution: auto|1080|720|480
   const [nleOpen, setNleOpen] = useState(false);  // "Export for Editor" section collapsed by default
@@ -1508,7 +1510,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 background: canvas.bg_type === "image" && canvas.image_url ? `center/cover no-repeat url("${canvas.image_url}")`
                   : canvas.bg_type === "blur" ? "#0a0c13" : (canvas.color || "#000000"),
               } : undefined}>
-            <VideoPreview ref={videoRef} src={mediaSrc} videoStyle={videoFxStyle}
+            <VideoPreview ref={videoRef} src={mediaSrc} videoStyle={videoFxStyle} zoom={previewZoom} safeZone={safeZone} onSurfaceClick={togglePlay}
               frameOverlay={!isHidden("captions") && movedWords.length > 0 ? (
                 <>
                   {movedWords.map(({ i, w, wd }) => (
@@ -1551,11 +1553,40 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 ))}
               </>} />
             </div>
+            {!playing && (
+              <button className="ed-mon-play" onClick={togglePlay} aria-label="Play">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+              </button>
+            )}
+            <div className="ed-mon-tools">
+              <button className={"ed-mon-btn" + (safeZone ? " on" : "")} title="Safe zone guide" onClick={() => setSafeZone((v) => !v)}>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2}><rect x="3" y="3" width="18" height="18" rx="2" /><rect x="7" y="7" width="10" height="10" rx="1" strokeDasharray="2 2" /></svg>
+              </button>
+              <button className="ed-mon-btn" title="Zoom out" onClick={() => setPreviewZoom((z) => Math.max(0.25, +(z - 0.25).toFixed(2)))}>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="8" y1="11" x2="14" y2="11" /></svg>
+              </button>
+              <button className="ed-mon-zoomlbl" title="Reset zoom" onClick={() => setPreviewZoom(1)}>{Math.round(previewZoom * 100)}%</button>
+              <button className="ed-mon-btn" title="Zoom in" onClick={() => setPreviewZoom((z) => Math.min(3, +(z + 0.25).toFixed(2)))}>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="11" y1="8" x2="11" y2="14" /><line x1="8" y1="11" x2="14" y2="11" /></svg>
+              </button>
+              <button className="ed-mon-btn" title="Fullscreen" onClick={toggleFullscreen}>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" /></svg>
+              </button>
+            </div>
           </div>
-          <div className="ed-zoombar">
-            <span className="muted">{fmtT(curMs)} / {fmtT(dur)}</span>
-            <span className="spacer" />
-            <span className="muted">100%</span>
+          <div className="ed-mon-bar">
+            <button className="ed-mon-tr" title="Previous caption" onClick={prevCap}>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M6 6h2v12H6zM20 6v12l-9-6z" /></svg>
+            </button>
+            <button className="ed-mon-tr ed-mon-tr-main" title={playing ? "Pause" : "Play"} onClick={togglePlay}>
+              {playing
+                ? <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg>
+                : <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>}
+            </button>
+            <button className="ed-mon-tr" title="Next caption" onClick={nextCap}>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M16 6h2v12h-2zM4 6l9 6-9 6z" /></svg>
+            </button>
+            <span className="ed-mon-time">{fmtT(curMs)} / {fmtT(dur)}</span>
           </div>
         </div>
 
