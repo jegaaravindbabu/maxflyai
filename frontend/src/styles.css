@@ -51,7 +51,7 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
 /* editor */
 .editor { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
 .preview-wrap { position: relative; background: black; border-radius: 10px; overflow: hidden; }
-.preview-wrap video { width: 100%; height: 100%; object-fit: contain; display: block; }
+.preview-wrap video { width: 100%; height: 100%; object-fit: contain; display: block; cursor: pointer; }
 .caption-overlay { position: absolute; left: 0; right: 0; bottom: 7%;
   text-align: center; pointer-events: none; }
 .caption-overlay span { display: inline-block; background: rgba(0,0,0,.55);
@@ -479,8 +479,6 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
 .ed-safezone-tip { display: none; }
 .ed-stage .preview-wrap { height: 100%; max-height: min(100%, 62vh); max-width: 100%;
   aspect-ratio: var(--v-aspect, 9 / 16); margin: auto; }
-.pv-scale { position: absolute; inset: 0; transform-origin: center center; }
-.pv-scale video { width: 100%; height: 100%; object-fit: contain; display: block; cursor: pointer; }
 .ed-zoombar { width: 100%; display: flex; align-items: center; gap: 12px; font-size: 12px;
   background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; }
 

@@ -21,23 +21,21 @@ export const VideoPreview = forwardRef<HTMLVideoElement, Props>(
         wrapRef.current.style.setProperty("--v-aspect", `${v.videoWidth} / ${v.videoHeight}`);
       }
     };
-    const z = zoom && zoom !== 1 ? { transform: `scale(${zoom})`, transformOrigin: "center center" } : undefined;
+    // Zoom scales the video + composited overlays together, keeping them aligned.
+    // The <video> stays a normal in-flow child so the frame always renders.
+    const zt: React.CSSProperties | undefined =
+      zoom && zoom !== 1 ? { transform: `scale(${zoom})`, transformOrigin: "center center" } : undefined;
     return (
       <div className="preview-wrap" ref={wrapRef}>
-        {/* scaled group: video + composited overlays (zoom affects only this) */}
-        <div className="pv-scale" style={z}>
-          <video ref={ref} src={src} style={videoStyle} onLoadedMetadata={onMeta} playsInline
-            onClick={() => onSurfaceClick && onSurfaceClick()} />
-          {overlay && <div className="caption-overlay">{overlay}</div>}
-          {frameOverlay && <div className="ed-frame-layer">{frameOverlay}</div>}
-          {safeZone && (
-            <div className="ed-safezone" aria-hidden>
-              <div className="ed-safezone-inner" />
-              <span className="ed-safezone-tip">Danger zone — captions &amp; app buttons can cover your video near the edges</span>
-            </div>
-          )}
-        </div>
-        {/* unscaled controls anchored to the video frame */}
+        <video ref={ref} src={src} style={{ ...(videoStyle || {}), ...(zt || {}) }}
+          onLoadedMetadata={onMeta} playsInline onClick={() => onSurfaceClick && onSurfaceClick()} />
+        {overlay && <div className="caption-overlay" style={zt}>{overlay}</div>}
+        {frameOverlay && <div className="ed-frame-layer" style={zt}>{frameOverlay}</div>}
+        {safeZone && (
+          <div className="ed-safezone" aria-hidden>
+            <div className="ed-safezone-inner" />
+          </div>
+        )}
         {controls}
       </div>
     );
