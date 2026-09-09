@@ -236,6 +236,13 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [playing, setPlaying] = useState(false);
   const [previewZoom, setPreviewZoom] = useState(1);
   const [safeZone, setSafeZone] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportText, setReportText] = useState("");
+  function sendReport() {
+    const body = encodeURIComponent(reportText.trim() + "\n\n— Project: " + (proj?.name || "") + " (" + projectId + ")");
+    window.open("mailto:aravindbabu6969@gmail.com?subject=" + encodeURIComponent("ceyonai report") + "&body=" + body, "_blank");
+    setReportOpen(false); setReportText("");
+  }
   const [exports, setExports] = useState<{ fmt: string; url?: string; status: string; error?: string }[]>([]);
   const [expRes, setExpRes] = useState("auto");   // export resolution: auto|1080|720|480
   const [nleOpen, setNleOpen] = useState(false);  // "Export for Editor" section collapsed by default
@@ -982,28 +989,46 @@ export function EditorPage({ projectId }: { projectId: string }) {
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M9.6 9.2a2.4 2.4 0 1 1 3.2 2.2c-.6.3-.9.8-.9 1.4v.3" /><path d="M12 17h0" /></svg>
             <span>How it works</span>
           </button>
-          <button className="ed-hdr-pill ed-hdr-report" title="Report an issue"
-            onClick={() => window.open("mailto:aravindbabu6969@gmail.com?subject=ceyonai%20report", "_blank")}>
+          <button className="ed-hdr-pill ed-hdr-report" title="Report an issue" onClick={() => setReportOpen(true)}>
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M4 21V4M4 4h13l-2 4 2 4H4" /></svg>
             <span>Report</span>
           </button>
           <div className="ed-hdr-meta">
-            <span className="ed-hdr-dur"><i /> {(dur / 60000).toFixed(1)} min <span className="ed-hdr-track" /></span>
-            {proj.size_bytes ? (
-              <span className="ed-hdr-size">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round"><rect x="3" y="4" width="18" height="7" rx="1.5" /><rect x="3" y="13" width="18" height="7" rx="1.5" /><path d="M7 7.5h0M7 16.5h0" /></svg>
-                {Math.max(1, Math.round(proj.size_bytes / 1048576))} MB
-              </span>
-            ) : null}
+            <span className="ed-hdr-dur" title={`${(dur / 60000).toFixed(1)} of 5 minutes`}>
+              <i /> {(dur / 60000).toFixed(1)} min
+              <span className="ed-hdr-track" style={{ background: `linear-gradient(90deg, var(--accent) ${Math.min(100, (dur / 60000) / 5 * 100)}%, var(--border) ${Math.min(100, (dur / 60000) / 5 * 100)}%)` }} />
+            </span>
+            <span className="ed-hdr-size" title={`${proj.size_bytes ? Math.max(1, Math.round(proj.size_bytes / 1048576)) : 0} MB of 5.0 GB storage`}>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round"><rect x="3" y="4" width="18" height="7" rx="1.5" /><rect x="3" y="13" width="18" height="7" rx="1.5" /><path d="M7 7.5h0M7 16.5h0" /></svg>
+              {proj.size_bytes ? Math.max(1, Math.round(proj.size_bytes / 1048576)) : 0} MB / 5.0 GB
+            </span>
           </div>
           <div className="ed-export-wrap">
             <button className="ed-export" onClick={() => setExpOpen((v) => !v)}>
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12M8 11l4 4 4-4M4 21h16" /></svg>
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v10" /><path d="M8 9l4 4 4-4" /><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" /></svg>
               Export
             </button>
           </div>
         </div>
       </div>
+
+      {reportOpen && (
+        <div className="ed-modal-back" onClick={() => setReportOpen(false)}>
+          <div className="ed-report" onClick={(e) => e.stopPropagation()}>
+            <div className="ed-report-h">
+              <span>Report an issue</span>
+              <button className="ed-report-x" onClick={() => setReportOpen(false)}>×</button>
+            </div>
+            <p className="np-sub" style={{ margin: "0 0 12px" }}>Tell us what went wrong and we'll take a look.</p>
+            <textarea className="ed-report-ta" value={reportText} onChange={(e) => setReportText(e.target.value)}
+              placeholder="Describe the issue — what happened, what you expected…" />
+            <div className="ed-report-f">
+              <button className="secondary" onClick={() => setReportOpen(false)}>Cancel</button>
+              <button className="ed-report-send" disabled={!reportText.trim()} onClick={sendReport}>Send report</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {proj.error && <div className="ed-err-banner">Error: {proj.error}</div>}
 
