@@ -1613,7 +1613,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 background: canvas.bg_type === "image" && canvas.image_url ? `center/cover no-repeat url("${canvas.image_url}")`
                   : canvas.bg_type === "blur" ? "#0a0c13" : (canvas.color || "#000000"),
               } : undefined}>
-            <VideoPreview ref={videoRef} src={mediaSrc} videoStyle={videoFxStyle} zoom={previewZoom} safeZone={safeZone} onSurfaceClick={() => { setClipSelected(true); setTopTab("video"); }}
+            <VideoPreview ref={videoRef} src={mediaSrc} videoStyle={videoFxStyle} zoom={previewZoom} safeZone={safeZone} onSurfaceClick={() => { const next = !clipSelected; setClipSelected(next); if (next) setTopTab("video"); }}
               enhancedSrc={enhancedUrl || undefined} enhanceOn={!!enhancedUrl}
               cropOverlay={topTab === "video" && videofx.cropOpen ? (
                 <div className="ed-crop-layer">
