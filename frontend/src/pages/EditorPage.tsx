@@ -167,17 +167,21 @@ const IcFilm2 = tsvg(<><rect x="3" y="4" width="18" height="16" rx="2" /><path d
 // Rail order mirrors ceyonai: Uploads, Texts, Videos, Filters, Captions, Auto Zoom, Images
 // (ceyonai uploads via the New Project modal, so there is no separate Uploads panel;
 //  "Videos" maps to B-roll clips. AI Tools / Canvas / Export are ceyonai extras.)
+const rsvg = (children: React.ReactNode) => (
+  <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor"
+    strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
+);
 const RAILS = [
-  { id: "uploads", icon: "⤒", label: "Uploads" },
-  { id: "texts", icon: "T", label: "Texts" },
-  { id: "broll", icon: "🎞", label: "Videos" },
-  { id: "filters", icon: "◑", label: "Filters" },
-  { id: "captions", icon: "▤", label: "Captions" },
-  { id: "zoom", icon: "⊕", label: "Auto Zoom" },
-  { id: "images", icon: "🖼", label: "Images" },
-  { id: "tools", icon: "✨", label: "AI Tools" },
-  { id: "retake", icon: "↺", label: "Retake" },
-  { id: "canvas", icon: "▭", label: "Canvas" },
+  { id: "uploads", icon: rsvg(<><path d="M12 16V5" /><path d="m7 9 5-4 5 4" /><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" /></>), label: "Uploads" },
+  { id: "texts", icon: rsvg(<><path d="M5 7V5h14v2" /><path d="M12 5v14" /><path d="M9 19h6" /></>), label: "Texts" },
+  { id: "broll", icon: rsvg(<><rect x="2.5" y="6" width="13" height="12" rx="2.5" /><path d="m15.5 10.5 6-3.5v10l-6-3.5" /></>), label: "Videos" },
+  { id: "filters", icon: rsvg(<><path d="M10 4l1.7 4.3L16 10l-4.3 1.7L10 16l-1.7-4.3L4 10l4.3-1.7z" /><path d="M18 13l.9 2.1L21 16l-2.1.9L18 19l-.9-2.1L15 16l2.1-.9z" /></>), label: "Filters" },
+  { id: "captions", icon: rsvg(<><rect x="3" y="5" width="18" height="14" rx="3" /><path d="M7 13h4M13 13h4M7 16h7" /></>), label: "Captions" },
+  { id: "zoom", icon: rsvg(<><circle cx="12" cy="12" r="8" /><path d="M12 8.5v7M8.5 12h7" /></>), label: "Auto Zoom" },
+  { id: "images", icon: rsvg(<><rect x="3" y="4.5" width="18" height="15" rx="3" /><circle cx="8.8" cy="10" r="1.6" /><path d="M21 16.5 15.5 11 6.5 19.5" /></>), label: "Images" },
+  { id: "tools", icon: rsvg(<><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z" /><path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" /></>), label: "AI Tools" },
+  { id: "retake", icon: rsvg(<><path d="M3 12a9 9 0 1 0 2.6-6.4L3 8" /><path d="M3 4v4h4" /></>), label: "Retake" },
+  { id: "canvas", icon: rsvg(<><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" /><rect x="7" y="8" width="10" height="8" rx="1.5" /></>), label: "Canvas" },
 ];
 
 function fmtT(ms: number) {
