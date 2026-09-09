@@ -363,11 +363,34 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [mediaEl, setMediaEl] = useState<HTMLMediaElement | null>(null);
 
-  const load = useCallback(() => {
+  const [loadTry, setLoadTry] = useState(0);
+  const [loadDiag, setLoadDiag] = useState("");
+  const load = useCallback(async (attempt = 0): Promise<void> => {
     setLoadErr(null);
-    return api.getProject(projectId)
-      .then((p) => { setProj(p); setLoadErr(null); })
-      .catch((e) => setLoadErr(String(e?.message || e || "Failed to load project")));
+    if (!attempt) { setLoadTry(0); setLoadDiag(""); }
+    try {
+      const p = await api.getProject(projectId);
+      setProj(p); setLoadErr(null); setLoadTry(0);
+    } catch (e: any) {
+      const msg = String(e?.message || e || "Failed to load project");
+      const netFail = /failed to fetch|networkerror|load failed/i.test(msg);
+      if (netFail && typeof attempt === "number" && attempt < 4) {
+        // the server may be waking from sleep — retry quietly with backoff
+        setLoadTry(attempt + 1);
+        await new Promise((r) => setTimeout(r, 2500 + attempt * 2500));
+        return load(attempt + 1);
+      }
+      setLoadErr(msg);
+      setLoadTry(0);
+      if (netFail) {
+        try {
+          await api.captionStyles();
+          setLoadDiag("The ceyonai server IS reachable from this browser, but the project request was blocked. A browser extension (ad-blocker or antivirus shield) is most likely blocking it — try an Incognito window; if it loads there, allow maxfly-api.onrender.com in that extension.");
+        } catch {
+          setLoadDiag("This browser can't reach the ceyonai server at all. That's usually an ad-blocker / antivirus extension or a network filter blocking maxfly-api.onrender.com. Try an Incognito window (extensions are off there) — if it loads, allow the site in your extension.");
+        }
+      }
+    }
   }, [projectId]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => { api.captionStyles().then((r) => setStyles(r.styles)).catch(() => {}); }, []);
@@ -499,7 +522,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
           <div style={{ fontWeight: 700 }}>Couldn't load this project</div>
           <div className="muted" style={{ maxWidth: 460, fontSize: 13 }}>
             {is401 ? "Your session may have expired. Please sign in again."
-              : "Something went wrong loading the editor. Check your connection and retry."}
+              : (loadDiag || "Something went wrong loading the editor. Check your connection and retry.")}
           </div>
           <div className="muted" style={{ fontSize: 11, opacity: .6 }}>{loadErr}</div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -509,7 +532,12 @@ export function EditorPage({ projectId }: { projectId: string }) {
         </div>
       );
     }
-    return <div className="ed-loading muted">Loading editor…</div>;
+    return (
+      <div className="ed-loading muted" style={{ flexDirection: "column", gap: 10, textAlign: "center" }}>
+        <div>{loadTry > 0 ? "Waking the ceyonai server…" : "Loading editor…"}</div>
+        {loadTry > 0 && <div style={{ fontSize: 12, opacity: .65 }}>The server naps when idle — retrying automatically (attempt {loadTry + 1} of 5)</div>}
+      </div>
+    );
   }
 
   const dur = proj.duration_ms || 1;
