@@ -47,67 +47,67 @@ export const api = {
   },
 
   async listProjects() {
-    return j<Project[]>(await afetch(`${BASE}/api/projects`));
+    return j<Project[]>(await afetch(`${BASE}/api/hub`));
   },
 
   async renameProject(id: string, name: string) {
-    return j<Project>(await afetch(`${BASE}/api/projects/${id}`, {
+    return j<Project>(await afetch(`${BASE}/api/hub/${id}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
     }));
   },
 
   async deleteProject(id: string) {
-    return j<{ ok: boolean }>(await afetch(`${BASE}/api/projects/${id}`, { method: "DELETE" }));
+    return j<{ ok: boolean }>(await afetch(`${BASE}/api/hub/${id}`, { method: "DELETE" }));
   },
 
   async duplicateProject(id: string) {
-    return j<Project>(await afetch(`${BASE}/api/projects/${id}/duplicate`, { method: "POST" }));
+    return j<Project>(await afetch(`${BASE}/api/hub/${id}/duplicate`, { method: "POST" }));
   },
 
   async addOverlay(id: string, body: Partial<Overlay>) {
-    return j<Overlay>(await afetch(`${BASE}/api/projects/${id}/overlays`, {
+    return j<Overlay>(await afetch(`${BASE}/api/hub/${id}/overlays`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }));
   },
 
   async updateOverlay(id: string, overlayId: string, body: Partial<Overlay>) {
-    return j<Overlay>(await afetch(`${BASE}/api/projects/${id}/overlays/${overlayId}`, {
+    return j<Overlay>(await afetch(`${BASE}/api/hub/${id}/overlays/${overlayId}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }));
   },
 
   async deleteOverlay(id: string, overlayId: string) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/overlays/${overlayId}`, { method: "DELETE" }));
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/overlays/${overlayId}`, { method: "DELETE" }));
   },
 
   async listAutozoom(id: string) {
     return j<{ id: string; enabled: boolean; start_ms: number; end_ms: number; scale: number }[]>(
-      await afetch(`${BASE}/api/projects/${id}/autozoom`));
+      await afetch(`${BASE}/api/hub/${id}/autozoom`));
   },
 
   async generateAutozoom(id: string, scale: number) {
-    return j<{ count: number; zooms: any[] }>(await afetch(`${BASE}/api/projects/${id}/autozoom/generate`, {
+    return j<{ count: number; zooms: any[] }>(await afetch(`${BASE}/api/hub/${id}/autozoom/generate`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ scale }),
     }));
   },
 
   async clearAutozoom(id: string) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/autozoom`, { method: "DELETE" }));
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/autozoom`, { method: "DELETE" }));
   },
 
   async addZoom(id: string, start_ms: number, end_ms: number, scale: number) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/edits`, {
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/edits`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "zoom", payload_json: { start_ms, end_ms, scale }, enabled: true }),
     }));
   },
 
   async deleteEdit(id: string, editId: string) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/edits/${editId}`, { method: "DELETE" }));
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/edits/${editId}`, { method: "DELETE" }));
   },
 
   async filterPresets() {
@@ -116,10 +116,10 @@ export const api = {
   },
   async getFilter(id: string) {
     return j<{ name: string; brightness: number; contrast: number;
-      saturation: number; warmth: number }>(await afetch(`${BASE}/api/projects/${id}/filter`));
+      saturation: number; warmth: number }>(await afetch(`${BASE}/api/hub/${id}/filter`));
   },
   async setFilter(id: string, name: string, adjust?: { brightness?: number; contrast?: number; saturation?: number; warmth?: number }) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/filter`, {
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/filter`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, ...(adjust || {}) }),
     }));
@@ -128,22 +128,22 @@ export const api = {
   async listFilterLayers(id: string) {
     return j<{ layers: { id: string; name: string; brightness: number; contrast: number;
       saturation: number; warmth: number; start_ms: number; end_ms: number }[] }>(
-      await afetch(`${BASE}/api/projects/${id}/filter-layers`));
+      await afetch(`${BASE}/api/hub/${id}/filter-layers`));
   },
   async addFilterLayer(id: string, body: any) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/filter-layers`, {
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/filter-layers`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }));
   },
   async patchFilterLayer(id: string, layerId: string, body: any) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/filter-layers/${layerId}`, {
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/filter-layers/${layerId}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }));
   },
   async deleteFilterLayer(id: string, layerId: string) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/filter-layers/${layerId}`, { method: "DELETE" }));
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/filter-layers/${layerId}`, { method: "DELETE" }));
   },
 
   async listImages(id: string) {
-    return j<ImageOverlay[]>(await afetch(`${BASE}/api/projects/${id}/images`));
+    return j<ImageOverlay[]>(await afetch(`${BASE}/api/hub/${id}/images`));
   },
   async addImage(id: string, file: File, start_ms: number, end_ms: number) {
     const fd = new FormData();
@@ -151,20 +151,20 @@ export const api = {
     fd.append("start_ms", String(start_ms));
     fd.append("end_ms", String(end_ms));
     fd.append("x_pct", "50"); fd.append("y_pct", "20"); fd.append("size_pct", "40");
-    return j<ImageOverlay>(await afetch(`${BASE}/api/projects/${id}/images`, { method: "POST", body: fd }));
+    return j<ImageOverlay>(await afetch(`${BASE}/api/hub/${id}/images`, { method: "POST", body: fd }));
   },
   async updateImage(id: string, imageId: string, body: Partial<ImageOverlay>) {
-    return j<ImageOverlay>(await afetch(`${BASE}/api/projects/${id}/images/${imageId}`, {
+    return j<ImageOverlay>(await afetch(`${BASE}/api/hub/${id}/images/${imageId}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }));
   },
   async deleteImage(id: string, imageId: string) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/images/${imageId}`, { method: "DELETE" }));
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/images/${imageId}`, { method: "DELETE" }));
   },
 
   async listBrolls(id: string) {
-    return j<BrollClip[]>(await afetch(`${BASE}/api/projects/${id}/brolls`));
+    return j<BrollClip[]>(await afetch(`${BASE}/api/hub/${id}/brolls`));
   },
   async addBroll(id: string, file: File, start_ms: number, end_ms: number) {
     const fd = new FormData();
@@ -172,16 +172,16 @@ export const api = {
     fd.append("start_ms", String(start_ms));
     fd.append("end_ms", String(end_ms));
     fd.append("x_pct", "0"); fd.append("y_pct", "0"); fd.append("size_pct", "100");
-    return j<BrollClip>(await afetch(`${BASE}/api/projects/${id}/brolls`, { method: "POST", body: fd }));
+    return j<BrollClip>(await afetch(`${BASE}/api/hub/${id}/brolls`, { method: "POST", body: fd }));
   },
   async updateBroll(id: string, brollId: string, body: Partial<BrollClip>) {
-    return j<BrollClip>(await afetch(`${BASE}/api/projects/${id}/brolls/${brollId}`, {
+    return j<BrollClip>(await afetch(`${BASE}/api/hub/${id}/brolls/${brollId}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }));
   },
   async deleteBroll(id: string, brollId: string) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/brolls/${brollId}`, { method: "DELETE" }));
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/brolls/${brollId}`, { method: "DELETE" }));
   },
 
   async stockSearch(q: string) {
@@ -189,7 +189,7 @@ export const api = {
       await afetch(`${BASE}/api/stock/search?q=${encodeURIComponent(q)}`));
   },
   async addImageFromUrl(id: string, url: string, start_ms: number, end_ms: number) {
-    return j<ImageOverlay>(await afetch(`${BASE}/api/projects/${id}/images/from-url`, {
+    return j<ImageOverlay>(await afetch(`${BASE}/api/hub/${id}/images/from-url`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url, start_ms, end_ms, x_pct: 50, y_pct: 20, size_pct: 40 }),
     }));
@@ -200,46 +200,46 @@ export const api = {
       await afetch(`${BASE}/api/stock/videos?q=${encodeURIComponent(q)}`));
   },
   async addBrollFromUrl(id: string, url: string, start_ms: number, end_ms: number) {
-    return j<BrollClip>(await afetch(`${BASE}/api/projects/${id}/brolls/from-url`, {
+    return j<BrollClip>(await afetch(`${BASE}/api/hub/${id}/brolls/from-url`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url, start_ms, end_ms, x_pct: 0, y_pct: 0, size_pct: 100 }),
     }));
   },
 
   async getCaptionSettings(id: string) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/caption-settings`));
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/caption-settings`));
   },
   async setCaptionSettings(id: string, body: Record<string, any>) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/caption-settings`, {
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/caption-settings`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }));
   },
 
   async getCaptionOverrides(id: string) {
-    return j<Record<string, any>>(await afetch(`${BASE}/api/projects/${id}/caption-overrides`));
+    return j<Record<string, any>>(await afetch(`${BASE}/api/hub/${id}/caption-overrides`));
   },
   async setCaptionOverride(id: string, idx: number, settings: Record<string, any>, clear = false) {
-    return j<Record<string, any>>(await afetch(`${BASE}/api/projects/${id}/caption-overrides`, {
+    return j<Record<string, any>>(await afetch(`${BASE}/api/hub/${id}/caption-overrides`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ idx, settings, clear }),
     }));
   },
   async getWordOverrides(id: string) {
-    return j<Record<string, any>>(await afetch(`${BASE}/api/projects/${id}/word-overrides`));
+    return j<Record<string, any>>(await afetch(`${BASE}/api/hub/${id}/word-overrides`));
   },
   async setWordOverride(id: string, idx: number, word: number, settings: Record<string, any>, clear = false) {
-    return j<Record<string, any>>(await afetch(`${BASE}/api/projects/${id}/word-overrides`, {
+    return j<Record<string, any>>(await afetch(`${BASE}/api/hub/${id}/word-overrides`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ idx, word, settings, clear }),
     }));
   },
 
   async getVideoFx(id: string) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/videofx`));
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/videofx`));
   },
   async setVideoFx(id: string, body: Record<string, any>) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/videofx`, {
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/videofx`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }));
@@ -247,20 +247,20 @@ export const api = {
 
   async listSavedStyles(id: string) {
     return j<{ id: string; name: string; style: string; settings: any }[]>(
-      await afetch(`${BASE}/api/projects/${id}/saved-styles`));
+      await afetch(`${BASE}/api/hub/${id}/saved-styles`));
   },
   async addSavedStyle(id: string, name: string, style: string, settings: any) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/saved-styles`, {
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/saved-styles`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, style, settings }),
     }));
   },
 
   async getCanvas(id: string) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/canvas`));
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/canvas`));
   },
   async setCanvas(id: string, body: Record<string, any>) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/canvas`, {
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/canvas`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }));
@@ -268,17 +268,17 @@ export const api = {
   async uploadCanvasImage(id: string, file: File) {
     const fd = new FormData();
     fd.append("file", file);
-    return j<{ image_url: string }>(await afetch(`${BASE}/api/projects/${id}/canvas/image`, { method: "POST", body: fd }));
+    return j<{ image_url: string }>(await afetch(`${BASE}/api/hub/${id}/canvas/image`, { method: "POST", body: fd }));
   },
 
   async getProject(id: string) {
     try {
-      return await j<ProjectDetail>(await afetch(`${BASE}/api/projects/${id}`));
+      return await j<ProjectDetail>(await afetch(`${BASE}/api/hub/${id}`));
     } catch (e: any) {
       // Security software sometimes blocks the /projects/{uuid} URL pattern at
       // the network level — retry through the alternate route before giving up.
       if (/failed to fetch|networkerror|load failed/i.test(String(e?.message || e))) {
-        return j<ProjectDetail>(await afetch(`${BASE}/api/projects/detail`, {
+        return j<ProjectDetail>(await afetch(`${BASE}/api/hub/detail`, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ project_id: id }),
         }));
@@ -289,14 +289,14 @@ export const api = {
 
   async getStatus(id: string) {
     return j<{ status: string; error?: string | null; job?: any }>(
-      await afetch(`${BASE}/api/projects/${id}/status`));
+      await afetch(`${BASE}/api/hub/${id}/status`));
   },
 
   async upload(file: File, name?: string) {
     const fd = new FormData();
     fd.append("file", file);
     if (name) fd.append("name", name);
-    return j<Project>(await afetch(`${BASE}/api/projects`, { method: "POST", body: fd }));
+    return j<Project>(await afetch(`${BASE}/api/hub`, { method: "POST", body: fd }));
   },
 
   uploadWithProgress(file: File, onProgress?: (pct: number) => void, name?: string): Promise<Project> {
@@ -305,7 +305,7 @@ export const api = {
       fd.append("file", file);
       if (name) fd.append("name", name);
       const xhr = new XMLHttpRequest();
-      xhr.open("POST", `${BASE}/api/projects`);
+      xhr.open("POST", `${BASE}/api/hub`);
       if (authToken) xhr.setRequestHeader("Authorization", `Bearer ${authToken}`);
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
@@ -326,7 +326,7 @@ export const api = {
   async transcribe(id: string, language_code: string, mode: string, prefs?: {
     max_chars?: number; min_dur_secs?: number; gap_frames?: number; layout?: string;
   }) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/transcribe`, {
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/transcribe`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ language_code, mode, ...(prefs || {}) }),
@@ -334,46 +334,46 @@ export const api = {
   },
 
   async addCue(id: string, start_ms: number, end_ms: number, text = "") {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/cues/add`, {
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/cues/add`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ start_ms, end_ms, text }),
     }));
   },
 
   async splitCue(id: string, cue_idx: number, split_ms?: number) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/cues/${cue_idx}/split`, {
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/cues/${cue_idx}/split`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ split_ms: split_ms ?? null }),
     }));
   },
 
   async mergeCue(id: string, cue_idx: number) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/cues/merge`, {
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/cues/merge`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cue_idx }),
     }));
   },
 
   async deleteCue(id: string, cue_idx: number) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/cues/${cue_idx}`, { method: "DELETE" }));
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/cues/${cue_idx}`, { method: "DELETE" }));
   },
 
   async bulkDeleteCues(id: string, idxs: number[]) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/cues/bulk-delete`, {
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/cues/bulk-delete`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ idxs }),
     }));
   },
 
   async replaceCues(id: string, cues: { start_ms: number; end_ms: number; text: string; translit_text?: string | null; line_count?: number }[]) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/cues/replace`, {
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/cues/replace`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cues }),
     }));
   },
 
   async editCue(id: string, cue_idx: number, new_text: string) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/cues`, {
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/cues`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cue_idx, new_text }),
@@ -382,7 +382,7 @@ export const api = {
 
   async enhanceAudioNow(id: string, strength = 50) {
     return j<{ url: string; ms: number; strength: number }>(
-      await afetch(`${BASE}/api/projects/${id}/enhance-audio`, {
+      await afetch(`${BASE}/api/hub/${id}/enhance-audio`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ strength }),
@@ -392,7 +392,7 @@ export const api = {
 
   async exportSub(id: string, format: string, use_translit: boolean, apply_cuts = true, style = "classic", enhance_audio = false, volume = 1, speed = 1, enhance_strength = 50, resolution = "auto") {
     return j<{ export_id: string; status: string; format: string }>(
-      await afetch(`${BASE}/api/projects/${id}/export`, {
+      await afetch(`${BASE}/api/hub/${id}/export`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ format, use_translit, apply_cuts, style, enhance_audio, volume, speed, enhance_strength, resolution }),
@@ -402,23 +402,23 @@ export const api = {
 
   async listExports(id: string) {
     return j<{ id: string; format: string; url: string | null; download_url?: string | null; status: string; error?: string | null }[]>(
-      await afetch(`${BASE}/api/projects/${id}/exports`));
+      await afetch(`${BASE}/api/hub/${id}/exports`));
   },
 
   async detectSilences(id: string, minSilenceMs?: number) {
     const qs = minSilenceMs != null ? `?min_silence_ms=${Math.round(minSilenceMs)}` : "";
     return j<{ threshold_db: number; count: number; silences: { start_ms: number; end_ms: number }[] }>(
-      await afetch(`${BASE}/api/projects/${id}/silences${qs}`)
+      await afetch(`${BASE}/api/hub/${id}/silences${qs}`)
     );
   },
 
   async listEdits(id: string) {
-    return j<any[]>(await afetch(`${BASE}/api/projects/${id}/edits`));
+    return j<any[]>(await afetch(`${BASE}/api/hub/${id}/edits`));
   },
 
   async addEdit(id: string, type: string, payload_json: any) {
     return j<{ id: string; type: string; enabled: boolean }>(
-      await afetch(`${BASE}/api/projects/${id}/edits`, {
+      await afetch(`${BASE}/api/hub/${id}/edits`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type, payload_json }),
@@ -429,7 +429,7 @@ export const api = {
   async detectFillers(id: string, aggressive = false) {
     return j<{ count: number; removed_ms: number;
       fillers: { start_ms: number; end_ms: number; text: string }[] }>(
-      await afetch(`${BASE}/api/projects/${id}/fillers?aggressive=${aggressive}`));
+      await afetch(`${BASE}/api/hub/${id}/fillers?aggressive=${aggressive}`));
   },
 
   async detectRetakes(id: string, threshold = 0.62) {
@@ -437,11 +437,11 @@ export const api = {
       similarity: number;
       kept: { idx: number; start_ms: number; end_ms: number; text: string };
       cuts: { idx: number; start_ms: number; end_ms: number; text: string }[];
-    }[] }>(await afetch(`${BASE}/api/projects/${id}/retakes?threshold=${threshold}`));
+    }[] }>(await afetch(`${BASE}/api/hub/${id}/retakes?threshold=${threshold}`));
   },
 
   async toggleEdit(id: string, editId: string, enabled: boolean) {
-    return j<any>(await afetch(`${BASE}/api/projects/${id}/edits/${editId}`, {
+    return j<any>(await afetch(`${BASE}/api/hub/${id}/edits/${editId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ enabled }),

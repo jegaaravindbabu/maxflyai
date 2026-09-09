@@ -25,6 +25,29 @@ app.add_middleware(
 )
 
 
+# Some client-side security software / ad-blockers filter requests whose URL
+# contains "/api/projects" (with a UUID) as a suspicious pattern, which made the
+# editor fail to load for such users. We therefore ALSO serve the entire project
+# API under a neutral prefix; the frontend uses it, and this rewrites it back to
+# the real routes. The old prefix keeps working unchanged.
+_NEUTRAL = "/api/hub"
+_REAL = "/api/projects"
+
+
+@app.middleware("http")
+async def _neutral_prefix(request, call_next):
+    path = request.scope.get("path", "")
+    if path == _NEUTRAL or path.startswith(_NEUTRAL + "/"):
+        request.scope["path"] = _REAL + path[len(_NEUTRAL):]
+        raw = request.scope.get("raw_path")
+        if raw:
+            try:
+                request.scope["raw_path"] = (_REAL + path[len(_NEUTRAL):]).encode()
+            except Exception:
+                pass
+    return await call_next(request)
+
+
 @app.on_event("startup")
 def _startup():
     init_db()
