@@ -438,6 +438,29 @@ export function EditorPage({ projectId }: { projectId: string }) {
     });
     api.setWordOverride(projectId, activeIdx, w, {}, true).catch(() => {});
   }
+  function startCropDrag(handle: string, e: ReactMouseEvent) {
+    e.preventDefault(); e.stopPropagation();
+    const parent = (e.currentTarget as HTMLElement).closest(".preview-wrap") as HTMLElement | null;
+    if (!parent) return;
+    const rect = parent.getBoundingClientRect();
+    let last: any = { ...videofx };
+    const move = (ev: MouseEvent) => {
+      const x = Math.max(0, Math.min(100, ((ev.clientX - rect.left) / rect.width) * 100));
+      const y = Math.max(0, Math.min(100, ((ev.clientY - rect.top) / rect.height) * 100));
+      const patch: any = {};
+      if (handle.includes("l")) patch.cropL = Math.round(Math.max(0, Math.min(x, 100 - last.cropR - 8)));
+      if (handle.includes("r")) patch.cropR = Math.round(Math.max(0, Math.min(100 - x, 100 - last.cropL - 8)));
+      if (handle.includes("t")) patch.cropT = Math.round(Math.max(0, Math.min(y, 100 - last.cropB - 8)));
+      if (handle.includes("b")) patch.cropB = Math.round(Math.max(0, Math.min(100 - y, 100 - last.cropT - 8)));
+      last = { ...last, ...patch };
+      setVideofx((v: any) => ({ ...v, ...patch }));
+    };
+    const up = () => {
+      document.removeEventListener("mousemove", move); document.removeEventListener("mouseup", up);
+      api.setVideoFx(projectId, { cropT: last.cropT, cropR: last.cropR, cropB: last.cropB, cropL: last.cropL }).catch(() => {});
+    };
+    document.addEventListener("mousemove", move); document.addEventListener("mouseup", up);
+  }
   const selWordSafe = selWord >= 0 && selWord < activeWords.length ? selWord : -1;
   const selWordOv = selWordSafe >= 0 ? (activeWordOv[String(selWordSafe)] || {}) : {};
   const movedWords = activeWords
@@ -1554,7 +1577,21 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 background: canvas.bg_type === "image" && canvas.image_url ? `center/cover no-repeat url("${canvas.image_url}")`
                   : canvas.bg_type === "blur" ? "#0a0c13" : (canvas.color || "#000000"),
               } : undefined}>
-            <VideoPreview ref={videoRef} src={mediaSrc} videoStyle={videoFxStyle} zoom={previewZoom} safeZone={safeZone} onSurfaceClick={togglePlay}
+            <VideoPreview ref={videoRef} src={mediaSrc} videoStyle={videoFxStyle} zoom={previewZoom} safeZone={safeZone} onSurfaceClick={() => setTopTab("video")}
+              cropOverlay={topTab === "video" && videofx.cropOpen ? (
+                <div className="ed-crop-layer">
+                  <div className="ed-crop-rect" style={{ top: videofx.cropT + "%", right: videofx.cropR + "%", bottom: videofx.cropB + "%", left: videofx.cropL + "%" }}>
+                    <span className="ed-crop-h tl" onMouseDown={(e) => startCropDrag("tl", e)} />
+                    <span className="ed-crop-h tr" onMouseDown={(e) => startCropDrag("tr", e)} />
+                    <span className="ed-crop-h bl" onMouseDown={(e) => startCropDrag("bl", e)} />
+                    <span className="ed-crop-h br" onMouseDown={(e) => startCropDrag("br", e)} />
+                    <span className="ed-crop-e et" onMouseDown={(e) => startCropDrag("t", e)} />
+                    <span className="ed-crop-e eb" onMouseDown={(e) => startCropDrag("b", e)} />
+                    <span className="ed-crop-e el" onMouseDown={(e) => startCropDrag("l", e)} />
+                    <span className="ed-crop-e er" onMouseDown={(e) => startCropDrag("r", e)} />
+                  </div>
+                </div>
+              ) : null}
               controls={<>
                 <button className="ed-mon-replace" onClick={() => {}}>
                   <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 3v5h-5" /></svg>

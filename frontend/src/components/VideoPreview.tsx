@@ -10,6 +10,7 @@ interface Props {
   safeZone?: boolean;
   onSurfaceClick?: () => void;
   controls?: ReactNode;
+  cropOverlay?: ReactNode;
 }
 
 export const VideoPreview = forwardRef<HTMLVideoElement, Props>(
