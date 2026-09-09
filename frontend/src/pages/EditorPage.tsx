@@ -230,6 +230,22 @@ export function EditorPage({ projectId }: { projectId: string }) {
   overlaysRef.current = overlays;
   const [enhanceAudio, setEnhanceAudio] = useState(false);
   const [enhanceStrength, setEnhanceStrength] = useState(50);
+  const [enhancing, setEnhancing] = useState(false);
+  const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
+  const [enhanceErr, setEnhanceErr] = useState<string>("");
+  async function applyAudioEnhance() {
+    setEnhancing(true); setEnhanceErr("");
+    try {
+      const r = await api.enhanceAudioNow(projectId, enhanceStrength);
+      const u = r.url.startsWith("http") ? r.url : api.mediaUrl(r.url);
+      setEnhancedUrl(u);
+      setEnhanceAudio(true);
+    } catch (e: any) {
+      setEnhanceErr((e && e.message) ? e.message : "Couldn't clean the audio. Please try again.");
+    } finally {
+      setEnhancing(false);
+    }
+  }
   const [styles, setStyles] = useState<{ id: string; label: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [curMs, setCurMs] = useState(0);
@@ -1596,6 +1612,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   : canvas.bg_type === "blur" ? "#0a0c13" : (canvas.color || "#000000"),
               } : undefined}>
             <VideoPreview ref={videoRef} src={mediaSrc} videoStyle={videoFxStyle} zoom={previewZoom} safeZone={safeZone} onSurfaceClick={() => setTopTab("video")}
+              enhancedSrc={enhancedUrl || undefined} enhanceOn={!!enhancedUrl}
               cropOverlay={topTab === "video" && videofx.cropOpen ? (
                 <div className="ed-crop-layer">
                   <div className="ed-crop-rect" style={{ top: videofx.cropT + "%", right: videofx.cropR + "%", bottom: videofx.cropB + "%", left: videofx.cropL + "%" }}>
@@ -1931,24 +1948,27 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   onChange={(e) => { const v = +e.target.value; setAudioVol(v); if (videoRef.current) videoRef.current.volume = Math.min(1, v); }} />
                 <div className="ed-cs-slabel" style={{ color: "var(--muted)" }}><span>mute</span><span>200%</span></div>
               </div>
-              <div className="ed-anim-toggle" style={{ marginTop: 20 }}>
-                <div>
-                  <div className="ed-anim-title">Audio enhance</div>
-                  <div className="np-sub">Cleans background noise with AI — applied when you export.</div>
-                </div>
-                <label className="ed-switch">
-                  <input type="checkbox" checked={enhanceAudio} onChange={(e) => setEnhanceAudio(e.target.checked)} />
-                  <span className="ed-switch-track" />
-                </label>
+              <div className="ed-audio-enh">
+                <div className="ed-audio-enh-h"><span className="ed-audio-enh-ic" aria-hidden>🔊</span> Audio enhance</div>
+                <div className="np-sub">Cleans background noise with AI — takes about 10 seconds.</div>
               </div>
-              {enhanceAudio && (
-                <div className="ed-cs-slider" style={{ marginTop: 16 }}>
-                  <div className="ed-cs-slabel"><span>Strength</span><span>{enhanceStrength}%</span></div>
-                  <input type="range" min={0} max={100} step={1} value={enhanceStrength}
-                    onChange={(e) => setEnhanceStrength(+e.target.value)} />
-                  <div className="ed-cs-slabel" style={{ color: "var(--muted)" }}><span>subtle</span><span>aggressive</span></div>
+              <div className="ed-cs-slider" style={{ marginTop: 14 }}>
+                <div className="ed-cs-slabel"><span>Strength</span><span>{enhanceStrength}%</span></div>
+                <input type="range" min={0} max={100} step={1} value={enhanceStrength}
+                  onChange={(e) => { setEnhanceStrength(+e.target.value); setEnhancedUrl(null); setEnhanceAudio(false); }} />
+                <div className="ed-cs-slabel" style={{ color: "var(--muted)" }}><span>subtle</span><span>aggressive</span></div>
+              </div>
+              <button className="ed-audio-apply" disabled={enhancing} onClick={applyAudioEnhance}>
+                {enhancing ? (<><span className="ed-audio-spin" aria-hidden /> Cleaning background noise…</>)
+                  : enhancedUrl ? "Re-apply" : "Apply"}
+              </button>
+              {enhancedUrl && !enhancing && (
+                <div className="ed-audio-applied">
+                  <span>✓ Cleaned audio applied — you'll hear it in the preview, and it's used on export.</span>
+                  <button className="ed-audio-remove" onClick={() => { setEnhancedUrl(null); setEnhanceAudio(false); }}>Remove</button>
                 </div>
               )}
+              {enhanceErr && !enhancing && <div className="ed-audio-err">{enhanceErr}</div>}
             </div>
           )}
 

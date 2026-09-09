@@ -368,6 +368,16 @@ export const api = {
     }));
   },
 
+  async enhanceAudioNow(id: string, strength = 50) {
+    return j<{ url: string; ms: number; strength: number }>(
+      await afetch(`${BASE}/api/projects/${id}/enhance-audio`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ strength }),
+      })
+    );
+  },
+
   async exportSub(id: string, format: string, use_translit: boolean, apply_cuts = true, style = "classic", enhance_audio = false, volume = 1, speed = 1, enhance_strength = 50, resolution = "auto") {
     return j<{ export_id: string; status: string; format: string }>(
       await afetch(`${BASE}/api/projects/${id}/export`, {

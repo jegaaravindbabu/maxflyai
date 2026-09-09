@@ -418,3 +418,61 @@ def add_broll_from_url(project_id: str, body: BrollFromUrlIn, db: Session = Depe
     db.commit()
     db.refresh(b)
     return _broll_out(b)
+
+
+# ---------------------------------------------------------------------------
+# Audio enhance — run the "studio voice" noise-cleanup on demand (the Apply
+# button in the editor's Audio tab). Produces a cleaned AAC audio track the
+# editor can play back in preview, and remembers it so export reuses it.
+# ---------------------------------------------------------------------------
+class EnhanceAudioIn(BaseModel):
+    strength: int = 50
+
+
+@router.post("/{project_id}/enhance-audio")
+def enhance_audio(project_id: str, body: EnhanceAudioIn,
+                  db: Session = Depends(get_db),
+                  _owner: Project = Depends(owned_project)):
+    from app.services import ffmpeg_utils
+    from app.config import settings
+
+    project = db.get(Project, project_id)
+    if project is None:
+        raise HTTPException(404, "project not found")
+    if not project.source_media_url:
+        raise HTTPException(400, "this project has no audio to clean yet")
+
+    try:
+        strength = max(0, min(100, int(body.strength)))
+    except Exception:
+        strength = 50
+
+    try:
+        src = storage.path(project.source_media_url)
+    except Exception:
+        raise HTTPException(400, "could not read the project's media")
+
+    af = ffmpeg_utils.audio_enhance_filter(settings.arnndn_model_path or None, strength)
+    fd, out_tmp = tempfile.mkstemp(suffix=".m4a")
+    os.close(fd)
+    try:
+        cp = ffmpeg_utils._run([
+            "ffmpeg", "-y", "-i", src, "-vn",
+            "-af", af, "-c:a", "aac", "-b:a", "192k", out_tmp,
+        ])
+        if cp.returncode != 0 or not os.path.exists(out_tmp) or os.path.getsize(out_tmp) == 0:
+            tail = (cp.stderr or "")[-300:]
+            raise HTTPException(500, f"audio enhance failed: {tail}")
+        with open(out_tmp, "rb") as f:
+            data = f.read()
+        key = f"enhanced/{project_id}_{strength}.m4a"
+        storage.write_bytes(key, data)
+        ms = ffmpeg_utils.probe_duration_ms(out_tmp) or 0
+    finally:
+        if os.path.exists(out_tmp):
+            try:
+                os.remove(out_tmp)
+            except Exception:
+                pass
+
+    return {"url": storage.url(key), "ms": ms, "strength": strength}
