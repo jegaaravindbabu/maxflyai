@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { IGridLg } from "../components/icons";
 import { api } from "../api/client";
 import type { Project } from "../types";
 import { ProjectCard } from "./HomePage";
@@ -78,7 +79,7 @@ export function ProjectsPage({ onNewProject }: { onNewProject: () => void }) {
 
       {filtered.length === 0 ? (
         <div className="empty">
-          <div className="ic" style={{ fontSize: 30 }}>▦</div>
+          <div className="ic">{IGridLg}</div>
           <h3>{projects.length === 0 ? "No projects yet" : "No matches"}</h3>
           <p>
             {projects.length === 0

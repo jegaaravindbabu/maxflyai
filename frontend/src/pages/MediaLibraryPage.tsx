@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { IFilmLg, INote, IPlayFillLg } from "../components/icons";
 import { api } from "../api/client";
 import type { Project } from "../types";
 
@@ -110,7 +111,7 @@ export function MediaLibraryPage({ onNewProject }: { onNewProject: () => void })
 
       {filtered.length === 0 ? (
         <div className="empty">
-          <div className="ic" style={{ fontSize: 30 }}>▤</div>
+          <div className="ic">{IFilmLg}</div>
           <h3>{projects.length === 0 ? "No media yet" : "No matches"}</h3>
           <p>{projects.length === 0
             ? "Every video or audio you upload is available here across your projects."
@@ -127,7 +128,7 @@ export function MediaLibraryPage({ onNewProject }: { onNewProject: () => void })
               <div key={p.id} className={"proj-card card" + (selectMode ? " selectable" : "") + (selected ? " selected" : "")}>
                 <div className="proj-thumb" onClick={act}>
                   <span className="ml-badge">{k === "audio" ? "AUDIO" : "VIDEO"}</span>
-                  <span className="proj-play">{k === "audio" ? "♪" : "▶"}</span>
+                  <span className="proj-play">{k === "audio" ? INote : IPlayFillLg}</span>
                   {(p.size_bytes || p.duration_ms) ? <span className="proj-subs">{fmtSize(p.size_bytes) || fmtDur(p.duration_ms)}</span> : null}
                   {selectMode && <span className={"proj-check" + (selected ? " on" : "")}>{selected ? "✓" : ""}</span>}
                 </div>

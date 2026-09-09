@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { IScissors } from "./icons";
 import { api } from "../api/client";
 
 interface Cut { start_ms: number; end_ms: number; text: string; editId?: string; enabled: boolean; busy?: boolean; }
@@ -103,7 +104,7 @@ export function FillerRemover({ projectId, onSeek }: Props) {
       )}
 
       {cuts && cuts.length > 0 && removedMs > 0 && (
-        <div className="rtk-removed">✂ {secs(removedMs)} will be cut at export · {enabledCount} selected</div>
+        <div className="rtk-removed">{IScissors} {secs(removedMs)} will be cut at export · {enabledCount} selected</div>
       )}
 
       {cuts && cuts.length === 0 && (

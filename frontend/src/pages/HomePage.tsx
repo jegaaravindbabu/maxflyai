@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { IPlayFillLg, IEdit, IType, ICopy, IDownload, ICaption, ITrash, IGridLg } from "../components/icons";
 import { api } from "../api/client";
 import type { Project } from "../types";
 import { useAuth } from "../auth/AuthContext";
@@ -83,7 +84,7 @@ export function ProjectCard({ p, onChanged, selectable = false, selected = false
   return (
     <div className={"proj-card card" + (selectable ? " selectable" : "") + (selected ? " selected" : "")} ref={wrapRef}>
       <div className="proj-thumb" onClick={primary}>
-        <span className="proj-play">▶</span>
+        <span className="proj-play">{IPlayFillLg}</span>
         {subs > 0 && <span className="proj-subs">{subs} subs</span>}
         {selectable && <span className={"proj-check" + (selected ? " on" : "")}>{selected ? "✓" : ""}</span>}
         {action && <div className="proj-action">{action}</div>}
@@ -97,12 +98,12 @@ export function ProjectCard({ p, onChanged, selectable = false, selected = false
           <button className="proj-dots" onClick={() => setMenu((v) => !v)} aria-label="Options">⋮</button>
           {menu && (
             <div className="proj-menu">
-              <div className="pm-item" onClick={open}>▦ Edit</div>
-              <div className="pm-item" onClick={rename}>✎ Rename</div>
-              <div className="pm-item" onClick={duplicate}>⧉ Duplicate</div>
-              <div className="pm-item" onClick={() => exportAndDownload("mp4")}>⬇ Export Mp4</div>
-              <div className="pm-item" onClick={() => exportAndDownload("srt")}>▤ Download SRT</div>
-              <div className="pm-item danger" onClick={del}>🗑 Delete</div>
+              <div className="pm-item" onClick={open}>{IEdit} Edit</div>
+              <div className="pm-item" onClick={rename}>{IType} Rename</div>
+              <div className="pm-item" onClick={duplicate}>{ICopy} Duplicate</div>
+              <div className="pm-item" onClick={() => exportAndDownload("mp4")}>{IDownload} Export Mp4</div>
+              <div className="pm-item" onClick={() => exportAndDownload("srt")}>{ICaption} Download SRT</div>
+              <div className="pm-item danger" onClick={del}>{ITrash} Delete</div>
             </div>
           )}
         </div>
@@ -151,7 +152,7 @@ export function HomePage({ onNewProject }: { onNewProject: () => void }) {
 
       {projects.length === 0 ? (
         <div className="empty">
-          <div className="ic" style={{ fontSize: 30 }}>▦</div>
+          <div className="ic">{IGridLg}</div>
           <h3>No projects yet</h3>
           <p>Upload a video to generate AI-powered subtitles in seconds.</p>
           <button onClick={onNewProject}>+ Create First Project</button>

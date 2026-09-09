@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
+import { IHome, IGrid, IFilm, ITag, IGear, IPlayFill } from "./icons";
 import { api } from "../api/client";
 import { useAuth, authEnabled } from "../auth/AuthContext";
 
 interface Props { route: string; onNewProject: () => void; }
 
 const NAV = [
-  { id: "#/app", ic: "⌂", label: "Home" },
-  { id: "#/projects", ic: "▦", label: "Projects" },
-  { id: "#/media", ic: "▤", label: "Media Library" },
-  { id: "#/billing", ic: "◈", label: "Pricing" },
-  { id: "#/settings", ic: "⚙", label: "Settings" },
+  { id: "#/app", ic: IHome, label: "Home" },
+  { id: "#/projects", ic: IGrid, label: "Projects" },
+  { id: "#/media", ic: IFilm, label: "Media Library" },
+  { id: "#/billing", ic: ITag, label: "Pricing" },
+  { id: "#/settings", ic: IGear, label: "Settings" },
 ];
 
 export function Sidebar({ route, onNewProject }: Props) {
@@ -25,7 +26,7 @@ export function Sidebar({ route, onNewProject }: Props) {
   return (
     <aside className="sidebar">
       <div className="sb-logo">
-        <div className="mark">▶</div>
+        <div className="mark">{IPlayFill}</div>
         <div className="name">ceyon<span>ai</span></div>
       </div>
 

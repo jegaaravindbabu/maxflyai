@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { IReset, IScissors } from "./icons";
 import { api } from "../api/client";
 
 interface Take { idx: number; start_ms: number; end_ms: number; text: string; }
@@ -94,7 +95,7 @@ export function RetakeRemover({ projectId, onSeek }: Props) {
       </p>
 
       <button className="rtk-scan" onClick={find} disabled={busy}>
-        {busy ? "Scanning…" : cands ? "Re-scan" : "↺ Find retakes"}
+        {busy ? "Scanning…" : cands ? "Re-scan" : <>{IReset} Find retakes</>}
       </button>
 
       <div className="rtk-sens">
@@ -125,7 +126,7 @@ export function RetakeRemover({ projectId, onSeek }: Props) {
       )}
 
       {cands && cands.length > 0 && removedMs > 0 && (
-        <div className="rtk-removed">✂ {secs(removedMs)} will be cut at export</div>
+        <div className="rtk-removed">{IScissors} {secs(removedMs)} will be cut at export</div>
       )}
 
       {cands && cands.length === 0 && (

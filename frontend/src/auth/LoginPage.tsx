@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { IPlayFill } from "../components/icons";
 import { supabase } from "./supabase";
 
 const FEATURES = [
@@ -61,7 +62,7 @@ export function LoginPage() {
     <div className="auth-split">
       <div className="auth-left">
         <div className="auth-logo">
-          <span className="auth-logo-mark">▶▶</span>
+          <span className="auth-logo-mark">{IPlayFill}{IPlayFill}</span>
           <span className="auth-wordmark">ceyon<span>ai</span></span>
         </div>
         <p className="auth-tagline">

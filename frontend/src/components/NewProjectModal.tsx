@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { IUploadLg, IClapper, IGlobe, ISpeaker } from "./icons";
 import { api } from "../api/client";
 import type { Project } from "../types";
 import { Dropdown } from "./Dropdown";
@@ -138,7 +139,7 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
                 onDrop={(e) => { e.preventDefault(); setDrag(false); addFiles(e.dataTransfer.files); }}
                 onClick={() => inputRef.current?.click()}
               >
-                <div className="np-drop-ic">⤒</div>
+                <div className="np-drop-ic">{IUploadLg}</div>
                 <div className="np-drop-title">Drag and drop video or audio files</div>
                 <div className="np-sub">MP4, MOV, WebM, MP3, WAV · Max 10 min · 1GB per file</div>
                 <button className="np-browse" onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}>
@@ -150,7 +151,7 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
                 {items.map((it) => (
                   <div className="np-filecard" key={it.key}>
                     <div className="np-filerow">
-                      <div className="np-thumb">🎬</div>
+                      <div className="np-thumb">{IClapper}</div>
                       <div className="np-fileinfo">
                         <div className="np-fname">{it.file.name}</div>
                         <div className="np-sub">{fmtSize(it.file.size)}{it.project?.duration_ms ? " · " + fmtDur(it.project.duration_ms) : ""}</div>
@@ -186,8 +187,8 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="np-settings">
-            <div className="np-settings-head">🌐 <span>Language Settings</span></div>
-            <label className="np-label">🔊 Speaker's language</label>
+            <div className="np-settings-head">{IGlobe} <span>Language Settings</span></div>
+            <label className="np-label">{ISpeaker} Speaker's language</label>
             <Dropdown value={lang} searchable placeholder="Select language"
               options={LANGS.map((l) => ({ value: l.code, label: l.label }))}
               onChange={setLang} />

@@ -1,13 +1,14 @@
 import { useState } from "react";
+import { ISliders, ISparkle, ICloud, IPlayFill, IPlayFillLg } from "../components/icons";
 
 const CAPTION_LANGS = ["Tamil", "Hindi", "Telugu", "Kannada", "Malayalam", "Bengali", "Marathi", "Thanglish", "English"];
 
 const STYLES = ["Neon", "Karaoke", "Bold Pop", "Minimal", "Highlight", "Wave"];
 
 const CREATOR_FEATURES = [
-  { ic: "🎚", title: "Studio-clean audio", sub: "One tap to denoise and level your voice. Phone-mic recordings that sound pro." },
-  { ic: "✨", title: "Captions that pop", sub: "Word-by-word reveals, karaoke fills, bounce — the styles that stop the scroll." },
-  { ic: "☁", title: "Nothing to install", sub: "Runs fully in your browser. Any laptop, any place — just upload and go." },
+  { ic: ISliders, title: "Studio-clean audio", sub: "One tap to denoise and level your voice. Phone-mic recordings that sound pro." },
+  { ic: ISparkle, title: "Captions that pop", sub: "Word-by-word reveals, karaoke fills, bounce — the styles that stop the scroll." },
+  { ic: ICloud, title: "Nothing to install", sub: "Runs fully in your browser. Any laptop, any place — just upload and go." },
   { ic: "🚫", title: "Zero watermark", sub: "Clean exports on every plan, free included. Your video carries your name, not ours." },
 ];
 
@@ -40,7 +41,7 @@ function VideoBox({ portrait, label }: { portrait?: boolean; label?: string }) {
   return (
     <div className={"lp-video" + (portrait ? " portrait" : "")}>
       <div className="lp-video-inner">
-        <span className="lp-play">▶</span>
+        <span className="lp-play">{IPlayFillLg}</span>
         <span className="lp-video-label">{label || "Video preview"}</span>
       </div>
     </div>
@@ -60,7 +61,7 @@ export function LandingPage() {
       <header className="lp-nav">
         <div className="lp-nav-in">
           <a className="lp-logo" href="#/">
-            <span className="lp-logo-mark">▶</span>
+            <span className="lp-logo-mark">{IPlayFill}</span>
             <span className="lp-logo-name">ceyon<span>ai</span></span>
           </a>
           <nav className="lp-links">
@@ -146,7 +147,7 @@ export function LandingPage() {
         <p className="lp-center-p">Neon, karaoke, bold pop and more — one tap and your captions match your channel, animated word-by-word like the big creators.</p>
         <div className="lp-style-row">
           {STYLES.map((s) => (
-            <div className="lp-style-card" key={s}><span className="lp-play sm">▶</span><div>{s}</div></div>
+            <div className="lp-style-card" key={s}><span className="lp-play sm">{IPlayFill}</span><div>{s}</div></div>
           ))}
         </div>
       </section>
@@ -241,7 +242,7 @@ export function LandingPage() {
 
       <footer className="lp-footer">
         <div className="lp-logo">
-          <span className="lp-logo-mark">▶</span>
+          <span className="lp-logo-mark">{IPlayFill}</span>
           <span className="lp-logo-name">ceyon<span>ai</span></span>
         </div>
         <div className="lp-foot-links">

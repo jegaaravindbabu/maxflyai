@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { IFilmLg } from "./components/icons";
 import { AuthProvider, useAuth, authEnabled } from "./auth/AuthContext";
 import { LoginPage } from "./auth/LoginPage";
 import { Sidebar } from "./components/Sidebar";
@@ -25,7 +26,7 @@ function MediaPlaceholder() {
   return (
     <div className="main-inner">
       <h2 style={{ marginTop: 0 }}>Media Library</h2>
-      <div className="empty"><div className="ic" style={{ fontSize: 30 }}>▤</div>
+      <div className="empty"><div className="ic">{IFilmLg}</div>
         <h3>Your uploads live here</h3>
         <p>Every video you upload is available across your projects.</p></div>
     </div>

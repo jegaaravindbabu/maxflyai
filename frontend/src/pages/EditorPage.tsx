@@ -163,6 +163,16 @@ const IcTrayUp = tsvg(<><path d="M12 15V4" /><path d="m7 8 5-4 5 4" /><path d="M
 const IcTrayDown = tsvg(<><path d="M12 4v11" /><path d="m7 11 5 4 5-4" /><path d="M3 15v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3" /></>);
 const IcFileMedia = tsvg(<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="m10 12 4 2.5-4 2.5z" /></>);
 const IcFilm2 = tsvg(<><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M3 15h18M8 4v16M16 4v16" /></>);
+const IcRefresh = tsvg(<><path d="M21 12a9 9 0 1 1-2.6-6.4L21 8" /><path d="M21 4v4h-4" /></>);
+const IcReset = tsvg(<><path d="M3 12a9 9 0 1 0 2.6-6.4L3 8" /><path d="M3 4v4h4" /></>);
+const IcSearch = tsvg(<><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></>);
+const IcPlus = tsvg(<path d="M12 5v14M5 12h14" />);
+const IcCrop = tsvg(<><path d="M6 2v14a2 2 0 0 0 2 2h14" /><path d="M18 22V8a2 2 0 0 0-2-2H2" /></>);
+const IcSpeaker = tsvg(<><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M16.5 8.5a5 5 0 0 1 0 7" /></>);
+const IcImageS = tsvg(<><rect x="3" y="4.5" width="18" height="15" rx="3" /><circle cx="8.8" cy="10" r="1.6" /><path d="M21 16.5 15.5 11 6.5 19.5" /></>);
+const IcHalf = tsvg(<><circle cx="12" cy="12" r="9" /><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none" /></>);
+const IcExternal = tsvg(<><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" /></>);
+const IcPlayS = (<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" stroke="none"><path d="M8 5.5v13l11-6.5z" /></svg>);
 
 // Rail order mirrors ceyonai: Uploads, Texts, Videos, Filters, Captions, Auto Zoom, Images
 // (ceyonai uploads via the New Project modal, so there is no separate Uploads panel;
@@ -493,7 +503,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
           </div>
           <div className="muted" style={{ fontSize: 11, opacity: .6 }}>{loadErr}</div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={() => load()}>↻ Retry</button>
+            <button onClick={() => load()}>{IcRefresh} Retry</button>
             <button className="secondary" onClick={() => { window.location.hash = "#/app"; }}>Back to projects</button>
           </div>
         </div>
@@ -627,7 +637,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const isLocked = (t: string) => lockedTracks.has(t);
   const toggleHide = (t: string) => setHiddenTracks((s) => { const n = new Set(s); n.has(t) ? n.delete(t) : n.add(t); return n; });
   const toggleLock = (t: string) => setLockedTracks((s) => { const n = new Set(s); n.has(t) ? n.delete(t) : n.add(t); return n; });
-  const trackHead = (id: string, _icon: string, media = false) => (
+  const trackHead = (id: string, media = false) => (
     <div className={"ed-th" + (media ? " ed-th-media" : "") + (isHidden(id) ? " thoff" : "")}>
       <span className="ed-th-type">{IcType[id]}</span>
       <button className={"ed-th-b" + (isHidden(id) ? " off" : "")} title={isHidden(id) ? "Show track" : "Hide track"}
@@ -1181,7 +1191,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
       <div className="ed-top">
         <div className="ed-top-l">
           <a href="#/app" className="ed-back" title="Back">←</a>
-          <span className="ed-play-logo">▶</span>
+          <span className="ed-play-logo">{IcPlayS}</span>
         </div>
         <div className="ed-title">{proj.name}</div>
         <div className="ed-top-r">
@@ -1368,12 +1378,12 @@ export function EditorPage({ projectId }: { projectId: string }) {
                       ) : null}
                       <div className="ed-ct-sec">ACTIONS</div>
                       <div className="ed-ct-action" onClick={autoPickEmphasis}>
-                        <div className="ed-ct-ic">✨</div>
+                        <div className="ed-ct-ic">{IcAI}</div>
                         <div><div className="ed-ct-a-title">Auto-pick emphasis</div>
                           <div className="np-sub">Pick the standout word — the one repeated most, or the longest.</div></div>
                       </div>
                       <div className="ed-ct-action" onClick={() => { if (!transcribing) { runTranscribe(); setCapToolsOpen(false); } }}>
-                        <div className="ed-ct-ic">↻</div>
+                        <div className="ed-ct-ic">{IcRefresh}</div>
                         <div><div className="ed-ct-a-title">Regenerate captions</div>
                           <div className="np-sub">Create the captions again from the audio.</div></div>
                       </div>
@@ -1392,7 +1402,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
               {selected.size > 0 && (
                 <div className="ed-bulkbar">
                   <span>{selected.size} selected</span>
-                  <button className="ed-bulk-del" onClick={bulkDelete}>🗑 Delete selected</button>
+                  <button className="ed-bulk-del" onClick={bulkDelete}>{IcTrash} Delete selected</button>
                 </div>
               )}
               {cues.length === 0 ? (
@@ -1418,9 +1428,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
                         )}
                       </div>
                       <div className="ed-cap-acts" onClick={(e) => e.stopPropagation()}>
-                        <button title="Split at playhead" onClick={() => splitAt(c.idx)}>⑃</button>
+                        <button title="Split at playhead" onClick={() => splitAt(c.idx)}>{IcSplit}</button>
                         <button title="Merge with next" onClick={() => mergeNext(c.idx)} disabled={c.idx >= cues.length - 1}>⤵</button>
-                        <button title="Delete" className="del" onClick={() => deleteOne(c.idx)}>🗑</button>
+                        <button title="Delete" className="del" onClick={() => deleteOne(c.idx)}>{IcTrash}</button>
                       </div>
                     </div>
                   ))}
@@ -1477,7 +1487,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                       <button className="secondary" onClick={() => saveOverlay(o.id, { start_ms: Math.round(curMs) })}>Start ⟵ playhead</button>
                       <button className="secondary" onClick={() => saveOverlay(o.id, { end_ms: Math.round(curMs) })}>End ⟵ playhead</button>
                     </div>
-                    <button className="ed-bulk-del" style={{ width: "100%", marginTop: 12 }} onClick={() => delText(o.id)}>🗑 Delete text</button>
+                    <button className="ed-bulk-del" style={{ width: "100%", marginTop: 12 }} onClick={() => delText(o.id)}>{IcTrash} Delete text</button>
                     <div className="np-sub" style={{ marginTop: 8 }}>Drag the text on the video to reposition it.</div>
                   </div>
                 );
@@ -1493,7 +1503,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 <input className="ed-stock-input" placeholder="Search stock photos…" value={stockQ}
                   onChange={(e) => setStockQ(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") runStock(); }} />
-                <button className="ed-stock-go" onClick={runStock} disabled={stockBusy}>{stockBusy ? "…" : "🔍"}</button>
+                <button className="ed-stock-go" onClick={runStock} disabled={stockBusy}>{stockBusy ? "…" : IcSearch}</button>
               </div>
               {stockRes.length > 0 && (
                 <div className="ed-stock-grid">
@@ -1506,7 +1516,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
               <input ref={imgInputRef} type="file" accept="image/*" hidden
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(f); e.currentTarget.value = ""; }} />
               <button style={{ width: "100%" }} onClick={pickImage} disabled={imgBusy}>
-                {imgBusy ? "Uploading…" : "＋ Upload image"}
+                {imgBusy ? "Uploading…" : <>{IcPlus} Upload image</>}
               </button>
               {images.length === 0 ? (
                 <div className="ed-cap-empty" style={{ paddingTop: 18 }}>No images yet.</div>
@@ -1536,7 +1546,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                       <button className="secondary" onClick={() => saveImg(im.id, { start_ms: Math.round(curMs) })}>Start ⟵ playhead</button>
                       <button className="secondary" onClick={() => saveImg(im.id, { end_ms: Math.round(curMs) })}>End ⟵ playhead</button>
                     </div>
-                    <button className="ed-bulk-del" style={{ width: "100%", marginTop: 12 }} onClick={() => delImg(im.id)}>🗑 Delete image</button>
+                    <button className="ed-bulk-del" style={{ width: "100%", marginTop: 12 }} onClick={() => delImg(im.id)}>{IcTrash} Delete image</button>
                     <div className="np-sub" style={{ marginTop: 8 }}>Drag the image on the video to reposition it.</div>
                   </div>
                 );
@@ -1552,7 +1562,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 <input className="ed-stock-input" placeholder="Search stock videos…" value={bvQ}
                   onChange={(e) => setBvQ(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") runBrollStock(); }} />
-                <button className="ed-stock-go" onClick={runBrollStock} disabled={bvBusy}>{bvBusy ? "…" : "🔍"}</button>
+                <button className="ed-stock-go" onClick={runBrollStock} disabled={bvBusy}>{bvBusy ? "…" : IcSearch}</button>
               </div>
               {bvAdding && <div className="np-sub" style={{ marginBottom: 10 }}>Downloading clip…</div>}
               {bvRes.length > 0 && (
@@ -1560,7 +1570,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   {bvRes.map((r) => (
                     <div key={r.id} className="ed-vid-thumb" onClick={() => addBrollStock(r.url, r.duration)}>
                       <img src={r.thumb} loading="lazy" />
-                      <span className="ed-vid-play">▶</span>
+                      <span className="ed-vid-play">{IcPlayS}</span>
                       {r.duration ? <span className="ed-vid-dur">{r.duration}s</span> : null}
                     </div>
                   ))}
@@ -1569,7 +1579,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
               <input ref={brollInputRef} type="file" accept="video/*" hidden
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadBroll(f); e.currentTarget.value = ""; }} />
               <button style={{ width: "100%" }} onClick={pickBroll} disabled={brollBusy}>
-                {brollBusy ? "Uploading…" : "＋ Upload B-roll clip"}
+                {brollBusy ? "Uploading…" : <>{IcPlus} Upload B-roll clip</>}
               </button>
               {brolls.length === 0 ? (
                 <div className="ed-cap-empty" style={{ paddingTop: 18 }}>No B-roll yet.</div>
@@ -1579,7 +1589,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                     <div key={b.id} className={"ed-txt-item" + (selBroll === b.id ? " active" : "")}
                       onClick={() => { setSelBroll(b.id); seek(b.start_ms); }}>
                       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                        <div className="ed-broll-badge">🎞</div>
+                        <div className="ed-broll-badge">{IcFilm2}</div>
                         <div className="np-sub">{fmtT(b.start_ms)} – {fmtT(b.end_ms)} · {Math.round(b.size_pct)}%</div>
                       </div>
                     </div>
@@ -1599,7 +1609,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                       <button className="secondary" onClick={() => saveBroll(b.id, { start_ms: Math.round(curMs) })}>Start ⟵ playhead</button>
                       <button className="secondary" onClick={() => saveBroll(b.id, { end_ms: Math.round(curMs) })}>End ⟵ playhead</button>
                     </div>
-                    <button className="ed-bulk-del" style={{ width: "100%", marginTop: 12 }} onClick={() => delBroll(b.id)}>🗑 Delete B-roll</button>
+                    <button className="ed-bulk-del" style={{ width: "100%", marginTop: 12 }} onClick={() => delBroll(b.id)}>{IcTrash} Delete B-roll</button>
                     <div className="np-sub" style={{ marginTop: 8 }}>Drag the clip on the video to reposition it. It starts from its beginning at the window start.</div>
                   </div>
                 );
@@ -1650,7 +1660,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 ))}
               </div>
               <button style={{ width: "100%", marginTop: 14 }} onClick={generateZoom} disabled={zoomBusy}>
-                {zoomBusy ? "Generating…" : "✨ Generate auto zoom"}
+                {zoomBusy ? "Generating…" : <>{IcAI} Generate auto zoom</>}
               </button>
               <button className="secondary" style={{ width: "100%", marginTop: 8 }} onClick={addZoomHere}>+ Add zoom at playhead</button>
               <div className="ed-cap-count" style={{ marginTop: 16 }}>{zooms.length} zoom{zooms.length === 1 ? "" : "s"}</div>
@@ -1662,7 +1672,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                           <span>{fmtT(z.start_ms)} – {fmtT(z.end_ms)} · {Math.round((z.scale - 1) * 100)}%</span>
                           <button className="ed-cap-acts" style={{ display: "flex" }} onClick={(e) => { e.stopPropagation(); delZoom(z.id); }}>
-                            <span className="del" style={{ padding: "2px 8px" }}>🗑</span>
+                            <span className="del" style={{ padding: "2px 8px" }}>{IcTrash}</span>
                           </button>
                         </div>
                       </div>
@@ -1777,7 +1787,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                     <>
                       <input ref={canvasImgRef} type="file" accept="image/*" hidden
                         onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadCanvasImage(f); e.currentTarget.value = ""; }} />
-                      <button className="secondary" style={{ width: "100%", marginTop: 12 }} onClick={() => canvasImgRef.current?.click()}>＋ Upload background image</button>
+                      <button className="secondary" style={{ width: "100%", marginTop: 12 }} onClick={() => canvasImgRef.current?.click()}>{IcPlus} Upload background image</button>
                       {canvas.image_url && <img src={canvas.image_url} style={{ width: "100%", borderRadius: 8, marginTop: 10, maxHeight: 120, objectFit: "cover" }} />}
                     </>
                   )}
@@ -1932,11 +1942,11 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
                 <div className="ed-exp-est">{estText}</div>
 
-                <button className="ed-exp-go" onClick={() => doExport("mp4", expRes)}>⬇ Export</button>
+                <button className="ed-exp-go" onClick={() => doExport("mp4", expRes)}>{IcTrayDown} Export</button>
 
                 <div className="ed-exp-sec">
                   <div className="ed-exp-sub">Subtitles</div>
-                  <button className="secondary ed-exp-dltext" onClick={() => doExport("srt")}>⬇ Download Text</button>
+                  <button className="secondary ed-exp-dltext" onClick={() => doExport("srt")}>{IcTrayDown} Download Text</button>
                 </div>
 
                 <div className="ed-exp-sec">
@@ -2028,7 +2038,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   onChange={(e) => setFx({ radius: +e.target.value })} />
                 <div className="ed-cs-slabel" style={{ color: "var(--muted)" }}><span>% of the clip's shorter side</span></div>
               </div>
-              <button className="ed-vfx-crop" onClick={() => setFx({ cropOpen: !videofx.cropOpen })}>⛶ Crop this clip…</button>
+              <button className="ed-vfx-crop" onClick={() => setFx({ cropOpen: !videofx.cropOpen })}>{IcCrop} Crop this clip…</button>
               {videofx.cropOpen && (
                 <div className="ed-vfx-cropbox">
                   {([["cropT","Top"],["cropR","Right"],["cropB","Bottom"],["cropL","Left"]] as [string,string][]).map(([k,l]) => (
@@ -2093,7 +2103,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
               </div>
 
               <button className="secondary" style={{ width: "100%", marginTop: 14 }}
-                onClick={() => setFx({ ...VFX_DEFAULT })}>↺ Reset video effects</button>
+                onClick={() => setFx({ ...VFX_DEFAULT })}>{IcReset} Reset video effects</button>
             </div>
           )}
           {topTab === "video" && clipSelected && animBoxOpen && (
@@ -2149,7 +2159,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 <div className="ed-cs-slabel" style={{ color: "var(--muted)" }}><span>mute</span><span>200%</span></div>
               </div>
               <div className="ed-audio-enh">
-                <div className="ed-audio-enh-h"><span className="ed-audio-enh-ic" aria-hidden>🔊</span> Audio enhance</div>
+                <div className="ed-audio-enh-h"><span className="ed-audio-enh-ic" aria-hidden>{IcSpeaker}</span> Audio enhance</div>
                 <div className="np-sub">Cleans background noise with AI — takes about 10 seconds.</div>
               </div>
               <div className="ed-cs-slider" style={{ marginTop: 14 }}>
@@ -2289,14 +2299,14 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
               {stylesTab === "saved" && (
                 <div className="ed-preset-list">
-                  <button className="ed-addcap" onClick={saveCurrentStyle}>＋ Save current style</button>
+                  <button className="ed-addcap" onClick={saveCurrentStyle}>{IcPlus} Save current style</button>
                   {savedStyles.length === 0 ? (
                     <div className="ed-cap-empty" style={{ paddingTop: 16 }}>No saved styles yet.</div>
                   ) : (
                     savedStyles.filter((sv) => sv.name.toLowerCase().includes(styleSearch.toLowerCase())).map((sv) => (
                       <div key={sv.id} className="ed-preset-card" onClick={() => applySaved(sv)}>
                         <div className="ed-preset-name">{sv.name}
-                          <button className="ed-preset-del" onClick={(e) => { e.stopPropagation(); delSaved(sv.id); }}>🗑</button>
+                          <button className="ed-preset-del" onClick={(e) => { e.stopPropagation(); delSaved(sv.id); }}>{IcTrash}</button>
                         </div>
                         <div className="ed-preset-stage">
                           <span className={"cap cap-" + sv.style}>Welcome to the <span className="cap-emph">future</span></span>
@@ -2653,7 +2663,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   <div className="ed-cs-slabel" style={{ color: "var(--muted)" }}><span>slower</span><span>faster</span></div>
                 </div>
 
-                <button className="secondary" style={{ width: "100%", marginTop: 14 }} onClick={resetCapSettings}>↺ Reset to defaults</button>
+                <button className="secondary" style={{ width: "100%", marginTop: 14 }} onClick={resetCapSettings}>{IcReset} Reset to defaults</button>
               </div>
             </div>
           )}
@@ -2711,12 +2721,12 @@ export function EditorPage({ projectId }: { projectId: string }) {
         <div className="ed-tl-body">
           <div className="ed-tl-gutter">
             <div className="ed-th-ruler" />
-            {trackHead("captions", "≡")}
-            {overlays.length > 0 && trackHead("text", "T")}
-            {images.length > 0 && trackHead("images", "▤")}
-            {brolls.length > 0 && trackHead("broll", "▦")}
-            {filterLayers.length > 0 && trackHead("filters", "◑")}
-            {trackHead("media", "▶", true)}
+            {trackHead("captions")}
+            {overlays.length > 0 && trackHead("text")}
+            {images.length > 0 && trackHead("images")}
+            {brolls.length > 0 && trackHead("broll")}
+            {filterLayers.length > 0 && trackHead("filters")}
+            {trackHead("media", true)}
           </div>
           <div className="ed-tl2" ref={tl2Ref}>
           <div className="ed-tl2-inner" style={{ width: TLW }}>
@@ -2759,7 +2769,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 {images.map((im) => (
                   <div key={im.id} className={"ed-tl-block ed-tl-img" + (selImg === im.id ? " sel" : "")}
                     style={{ left: `${(im.start_ms / dur) * 100}%`, width: `${Math.max(((im.end_ms - im.start_ms) / dur) * 100, 1.2)}%` }}
-                    onClick={(e) => { e.stopPropagation(); setSelImg(im.id); setRail("images"); seek(im.start_ms); }}>🖼</div>
+                    onClick={(e) => { e.stopPropagation(); setSelImg(im.id); setRail("images"); seek(im.start_ms); }}>{IcImageS}</div>
                 ))}
               </div>
             )}
@@ -2769,7 +2779,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 {brolls.map((b) => (
                   <div key={b.id} className={"ed-tl-block ed-tl-broll" + (selBroll === b.id ? " sel" : "")}
                     style={{ left: `${(b.start_ms / dur) * 100}%`, width: `${Math.max(((b.end_ms - b.start_ms) / dur) * 100, 1.2)}%` }}
-                    onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setRail("broll"); seek(b.start_ms); }}>🎞 B-roll</div>
+                    onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setRail("broll"); seek(b.start_ms); }}>{IcFilm2} B-roll</div>
                 ))}
               </div>
             )}
@@ -2781,7 +2791,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                     style={{ left: `${(l.start_ms / dur) * 100}%`, width: `${Math.max(((l.end_ms - l.start_ms) / dur) * 100, 1.2)}%` }}
                     title={gradeLabel(l.name)}
                     onClick={(e) => { e.stopPropagation(); setRail("filters"); selectLayer(l.id); seek(l.start_ms); }}>
-                    ◑ {gradeLabel(l.name)}
+                    {IcHalf} {gradeLabel(l.name)}
                   </div>
                 ))}
               </div>
@@ -2813,7 +2823,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                         })()}
                         {removed && (
                           <button className="ed-seg-restore" title="Restore this segment"
-                            onClick={(ev) => { ev.stopPropagation(); restoreCut(removed.id); }}>↺ Restore</button>
+                            onClick={(ev) => { ev.stopPropagation(); restoreCut(removed.id); }}>{IcReset} Restore</button>
                         )}
                       </div>
                     );
@@ -2850,8 +2860,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
               <>
                 <div className="ex-title">Export <em>ready</em></div>
                 <div className="ex-sub">Your {expJob.fmt.toUpperCase()} is ready.</div>
-                <a className="ex-b go" href={api.mediaUrl(expJob.downloadUrl || expJob.url || "")} download>⬇ Download</a>
-                <a className="ex-b open" href={expJob.url ? api.mediaUrl(expJob.url) : "#"} target="_blank" rel="noreferrer">↗ Open in new tab</a>
+                <a className="ex-b go" href={api.mediaUrl(expJob.downloadUrl || expJob.url || "")} download>{IcTrayDown} Download</a>
+                <a className="ex-b open" href={expJob.url ? api.mediaUrl(expJob.url) : "#"} target="_blank" rel="noreferrer">{IcExternal} Open in new tab</a>
                 <button className="ex-b close" onClick={() => setExpJob(null)}>Close</button>
               </>
             )}
