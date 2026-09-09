@@ -138,6 +138,28 @@ const IcVol = (muted: boolean) => muted
   ? svg(<><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M22 9l-6 6M16 9l6 6" /></>)
   : svg(<><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M16 8.5a5 5 0 0 1 0 7" /></>);
 
+// crisp line icons for the timeline toolbar (HyproAI-style)
+const tsvg = (children: React.ReactNode) => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+    strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
+);
+const IcUndo = tsvg(<><path d="M9 14 4 9l5-5" /><path d="M4 9h11a5 5 0 0 1 0 10h-4" /></>);
+const IcRedo = tsvg(<><path d="m15 14 5-5-5-5" /><path d="M20 9H9a5 5 0 0 0 0 10h4" /></>);
+const IcTrash = tsvg(<><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" /></>);
+const IcStart = tsvg(<><path d="M6 5v14" /><path d="M18 5 8 12l10 7z" /></>);
+const IcSplit = tsvg(<><path d="M8 3v18" /><path d="M16 3v18" /><path d="M3 12h4" /><path d="M17 12h4" /></>);
+const IcDup = tsvg(<><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></>);
+const IcAI = tsvg(<><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9z" /><path d="M18.5 14.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z" /></>);
+const IcTextTool = tsvg(<><path d="M5 6V5h14v1" /><path d="M12 5v14" /><path d="M9 19h6" /></>);
+const IcRows = tsvg(<><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18" /><path d="M3 14h18" /></>);
+const IcPrev = tsvg(<><path d="M11 19 4 12l7-7z" /><path d="M18 19l-7-7 7-7z" /></>);
+const IcNext = tsvg(<><path d="M13 5l7 7-7 7z" /><path d="M6 5l7 7-7 7z" /></>);
+const IcPlay = (<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none"><path d="M8 5.5v13l11-6.5z" /></svg>);
+const IcPause = (<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><rect x="7" y="5" width="3.6" height="14" rx="1" /><rect x="13.4" y="5" width="3.6" height="14" rx="1" /></svg>);
+const IcZoomOut = tsvg(<><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /><path d="M8 11h6" /></>);
+const IcZoomIn = tsvg(<><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /><path d="M11 8v6" /><path d="M8 11h6" /></>);
+const IcFull = tsvg(<><path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M16 3h3a2 2 0 0 1 2 2v3" /><path d="M16 21h3a2 2 0 0 1 2-2v-3" /><path d="M8 21H5a2 2 0 0 0-2-2v-3" /></>);
+
 // Rail order mirrors ceyonai: Uploads, Texts, Videos, Filters, Captions, Auto Zoom, Images
 // (ceyonai uploads via the New Project modal, so there is no separate Uploads panel;
 //  "Videos" maps to B-roll clips. AI Tools / Canvas / Export are ceyonai extras.)
@@ -307,6 +329,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [undoStack, setUndoStack] = useState<CueSnap[][]>([]);
   const [redoStack, setRedoStack] = useState<CueSnap[][]>([]);
   const [tlZoom, setTlZoom] = useState(1);
+  const [tlFilter, setTlFilter] = useState<"all" | "videos" | "captions">("all");
   const [aiMenu, setAiMenu] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
   const cuesRef = useRef<Cue[]>([]);
@@ -2477,15 +2500,15 @@ export function EditorPage({ projectId }: { projectId: string }) {
       <div className="ed-timeline">
         <div className="ed-toolbar">
           <div className="ed-tb-group">
-            <button className="ed-tb-btn" title="Undo" onClick={undo} disabled={undoStack.length === 0}>↺</button>
-            <button className="ed-tb-btn" title="Redo" onClick={redo} disabled={redoStack.length === 0}>↻</button>
-            <button className="ed-tb-btn" title="Delete selected caption" onClick={() => { if (selected.size) bulkDelete(); else { const t = targetCueIdx(); if (t >= 0) deleteOne(t); } }}>🗑</button>
-            <button className="ed-tb-btn" title="Jump to start" onClick={() => seek(0)}>⏮</button>
+            <button className="ed-tb-btn" title="Undo" onClick={undo} disabled={undoStack.length === 0}>{IcUndo}</button>
+            <button className="ed-tb-btn" title="Redo" onClick={redo} disabled={redoStack.length === 0}>{IcRedo}</button>
+            <button className="ed-tb-btn" title="Delete selected caption" onClick={() => { if (selected.size) bulkDelete(); else { const t = targetCueIdx(); if (t >= 0) deleteOne(t); } }}>{IcTrash}</button>
+            <button className="ed-tb-btn" title="Jump to start" onClick={() => seek(0)}>{IcStart}</button>
             <span className="ed-tb-sep" />
-            <button className="ed-tb-btn wide" title="Split caption at playhead" onClick={() => { const t = targetCueIdx(); if (t >= 0) splitAt(t); }}>⑃ Split</button>
-            <button className="ed-tb-btn wide" title="Duplicate caption" onClick={() => { const t = targetCueIdx(); if (t >= 0) duplicateCap(t); }}>⧉ Duplicate</button>
+            <button className="ed-tb-btn wide" title="Split caption at playhead" onClick={() => { const t = targetCueIdx(); if (t >= 0) splitAt(t); }}>{IcSplit} Split</button>
+            <button className="ed-tb-btn wide" title="Duplicate caption" onClick={() => { const t = targetCueIdx(); if (t >= 0) duplicateCap(t); }}>{IcDup} Duplicate</button>
             <div className="ed-tb-aiwrap">
-              <button className="ed-tb-btn wide" title="AI tools" onClick={() => setAiMenu((v) => !v)}>✨ AI tools ▾</button>
+              <button className="ed-tb-btn wide" title="AI tools" onClick={() => setAiMenu((v) => !v)}>{IcAI} AI tools ▾</button>
               {aiMenu && (
                 <div className="ed-tb-aimenu" onMouseLeave={() => setAiMenu(false)}>
                   <div className="ed-tb-aiitem" onClick={() => { setRail("tools"); setAiMenu(false); }}>Remove silences</div>
@@ -2496,27 +2519,28 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 </div>
               )}
             </div>
-            <button className="ed-tb-btn" title="Add text overlay" onClick={() => { setRail("texts"); addText(); }}>T</button>
-            <button className="ed-tb-btn" title="Toggle caption density" onClick={() => setDensity((d) => d === "roomy" ? "compact" : "roomy")}>▤▥</button>
+            <button className="ed-tb-btn" title="Add text overlay" onClick={() => { setRail("texts"); addText(); }}>{IcTextTool}</button>
+            <button className="ed-tb-btn" title="Toggle caption density" onClick={() => setDensity((d) => d === "roomy" ? "compact" : "roomy")}>{IcRows}</button>
           </div>
 
           <div className="ed-tb-center">
-            <button className="ed-tb-btn" title="Previous caption" onClick={prevCap}>⏪</button>
-            <button className="ed-tl-play" onClick={togglePlay}>{playing ? "⏸" : "▶"}</button>
-            <button className="ed-tb-btn" title="Next caption" onClick={nextCap}>⏩</button>
+            <button className="ed-tb-btn" title="Previous caption" onClick={prevCap}>{IcPrev}</button>
+            <button className="ed-tl-play" onClick={togglePlay}>{playing ? IcPause : IcPlay}</button>
+            <button className="ed-tb-btn" title="Next caption" onClick={nextCap}>{IcNext}</button>
             <span className="muted ed-tb-time">{fmtT(curMs)} / {fmtT(dur)}</span>
           </div>
 
           <div className="ed-tb-group">
-            <button className="ed-tb-btn" title="Zoom out timeline" onClick={() => setTlZoom((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))}>➖</button>
+            <button className="ed-tb-btn" title="Zoom out timeline" onClick={() => setTlZoom((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))}>{IcZoomOut}</button>
             <input type="range" min={0.5} max={4} step={0.25} value={tlZoom} className="ed-tb-zoom"
               onChange={(e) => setTlZoom(+e.target.value)} />
-            <button className="ed-tb-btn" title="Zoom in timeline" onClick={() => setTlZoom((z) => Math.min(4, +(z + 0.25).toFixed(2)))}>➕</button>
-            <button className="ed-tb-btn" title="Fullscreen preview" onClick={toggleFullscreen}>⛶</button>
+            <button className="ed-tb-btn" title="Zoom in timeline" onClick={() => setTlZoom((z) => Math.min(4, +(z + 0.25).toFixed(2)))}>{IcZoomIn}</button>
+            <button className="ed-tb-btn" title="Fullscreen preview" onClick={toggleFullscreen}>{IcFull}</button>
             <span className="ed-tb-sep" />
             <span className="ed-tb-sel">Select</span>
-            <button className="ed-tb-selbtn" onClick={() => setSelected(new Set(cues.map((c) => c.idx)))}>All</button>
-            <button className="ed-tb-selbtn" onClick={() => setSelected(new Set())}>None</button>
+            <button className={"ed-tb-selbtn" + (tlFilter === "all" ? " on" : "")} onClick={() => { setTlFilter("all"); setSelected(new Set(cues.map((c) => c.idx))); }}>All</button>
+            <button className={"ed-tb-selbtn" + (tlFilter === "videos" ? " on" : "")} onClick={() => { setTlFilter("videos"); setSelected(new Set()); }}>Videos</button>
+            <button className={"ed-tb-selbtn" + (tlFilter === "captions" ? " on" : "")} onClick={() => { setTlFilter("captions"); setSelected(new Set(cues.map((c) => c.idx))); }}>Captions</button>
           </div>
         </div>
         <div className="ed-tl-body">
@@ -2538,22 +2562,22 @@ export function EditorPage({ projectId }: { projectId: string }) {
               ))}
             </div>
 
-            <div className={"ed-lane" + (isHidden("captions") ? " lane-off" : "") + (isLocked("captions") ? " lane-lock" : "")} onClick={scrub}>
+            <div className={"ed-lane" + (isHidden("captions") ? " lane-off" : "") + (isLocked("captions") ? " lane-lock" : "") + (tlFilter === "videos" ? " tl-dim" : "")} onClick={scrub}>
               {cues.map((c) => {
                 const w = ((c.end_ms - c.start_ms) / dur) * 100;
                 return (
                 <div key={c.idx} className={"ed-tl-pill" + (c.idx === activeIdx ? " active" : "")}
-                  style={{ left: `${(c.start_ms / dur) * 100}%`, width: `${Math.max(w, 0.7)}%` }}
+                  style={{ left: `${(c.start_ms / dur) * 100}%`, width: `${Math.max(w, 2.4)}%` }}
                   title={c.text}
                   onClick={(e) => { e.stopPropagation(); setRail("captions"); seek(c.start_ms); }}>
-                  {w > 2.4 ? (showTranslit && c.translit_text ? c.translit_text : c.text).slice(0, 14) : ""}
+                  <span className="ed-tl-pill-t">{(showTranslit && c.translit_text ? c.translit_text : c.text)}</span>
                 </div>
                 );
               })}
             </div>
 
             {overlays.length > 0 && (
-              <div className={"ed-lane" + (isHidden("text") ? " lane-off" : "") + (isLocked("text") ? " lane-lock" : "")} onClick={scrub}>
+              <div className={"ed-lane" + (isHidden("text") ? " lane-off" : "") + (isLocked("text") ? " lane-lock" : "") + (tlFilter === "videos" ? " tl-dim" : "")} onClick={scrub}>
                 {overlays.map((o) => (
                   <div key={o.id} className={"ed-tl-block ed-tl-text" + (selOv === o.id ? " sel" : "")}
                     style={{ left: `${(o.start_ms / dur) * 100}%`, width: `${Math.max(((o.end_ms - o.start_ms) / dur) * 100, 1.2)}%` }}
@@ -2566,7 +2590,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             )}
 
             {images.length > 0 && (
-              <div className={"ed-lane" + (isHidden("images") ? " lane-off" : "") + (isLocked("images") ? " lane-lock" : "")} onClick={scrub}>
+              <div className={"ed-lane" + (isHidden("images") ? " lane-off" : "") + (isLocked("images") ? " lane-lock" : "") + (tlFilter === "captions" ? " tl-dim" : "")} onClick={scrub}>
                 {images.map((im) => (
                   <div key={im.id} className={"ed-tl-block ed-tl-img" + (selImg === im.id ? " sel" : "")}
                     style={{ left: `${(im.start_ms / dur) * 100}%`, width: `${Math.max(((im.end_ms - im.start_ms) / dur) * 100, 1.2)}%` }}
@@ -2576,7 +2600,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             )}
 
             {brolls.length > 0 && (
-              <div className={"ed-lane" + (isHidden("broll") ? " lane-off" : "") + (isLocked("broll") ? " lane-lock" : "")} onClick={scrub}>
+              <div className={"ed-lane" + (isHidden("broll") ? " lane-off" : "") + (isLocked("broll") ? " lane-lock" : "") + (tlFilter === "captions" ? " tl-dim" : "")} onClick={scrub}>
                 {brolls.map((b) => (
                   <div key={b.id} className={"ed-tl-block ed-tl-broll" + (selBroll === b.id ? " sel" : "")}
                     style={{ left: `${(b.start_ms / dur) * 100}%`, width: `${Math.max(((b.end_ms - b.start_ms) / dur) * 100, 1.2)}%` }}
@@ -2586,7 +2610,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             )}
 
             {filterLayers.length > 0 && (
-              <div className={"ed-lane" + (isHidden("filters") ? " lane-off" : "") + (isLocked("filters") ? " lane-lock" : "")} onClick={scrub}>
+              <div className={"ed-lane" + (isHidden("filters") ? " lane-off" : "") + (isLocked("filters") ? " lane-lock" : "") + (tlFilter === "captions" ? " tl-dim" : "")} onClick={scrub}>
                 {filterLayers.map((l) => (
                   <div key={l.id} className={"ed-tl-block ed-tl-filter" + (selLayer === l.id ? " sel" : "")}
                     style={{ left: `${(l.start_ms / dur) * 100}%`, width: `${Math.max(((l.end_ms - l.start_ms) / dur) * 100, 1.2)}%` }}
@@ -2598,7 +2622,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
               </div>
             )}
 
-            <div className={"ed-lane ed-lane-media" + (isHidden("media") ? " lane-off" : "") + (isLocked("media") ? " lane-lock" : "")} onClick={scrub}>
+            <div className={"ed-lane ed-lane-media" + (isHidden("media") ? " lane-off" : "") + (isLocked("media") ? " lane-lock" : "") + (tlFilter === "captions" ? " tl-dim" : "")} onClick={scrub}>
               <div className="ed-media-clip">
                 <div className="ed-media-name">{proj.source_filename || "video"} · {fmtT(dur)}</div>
                 <Filmstrip src={mediaSrc} count={14} />

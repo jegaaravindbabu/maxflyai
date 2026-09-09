@@ -16,9 +16,12 @@ export function Waveform({ mediaEl }: Props) {
       container: containerRef.current,
       media: mediaEl,
       height: 64,
-      waveColor: "#3a3f52",
-      progressColor: "#ff5a3c",
-      cursorColor: "#4c8dff",
+      waveColor: "#5a6178",
+      progressColor: "#aab2c6",
+      cursorColor: "transparent",
+      barWidth: 2,
+      barGap: 1,
+      barRadius: 2,
     });
     wsRef.current = ws;
     return () => { ws.destroy(); wsRef.current = null; };
