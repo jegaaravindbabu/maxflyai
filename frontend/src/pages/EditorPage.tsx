@@ -159,6 +159,10 @@ const IcPause = (<svg viewBox="0 0 24 24" width="16" height="16" fill="currentCo
 const IcZoomOut = tsvg(<><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /><path d="M8 11h6" /></>);
 const IcZoomIn = tsvg(<><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /><path d="M11 8v6" /><path d="M8 11h6" /></>);
 const IcFull = tsvg(<><path d="M8 3H5a2 2 0 0 0-2 2v3" /><path d="M16 3h3a2 2 0 0 1 2 2v3" /><path d="M16 21h3a2 2 0 0 1 2-2v-3" /><path d="M8 21H5a2 2 0 0 0-2-2v-3" /></>);
+const IcTrayUp = tsvg(<><path d="M12 15V4" /><path d="m7 8 5-4 5 4" /><path d="M3 15v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3" /></>);
+const IcTrayDown = tsvg(<><path d="M12 4v11" /><path d="m7 11 5 4 5-4" /><path d="M3 15v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3" /></>);
+const IcFileMedia = tsvg(<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="m10 12 4 2.5-4 2.5z" /></>);
+const IcFilm2 = tsvg(<><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M3 15h18M8 4v16M16 4v16" /></>);
 
 // Rail order mirrors ceyonai: Uploads, Texts, Videos, Filters, Captions, Auto Zoom, Images
 // (ceyonai uploads via the New Project modal, so there is no separate Uploads panel;
@@ -233,6 +237,12 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [myMedia, setMyMedia] = useState<Project[]>([]);
   const [upTab, setUpTab] = useState<"import" | "export">("import");
   const [upBusy, setUpBusy] = useState(false);
+  const [upModal, setUpModal] = useState(false);
+  const [upFile, setUpFile] = useState<File | null>(null);
+  const [upDrag, setUpDrag] = useState(false);
+  const [upPct, setUpPct] = useState(0);
+  const [upName, setUpName] = useState("");
+  const [upExports, setUpExports] = useState<{ id: string; format: string; url: string | null; download_url?: string | null; status: string }[]>([]);
   const imagesRef = useRef<ImageOverlay[]>([]);
   imagesRef.current = images;
   const [stockQ, setStockQ] = useState("");
@@ -371,6 +381,11 @@ export function EditorPage({ projectId }: { projectId: string }) {
   useEffect(() => { if (videoRef.current) videoRef.current.muted = mediaMuted; }, [mediaMuted]);
   useEffect(() => { setOverlays(proj?.overlays || []); }, [proj?.id]);
   useEffect(() => { api.listAutozoom(projectId).then(setZooms).catch(() => {}); }, [projectId]);
+  useEffect(() => {
+    if (rail === "uploads" && upTab === "export") {
+      api.listExports(projectId).then((l) => setUpExports(l as any)).catch(() => {});
+    }
+  }, [rail, upTab, projectId]);
   // --- timeline clip segmentation (HyproAI-style split/delete on the video track) ---
   const [videoCuts, setVideoCuts] = useState<number[]>(() => {
     try { return JSON.parse(localStorage.getItem("ceyonai:vcuts:" + projectId) || "[]"); } catch { return []; }
@@ -980,13 +995,13 @@ export function EditorPage({ projectId }: { projectId: string }) {
     if (best) { setEmphasisDraft(best); saveCapSetting({ emphasis: best }); }
   }
   async function uploadNewVideo(file: File) {
-    setUpBusy(true);
+    setUpBusy(true); setUpName(file.name); setUpPct(0);
     try {
-      const np = await api.upload(file);
+      const np = await api.uploadWithProgress(file, (p) => setUpPct(p));
       try { await api.transcribe(np.id, "ta-IN", "translit"); } catch {}
       window.location.hash = `#/project/${np.id}`;
     } catch (e: any) { alert("Upload failed: " + (e?.message || "")); }
-    finally { setUpBusy(false); }
+    finally { setUpBusy(false); setUpName(""); }
   }
 
   function pickImage() { imgInputRef.current?.click(); }
@@ -1196,6 +1211,27 @@ export function EditorPage({ projectId }: { projectId: string }) {
         </div>
       </div>
 
+      {upModal && (
+        <div className="ed-modal-back" onClick={() => setUpModal(false)}>
+          <div className="ml-upmodal" onClick={(e) => e.stopPropagation()}>
+            <div className="ml-upmodal-h"><span>Upload media</span>
+              <button className="ed-report-x" title="Close" onClick={() => setUpModal(false)}>×</button></div>
+            <div className={"ml-dropzone" + (upDrag ? " drag" : "")}
+              onDragOver={(e) => { e.preventDefault(); setUpDrag(true); }}
+              onDragLeave={() => setUpDrag(false)}
+              onDrop={(e) => { e.preventDefault(); setUpDrag(false); const f = e.dataTransfer.files?.[0]; if (f) setUpFile(f); }}>
+              <div className="ml-dropzone-ic">{IcTrayUp}</div>
+              {upFile ? <p className="ml-dropzone-file">{upFile.name}</p> : <p>Drag and drop files here, or</p>}
+              <button className="ml-browse" onClick={() => upInputRef.current?.click()}>browse files</button>
+            </div>
+            <div className="ml-upmodal-f">
+              <button className="ml-cancel" onClick={() => setUpModal(false)}>Cancel</button>
+              <button className="ml-upload" disabled={!upFile}
+                onClick={() => { if (upFile) { const f = upFile; setUpModal(false); setUpFile(null); uploadNewVideo(f); } }}>Upload</button>
+            </div>
+          </div>
+        </div>
+      )}
       {reportOpen && (
         <div className="ed-modal-back" onClick={() => setReportOpen(false)}>
           <div className="ed-report" onClick={(e) => e.stopPropagation()}>
@@ -1234,27 +1270,34 @@ export function EditorPage({ projectId }: { projectId: string }) {
             <>
               <div className="ed-left-head"><h3>Media Library</h3></div>
               <div className="ml-tabs2">
-                <div className={"ml-tab2" + (upTab === "import" ? " active" : "")} onClick={() => setUpTab("import")}>⤒ Import</div>
-                <div className={"ml-tab2" + (upTab === "export" ? " active" : "")} onClick={() => setUpTab("export")}>⤓ Export</div>
+                <div className={"ml-tab2" + (upTab === "import" ? " active" : "")} onClick={() => setUpTab("import")}>{IcTrayUp} Import</div>
+                <div className={"ml-tab2" + (upTab === "export" ? " active" : "")} onClick={() => setUpTab("export")}>{IcTrayDown} Export</div>
               </div>
               <input ref={upInputRef} type="file" accept="video/*,audio/*" hidden
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadNewVideo(f); e.currentTarget.value = ""; }} />
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) setUpFile(f); e.currentTarget.value = ""; }} />
               {upTab === "import" ? (
                 <>
-                  <button className="ml-import" onClick={() => upInputRef.current?.click()} disabled={upBusy}>
-                    {upBusy ? "Uploading…" : "⤒ Import"}
+                  <button className="ml-import" onClick={() => { setUpFile(null); setUpModal(true); }} disabled={upBusy}>
+                    {IcTrayUp} Import
                   </button>
-                  {myMedia.length === 0 ? (
+                  {upBusy && (
+                    <div className="ml-uploading">
+                      <div className="ml-uploading-h"><span className="ml-spin" aria-hidden /> UPLOADING</div>
+                      <div className="ml-uploading-row"><span className="ml-uploading-name">{upName}</span><span className="ml-uploading-pct">{upPct}%</span></div>
+                      <div className="ml-uploading-bar"><i style={{ width: upPct + "%" }} /></div>
+                    </div>
+                  )}
+                  {myMedia.length === 0 && !upBusy ? (
                     <div className="ml-empty2">
-                      <div className="ml-empty2-ic">🗎</div>
-                      <p>No media yet. Click Import to add videos, images, or audio.</p>
+                      <div className="ml-empty2-ic">{IcFileMedia}</div>
+                      <p>No media yet. Click <span className="ml-link" onClick={() => { setUpFile(null); setUpModal(true); }}>Import</span> to add videos, images, or audio.</p>
                     </div>
                   ) : (
                     <div className="ed-up-list">
                       {myMedia.map((m) => (
                         <div key={m.id} className={"ed-up-item" + (m.id === projectId ? " active" : "")}
                           onClick={() => { if (m.id !== projectId) window.location.hash = `#/project/${m.id}`; }}>
-                          <div className="ed-up-thumb">▶</div>
+                          <div className="ed-up-thumb">{IcFilm2}</div>
                           <div className="ed-up-meta">
                             <div className="ed-up-name">{m.name}</div>
                             <div className="np-sub">{m.id === projectId ? "Current project" : (m.sub_count ? `${m.sub_count} subs` : "Open")}</div>
@@ -1266,11 +1309,25 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 </>
               ) : (
                 <>
-                  <button className="ml-import" onClick={() => setExpOpen(true)}>⤓ Export this project</button>
-                  <div className="ml-empty2">
-                    <div className="ml-empty2-ic">🗎</div>
-                    <p>Export your captioned MP4, or download SRT / VTT / ASS subtitles.</p>
-                  </div>
+                  <button className="ml-import" onClick={() => setExpOpen(true)}>{IcTrayDown} Export this project</button>
+                  {upExports.filter((x) => x.status === "ready").length === 0 ? (
+                    <div className="ml-empty2">
+                      <div className="ml-empty2-ic">{IcFilm2}</div>
+                      <p>No exports yet. Render a video and it will appear here for download.</p>
+                    </div>
+                  ) : (
+                    <div className="ed-up-list">
+                      {upExports.filter((x) => x.status === "ready").map((x) => (
+                        <a key={x.id} className="ed-up-item ml-exp-row" href={api.mediaUrl(x.download_url || x.url || "")} download>
+                          <div className="ed-up-thumb">{IcTrayDown}</div>
+                          <div className="ed-up-meta">
+                            <div className="ed-up-name">{(proj.name || "export") + "." + x.format}</div>
+                            <div className="np-sub">Ready — click to download</div>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </>
               )}
             </>
