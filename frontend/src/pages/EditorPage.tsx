@@ -252,6 +252,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [playing, setPlaying] = useState(false);
   const [previewZoom, setPreviewZoom] = useState(1);
   const [safeZone, setSafeZone] = useState(false);
+  const [clipSelected, setClipSelected] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportText, setReportText] = useState("");
   function sendReport() {
@@ -1604,14 +1605,15 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
         {/* center preview */}
         <div className="ed-center">
-          <div className="ed-stage" ref={stageRef}>
+          <div className={"ed-stage" + (clipSelected ? " sel" : "")} ref={stageRef}
+            onClick={(e) => { if (!(e.target as HTMLElement).closest(".preview-wrap")) setClipSelected(false); }}>
             <div className={"ed-canvas-frame" + (canvas.aspect && canvas.aspect !== "original" ? " on" : "")}
               style={canvas.aspect && canvas.aspect !== "original" ? {
                 aspectRatio: canvas.aspect.replace(":", "/"),
                 background: canvas.bg_type === "image" && canvas.image_url ? `center/cover no-repeat url("${canvas.image_url}")`
                   : canvas.bg_type === "blur" ? "#0a0c13" : (canvas.color || "#000000"),
               } : undefined}>
-            <VideoPreview ref={videoRef} src={mediaSrc} videoStyle={videoFxStyle} zoom={previewZoom} safeZone={safeZone} onSurfaceClick={() => setTopTab("video")}
+            <VideoPreview ref={videoRef} src={mediaSrc} videoStyle={videoFxStyle} zoom={previewZoom} safeZone={safeZone} onSurfaceClick={() => { setClipSelected(true); setTopTab("video"); }}
               enhancedSrc={enhancedUrl || undefined} enhanceOn={!!enhancedUrl}
               cropOverlay={topTab === "video" && videofx.cropOpen ? (
                 <div className="ed-crop-layer">
@@ -1807,7 +1809,18 @@ export function EditorPage({ projectId }: { projectId: string }) {
             </div>
           )}
 
-          {topTab === "video" && (
+          {(topTab === "video" || topTab === "audio") && !clipSelected && (
+            <div className="ed-rt-body ed-noitem">
+              <div className="ed-noitem-ic" aria-hidden>
+                <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="14" rx="2" /><path d="m10 9 5 3-5 3z" /></svg>
+              </div>
+              <div className="ed-noitem-t">No item selected</div>
+              <div className="np-sub" style={{ textAlign: "center", maxWidth: 220 }}>
+                Click the video in the preview to edit its {topTab === "audio" ? "volume & audio" : "look, crop & animation"}.
+              </div>
+            </div>
+          )}
+          {topTab === "video" && clipSelected && (
             <div className="ed-rt-body ed-vfx">
               <div className="ed-anim-lbl">PLAYBACK</div>
               <div className="ed-cs-slider">
@@ -1896,7 +1909,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 onClick={() => setFx({ ...VFX_DEFAULT })}>↺ Reset video effects</button>
             </div>
           )}
-          {topTab === "video" && animBoxOpen && (
+          {topTab === "video" && clipSelected && animBoxOpen && (
             <div className="ed-animprops" style={animBoxPos ? { left: animBoxPos.x, top: animBoxPos.y, right: "auto" } : undefined}>
               <div className="ed-animprops-hdr" onMouseDown={startAnimBoxDrag}>
                 <span className="ed-animprops-grip" aria-hidden>⋮⋮</span>
@@ -1939,7 +1952,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             </div>
           )}
 
-          {topTab === "audio" && (
+          {topTab === "audio" && clipSelected && (
             <div className="ed-rt-body">
               <div className="ed-anim-lbl">VOLUME</div>
               <div className="ed-cs-slider">

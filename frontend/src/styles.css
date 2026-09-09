@@ -434,7 +434,10 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
 .ed-stage { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; width: 100%; }
 /* ===== Custom preview monitor (HyproAI-style) ===== */
 /* selection frame + corner handles on the video */
-.ed-stage .preview-wrap { box-shadow: 0 0 0 1.5px rgba(140,170,255,.55); }
+.ed-stage.sel .preview-wrap { box-shadow: 0 0 0 1.5px rgba(140,170,255,.55); }
+.ed-mon-h, .ed-mon-grip, .ed-mon-replace { display: none; }
+.ed-stage.sel .ed-mon-h, .ed-stage.sel .ed-mon-grip, .ed-stage.sel .ed-mon-replace { display: initial; }
+.ed-stage.sel .ed-mon-replace { display: inline-flex; }
 .ed-mon-h { position: absolute; width: 9px; height: 9px; border-radius: 50%;
   background: #fff; box-shadow: 0 0 0 1.5px rgba(140,170,255,.7); z-index: 7; }
 .ed-mon-h-tl { left: -5px; top: -5px; } .ed-mon-h-tr { right: -5px; top: -5px; }
@@ -1735,3 +1738,15 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
   margin-top:12px;padding:10px 12px;border-radius:10px;font-size:12.5px;
   background:rgba(240,90,90,.10);border:1px solid rgba(240,90,90,.35);color:#ffb4b4;
 }
+
+
+/* ===== Video/Audio tab — "No item selected" empty state ===== */
+.ed-noitem{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  min-height:220px;text-align:center;color:var(--muted,#8a93a6);padding:24px 16px;
+}
+.ed-noitem-ic{
+  width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.04);border:1px solid var(--line,#2a2f3a);color:var(--muted,#8a93a6);margin-bottom:2px;
+}
+.ed-noitem-t{font-size:14.5px;font-weight:700;color:var(--fg,#e8ecf3);}
