@@ -975,10 +975,32 @@ export function EditorPage({ projectId }: { projectId: string }) {
         </div>
         <div className="ed-title">{proj.name}</div>
         <div className="ed-top-r">
-          <span className="ed-pill">{(dur / 60000).toFixed(1)} min</span>
-          <span className={"badge " + proj.status}>{proj.status}</span>
+          <button className="ed-hdr-ic" title="Keyboard shortcuts">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round"><rect x="2" y="6" width="20" height="12" rx="2" /><path d="M6 10h0M10 10h0M14 10h0M18 10h0M6 14h0M18 14h0M9 14h6" /></svg>
+          </button>
+          <button className="ed-hdr-pill ed-hdr-help" title="How it works">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M9.6 9.2a2.4 2.4 0 1 1 3.2 2.2c-.6.3-.9.8-.9 1.4v.3" /><path d="M12 17h0" /></svg>
+            <span>How it works</span>
+          </button>
+          <button className="ed-hdr-pill ed-hdr-report" title="Report an issue"
+            onClick={() => window.open("mailto:aravindbabu6969@gmail.com?subject=ceyonai%20report", "_blank")}>
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M4 21V4M4 4h13l-2 4 2 4H4" /></svg>
+            <span>Report</span>
+          </button>
+          <div className="ed-hdr-meta">
+            <span className="ed-hdr-dur"><i /> {(dur / 60000).toFixed(1)} min <span className="ed-hdr-track" /></span>
+            {proj.size_bytes ? (
+              <span className="ed-hdr-size">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round"><rect x="3" y="4" width="18" height="7" rx="1.5" /><rect x="3" y="13" width="18" height="7" rx="1.5" /><path d="M7 7.5h0M7 16.5h0" /></svg>
+                {Math.max(1, Math.round(proj.size_bytes / 1048576))} MB
+              </span>
+            ) : null}
+          </div>
           <div className="ed-export-wrap">
-            <button className="ed-export" onClick={() => setExpOpen((v) => !v)}>⬇ Export</button>
+            <button className="ed-export" onClick={() => setExpOpen((v) => !v)}>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12M8 11l4 4 4-4M4 21h16" /></svg>
+              Export
+            </button>
           </div>
         </div>
       </div>
