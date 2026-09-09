@@ -371,6 +371,26 @@ export function EditorPage({ projectId }: { projectId: string }) {
   useEffect(() => { if (videoRef.current) videoRef.current.muted = mediaMuted; }, [mediaMuted]);
   useEffect(() => { setOverlays(proj?.overlays || []); }, [proj?.id]);
   useEffect(() => { api.listAutozoom(projectId).then(setZooms).catch(() => {}); }, [projectId]);
+  // --- timeline clip segmentation (HyproAI-style split/delete on the video track) ---
+  const [videoCuts, setVideoCuts] = useState<number[]>(() => {
+    try { return JSON.parse(localStorage.getItem("ceyonai:vcuts:" + projectId) || "[]"); } catch { return []; }
+  });
+  const [selSeg, setSelSeg] = useState<number | null>(null);
+  const [cutEdits, setCutEdits] = useState<{ id: string; start_ms: number; end_ms: number }[]>([]);
+  const [tlToast, setTlToast] = useState("");
+  const tlToastRef = useRef<number | null>(null);
+  const toast = (msg: string) => {
+    setTlToast(msg);
+    if (tlToastRef.current) window.clearTimeout(tlToastRef.current);
+    tlToastRef.current = window.setTimeout(() => setTlToast(""), 2600);
+  };
+  useEffect(() => {
+    api.listEdits(projectId).then((rows: any[]) => {
+      setCutEdits((rows || [])
+        .filter((r) => r.type === "manual_cut" && r.enabled && r.payload_json && r.payload_json.source === "timeline")
+        .map((r) => ({ id: r.id, start_ms: r.payload_json.start_ms, end_ms: r.payload_json.end_ms })));
+    }).catch(() => {});
+  }, [projectId]);
   useEffect(() => { api.filterPresets().then((r) => { setFilterList(r.filters); setFilterGroups(r.groups || []); }).catch(() => {}); }, []);
   useEffect(() => {
     api.getFilter(projectId).then((r) => { setCurFilter(r.name); setAdjust({ brightness: r.brightness, contrast: r.contrast, saturation: r.saturation, warmth: r.warmth }); }).catch(() => {});
@@ -600,6 +620,50 @@ export function EditorPage({ projectId }: { projectId: string }) {
     seek(pct * dur);
   }
   function seek(ms: number) { if (videoRef.current) videoRef.current.currentTime = ms / 1000; }
+  const segBounds = [0, ...videoCuts.filter((c) => c > 0 && c < dur).sort((a, b) => a - b), dur];
+  function saveVideoCuts(next: number[]) {
+    const arr = [...next].sort((a, b) => a - b).filter((v, i, a2) => v > 200 && v < dur - 200 && (i === 0 || v - a2[i - 1] > 200));
+    setVideoCuts(arr);
+    try { localStorage.setItem("ceyonai:vcuts:" + projectId, JSON.stringify(arr)); } catch {}
+  }
+  function splitAction() {
+    if (selSeg == null) {
+      const t = targetCueIdx();
+      if (t >= 0) { splitAt(t); toast("Caption split at " + fmtT(curMs)); return; }
+    }
+    const at = Math.round(curMs);
+    if (at <= 200 || at >= dur - 200) { toast("Move the playhead into the clip, then press Split"); return; }
+    if (videoCuts.some((c) => Math.abs(c - at) < 200)) { toast("Already split here"); return; }
+    saveVideoCuts([...videoCuts, at]);
+    setSelSeg(null);
+    toast("Clip split at " + fmtT(at));
+  }
+  function duplicateAction() {
+    if (selSeg != null) { toast("Duplicating video segments isn't available yet"); return; }
+    const t = targetCueIdx();
+    if (t >= 0) { duplicateCap(t); toast("Caption duplicated"); }
+    else toast("Select a caption to duplicate");
+  }
+  async function deleteAction() {
+    if (selSeg != null) {
+      const s0 = Math.round(segBounds[selSeg]), e0 = Math.round(segBounds[selSeg + 1]);
+      if (e0 - s0 >= dur - 400) { toast("Can't remove the whole clip — split it first"); return; }
+      try {
+        const r = await api.addEdit(projectId, "manual_cut", { start_ms: s0, end_ms: e0, source: "timeline" });
+        setCutEdits((p) => [...p, { id: r.id, start_ms: s0, end_ms: e0 }]);
+        setSelSeg(null);
+        toast("Segment removed — it will be cut from the export");
+      } catch { toast("Couldn't remove the segment — try again"); }
+      return;
+    }
+    if (selected.size) { const n = selected.size; bulkDelete(); toast("Deleted " + n + " caption" + (n > 1 ? "s" : "")); return; }
+    const t = targetCueIdx();
+    if (t >= 0) { deleteOne(t); toast("Caption deleted"); }
+    else toast("Click a caption or a clip segment first");
+  }
+  async function restoreCut(editId: string) {
+    try { await api.deleteEdit(projectId, editId); setCutEdits((p) => p.filter((c) => c.id !== editId)); toast("Segment restored"); } catch {}
+  }
   function togglePlay() { const v = videoRef.current; if (!v) return; if (v.paused) v.play(); else v.pause(); }
 
   async function runTranscribe() {
@@ -635,7 +699,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   function targetCueIdx(): number {
     if (activeIdx >= 0) return activeIdx;
     if (selected.size) return [...selected][0];
-    return cues[0]?.idx ?? -1;
+    return -1;
   }
   async function duplicateCap(idx: number) {
     const c = cues.find((x) => x.idx === idx);
@@ -2498,15 +2562,16 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
       {/* ===== bottom timeline ===== */}
       <div className="ed-timeline">
+        {tlToast && <div className="ed-tl-toast">{tlToast}</div>}
         <div className="ed-toolbar">
           <div className="ed-tb-group">
             <button className="ed-tb-btn" title="Undo" onClick={undo} disabled={undoStack.length === 0}>{IcUndo}</button>
             <button className="ed-tb-btn" title="Redo" onClick={redo} disabled={redoStack.length === 0}>{IcRedo}</button>
-            <button className="ed-tb-btn" title="Delete selected caption" onClick={() => { if (selected.size) bulkDelete(); else { const t = targetCueIdx(); if (t >= 0) deleteOne(t); } }}>{IcTrash}</button>
+            <button className="ed-tb-btn" title="Delete selected caption" onClick={deleteAction}>{IcTrash}</button>
             <button className="ed-tb-btn" title="Jump to start" onClick={() => seek(0)}>{IcStart}</button>
             <span className="ed-tb-sep" />
-            <button className="ed-tb-btn wide" title="Split caption at playhead" onClick={() => { const t = targetCueIdx(); if (t >= 0) splitAt(t); }}>{IcSplit} Split</button>
-            <button className="ed-tb-btn wide" title="Duplicate caption" onClick={() => { const t = targetCueIdx(); if (t >= 0) duplicateCap(t); }}>{IcDup} Duplicate</button>
+            <button className="ed-tb-btn wide" title="Split caption at playhead" onClick={splitAction}>{IcSplit} Split</button>
+            <button className="ed-tb-btn wide" title="Duplicate caption" onClick={duplicateAction}>{IcDup} Duplicate</button>
             <div className="ed-tb-aiwrap">
               <button className="ed-tb-btn wide" title="AI tools" onClick={() => setAiMenu((v) => !v)}>{IcAI} AI tools ▾</button>
               {aiMenu && (
@@ -2566,10 +2631,10 @@ export function EditorPage({ projectId }: { projectId: string }) {
               {cues.map((c) => {
                 const w = ((c.end_ms - c.start_ms) / dur) * 100;
                 return (
-                <div key={c.idx} className={"ed-tl-pill" + (c.idx === activeIdx ? " active" : "")}
+                <div key={c.idx} className={"ed-tl-pill" + (c.idx === activeIdx ? " active" : "") + (selected.has(c.idx) ? " sel" : "")}
                   style={{ left: `${(c.start_ms / dur) * 100}%`, width: `${Math.max(w, 2.4)}%` }}
                   title={c.text}
-                  onClick={(e) => { e.stopPropagation(); setRail("captions"); seek(c.start_ms); }}>
+                  onClick={(e) => { e.stopPropagation(); setSelected(new Set([c.idx])); setSelSeg(null); setRail("captions"); seek(c.start_ms); }}>
                   <span className="ed-tl-pill-t">{(showTranslit && c.translit_text ? c.translit_text : c.text)}</span>
                 </div>
                 );
@@ -2627,6 +2692,29 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 <div className="ed-media-name">{proj.source_filename || "video"} · {fmtT(dur)}</div>
                 <Filmstrip src={mediaSrc} count={14} />
                 <div className="ed-media-wave"><Waveform mediaEl={mediaEl} /></div>
+                <div className="ed-seg-layer">
+                  {segBounds.slice(0, -1).map((s0, i) => {
+                    const e0 = segBounds[i + 1];
+                    const removed = cutEdits.find((c) => c.start_ms <= s0 + 60 && c.end_ms >= e0 - 60);
+                    return (
+                      <div key={i} className={"ed-seg" + (selSeg === i ? " sel" : "") + (removed ? " removed" : "")}
+                        style={{ left: `${(s0 / dur) * 100}%`, width: `${((e0 - s0) / dur) * 100}%` }}
+                        title={removed ? "Removed segment — will be cut from the export" : "Click to select this segment"}
+                        onClick={(ev) => { ev.stopPropagation(); setSelSeg(selSeg === i ? null : i); setSelected(new Set()); seek(s0 + 40); }}>
+                        {(e0 - s0) / dur > 0.07 && <span className="ed-seg-lb">{fmtT(e0 - s0)}</span>}
+                        {removed && (
+                          <button className="ed-seg-restore" title="Restore this segment"
+                            onClick={(ev) => { ev.stopPropagation(); restoreCut(removed.id); }}>↺ Restore</button>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {videoCuts.map((c2, i) => (
+                    <span key={"cut" + i} className="ed-seg-cutmark" style={{ left: `${(c2 / dur) * 100}%` }}
+                      title="Split point — double-click to remove"
+                      onDoubleClick={(ev) => { ev.stopPropagation(); saveVideoCuts(videoCuts.filter((x) => x !== c2)); toast("Split point removed"); }} />
+                  ))}
+                </div>
               </div>
             </div>
           </div>

@@ -400,6 +400,10 @@ export const api = {
     );
   },
 
+  async listEdits(id: string) {
+    return j<any[]>(await afetch(`${BASE}/api/projects/${id}/edits`));
+  },
+
   async addEdit(id: string, type: string, payload_json: any) {
     return j<{ id: string; type: string; enabled: boolean }>(
       await afetch(`${BASE}/api/projects/${id}/edits`, {

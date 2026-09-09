@@ -523,7 +523,7 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
 
 .ed-setting { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
 
-.ed-timeline { height: 300px; flex: none; border-top: 1px solid var(--border); background: var(--panel); padding: 10px 16px 8px; display: flex; flex-direction: column; }
+.ed-timeline { position: relative; height: 300px; flex: none; border-top: 1px solid var(--border); background: var(--panel); padding: 10px 16px 8px; display: flex; flex-direction: column; }
 .ed-tl-controls { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
 .ed-tl-play { width: 40px; height: 40px; border-radius: 50%; padding: 0; display: inline-flex;
   align-items: center; justify-content: center; background: var(--accent); color: var(--on-accent, #0c1108);
@@ -1766,3 +1766,27 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 /* timeline view filter — dim non-matching lanes */
 .ed-lane.tl-dim { opacity: .28; filter: grayscale(.4); transition: opacity .15s; }
 .ed-lane.tl-dim .ed-tl-pill, .ed-lane.tl-dim .ed-tl-block, .ed-lane.tl-dim .ed-media-clip { pointer-events: none; }
+
+/* ===== Timeline: selection, clip segments, toast ===== */
+.ed-tl-pill.sel { background: rgba(198,255,58,.13); border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.ed-seg-layer { position: absolute; inset: 0; z-index: 4; }
+.ed-seg { position: absolute; top: 0; bottom: 0; box-sizing: border-box; border: 1.5px solid transparent;
+  border-radius: 8px; cursor: pointer; }
+.ed-seg:hover { border-color: rgba(198,255,58,.45); }
+.ed-seg.sel { border-color: var(--accent); box-shadow: inset 0 0 0 1px rgba(198,255,58,.35), 0 0 10px rgba(198,255,58,.25); }
+.ed-seg.removed { background: repeating-linear-gradient(45deg, rgba(6,7,10,.62) 0 8px, rgba(40,12,12,.62) 8px 16px); }
+.ed-seg.removed::after { content: "removed"; position: absolute; left: 50%; top: 34%; transform: translate(-50%,-50%);
+  font-size: 10px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: #ff9d9d; pointer-events: none; }
+.ed-seg-lb { position: absolute; right: 6px; top: 4px; font-size: 10px; font-weight: 700; color: #fff;
+  background: rgba(0,0,0,.55); border-radius: 5px; padding: 1px 6px; pointer-events: none; }
+.ed-seg-restore { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: 5;
+  background: var(--accent); color: var(--on-accent, #12160a); border: none; border-radius: 7px;
+  padding: 3px 10px; font-size: 11px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+.ed-seg-restore:hover { filter: brightness(1.07); }
+.ed-seg-cutmark { position: absolute; top: -4px; bottom: -4px; width: 3px; transform: translateX(-1.5px);
+  background: var(--accent); border-radius: 2px; cursor: pointer; z-index: 6; box-shadow: 0 0 6px rgba(198,255,58,.55); }
+.ed-tl-toast { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 40;
+  background: #10131a; border: 1px solid var(--accent); color: var(--text); font-size: 12.5px; font-weight: 600;
+  padding: 8px 16px; border-radius: 10px; box-shadow: 0 10px 34px rgba(0,0,0,.55); pointer-events: none;
+  animation: ed-toast-in .18s ease; white-space: nowrap; }
+@keyframes ed-toast-in { from { opacity: 0; transform: translateX(-50%) translateY(6px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
