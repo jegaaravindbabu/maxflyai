@@ -33,9 +33,7 @@ def list_projects(db: Session = Depends(get_db), user: str | None = Depends(curr
     return projects
 
 
-@router.get("/{project_id}", response_model=ProjectDetail)
-def get_project(project_id: str, db: Session = Depends(get_db),
-    _owner: Project = Depends(owned_project)):
+def _build_project_detail(project_id: str, db: Session) -> ProjectDetail:
     project = db.get(Project, project_id)
     if project is None:
         raise HTTPException(404, "project not found")
@@ -73,6 +71,31 @@ def get_project(project_id: str, db: Session = Depends(get_db),
         detail.language_code = transcript.language_code
         detail.mode = transcript.mode
     return detail
+
+
+@router.get("/{project_id}", response_model=ProjectDetail)
+def get_project(project_id: str, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    return _build_project_detail(project_id, db)
+
+
+class DetailIn(BaseModel):
+    project_id: str
+
+
+@router.post("/detail", response_model=ProjectDetail)
+def project_detail_alias(body: DetailIn, db: Session = Depends(get_db),
+                         user: str | None = Depends(current_user),
+                         admin: bool = Depends(is_admin)):
+    """Alternate route for the editor's project load. Some security software
+    (antivirus 'web protection', ad-blockers) silently blocks the direct
+    /projects/{uuid} URL pattern; the frontend falls back to this POST."""
+    project = db.get(Project, body.project_id)
+    if project is None:
+        raise HTTPException(404, "project not found")
+    if not admin and user is not None and project.user_id != user:
+        raise HTTPException(404, "project not found")
+    return _build_project_detail(body.project_id, db)
 
 
 @router.get("/{project_id}/status")

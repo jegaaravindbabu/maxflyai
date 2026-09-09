@@ -272,7 +272,19 @@ export const api = {
   },
 
   async getProject(id: string) {
-    return j<ProjectDetail>(await afetch(`${BASE}/api/projects/${id}`));
+    try {
+      return await j<ProjectDetail>(await afetch(`${BASE}/api/projects/${id}`));
+    } catch (e: any) {
+      // Security software sometimes blocks the /projects/{uuid} URL pattern at
+      // the network level — retry through the alternate route before giving up.
+      if (/failed to fetch|networkerror|load failed/i.test(String(e?.message || e))) {
+        return j<ProjectDetail>(await afetch(`${BASE}/api/projects/detail`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ project_id: id }),
+        }));
+      }
+      throw e;
+    }
   },
 
   async getStatus(id: string) {
