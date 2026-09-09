@@ -1652,3 +1652,39 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .ed-crop-e.eb { bottom: -5px; left: 14px; right: 14px; height: 10px; cursor: ns-resize; }
 .ed-crop-e.el { left: -5px; top: 14px; bottom: 14px; width: 10px; cursor: ew-resize; }
 .ed-crop-e.er { right: -5px; top: 14px; bottom: 14px; width: 10px; cursor: ew-resize; }
+/* ===== Animation properties — detached floating box (HyproAI-style) ===== */
+.ed-animprops-rail{
+  display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+  padding:16px;border:1px dashed var(--line,#2a2f3a);border-radius:14px;
+  background:rgba(255,255,255,.02);
+}
+.ed-animprops-railic{font-size:22px;line-height:1;margin-bottom:6px;}
+.ed-animprops-railt{font-size:15px;font-weight:700;}
+.ed-animprops-open{
+  margin-top:12px;padding:9px 16px;border-radius:10px;border:none;cursor:pointer;
+  background:var(--accent,#c6ff3a);color:#0c1108;font-weight:700;font-size:13.5px;
+}
+.ed-animprops-open:hover{filter:brightness(1.05);}
+
+.ed-animprops{
+  position:fixed;top:96px;right:28px;z-index:55;width:340px;max-width:calc(100vw - 40px);
+  max-height:calc(100vh - 140px);display:flex;flex-direction:column;
+  background:var(--panel-2,#161a22);border:1px solid var(--line,#2a2f3a);
+  border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.55),0 2px 0 rgba(255,255,255,.02) inset;
+  overflow:hidden;
+}
+.ed-animprops-hdr{
+  display:flex;align-items:center;gap:8px;padding:12px 12px 12px 14px;cursor:grab;
+  border-bottom:1px solid var(--line,#2a2f3a);
+  background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,0));
+  user-select:none;
+}
+.ed-animprops-hdr:active{cursor:grabbing;}
+.ed-animprops-grip{color:var(--muted,#8a93a6);font-size:13px;letter-spacing:-2px;flex:none;}
+.ed-animprops-h{font-size:14px;font-weight:700;flex:1;}
+.ed-animprops-x{
+  flex:none;width:26px;height:26px;border-radius:8px;border:none;cursor:pointer;
+  background:rgba(255,255,255,.06);color:var(--fg,#e8ecf3);font-size:18px;line-height:1;
+}
+.ed-animprops-x:hover{background:rgba(255,255,255,.12);}
+.ed-animprops-body{padding:16px;overflow-y:auto;}

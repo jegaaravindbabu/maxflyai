@@ -261,6 +261,24 @@ export function EditorPage({ projectId }: { projectId: string }) {
     cropOpen: false, cropT: 0, cropR: 0, cropB: 0, cropL: 0 };
   const [videofx, setVideofx] = useState<any>(VFX_DEFAULT);
   const [animTab, setAnimTab] = useState<"in" | "loop" | "out">("in");
+  const [animBoxOpen, setAnimBoxOpen] = useState(true);
+  const [animBoxPos, setAnimBoxPos] = useState<{ x: number; y: number } | null>(null);
+  function startAnimBoxDrag(e: React.MouseEvent) {
+    e.preventDefault();
+    const start = { mx: e.clientX, my: e.clientY };
+    const box = (e.currentTarget as HTMLElement).closest(".ed-animprops") as HTMLElement | null;
+    if (!box) return;
+    const r = box.getBoundingClientRect();
+    const base = { x: r.left, y: r.top };
+    const onMove = (ev: MouseEvent) => {
+      const nx = Math.max(8, Math.min(window.innerWidth - r.width - 8, base.x + (ev.clientX - start.mx)));
+      const ny = Math.max(8, Math.min(window.innerHeight - 60, base.y + (ev.clientY - start.my)));
+      setAnimBoxPos({ x: nx, y: ny });
+    };
+    const onUp = () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
   const setFx = (patch: any) => setVideofx((v: any) => {
     const n = { ...v, ...patch };
     try { localStorage.setItem("maxfly:vfx:" + projectId, JSON.stringify(n)); } catch {}
@@ -1765,7 +1783,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
           {topTab === "text" && (
             <div className="ed-rt-sub">
               {(["styles", "settings", "animation"] as const).map((t) => (
-                <div key={t} className={"ed-rt-subtab" + (rightTab === t ? " active" : "")} onClick={() => setRightTab(t)}>
+                <div key={t} className={"ed-rt-subtab" + (rightTab === t ? " active" : "")} onClick={() => { setRightTab(t); if (t === "animation") setAnimBoxOpen(true); }}>
                   {t === "styles" ? "Styles" : t === "settings" ? "Caption settings" : "Animation"}
                 </div>
               ))}
@@ -2317,6 +2335,28 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
           {topTab === "text" && rightTab === "animation" && (
             <div className="ed-rt-body">
+              <div className="ed-animprops-rail">
+                <div className="ed-animprops-railic" aria-hidden>✨</div>
+                <div className="ed-animprops-railt">Animation properties</div>
+                <div className="np-sub" style={{ marginTop: 4 }}>
+                  Entrance, exit &amp; per-word motion open in a floating panel.
+                </div>
+                {!animBoxOpen && (
+                  <button className="ed-animprops-open" onClick={() => { setAnimBoxOpen(true); setAnimBoxPos(null); }}>
+                    Open animation properties
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+          {topTab === "text" && rightTab === "animation" && animBoxOpen && (
+            <div className="ed-animprops" style={animBoxPos ? { left: animBoxPos.x, top: animBoxPos.y, right: "auto" } : undefined}>
+              <div className="ed-animprops-hdr" onMouseDown={startAnimBoxDrag}>
+                <span className="ed-animprops-grip" aria-hidden>⋮⋮</span>
+                <span className="ed-animprops-h">Animation properties</span>
+                <button className="ed-animprops-x" title="Close" aria-label="Close" onClick={() => setAnimBoxOpen(false)}>×</button>
+              </div>
+              <div className="ed-animprops-body">
               <div className="ed-anim-toggle">
                 <div>
                   <div className="ed-anim-title">Animations</div>
@@ -2391,6 +2431,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 </div>
 
                 <button className="secondary" style={{ width: "100%", marginTop: 14 }} onClick={resetCapSettings}>↺ Reset to defaults</button>
+              </div>
               </div>
             </div>
           )}
