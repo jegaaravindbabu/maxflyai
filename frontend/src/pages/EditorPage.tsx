@@ -261,7 +261,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
     cropOpen: false, cropT: 0, cropR: 0, cropB: 0, cropL: 0 };
   const [videofx, setVideofx] = useState<any>(VFX_DEFAULT);
   const [animTab, setAnimTab] = useState<"in" | "loop" | "out">("in");
-  const [animBoxOpen, setAnimBoxOpen] = useState(true);
+  const [animBoxOpen, setAnimBoxOpen] = useState(false);
   const [animBoxPos, setAnimBoxPos] = useState<{ x: number; y: number } | null>(null);
   function startAnimBoxDrag(e: React.MouseEvent) {
     e.preventDefault();
@@ -1783,7 +1783,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
           {topTab === "text" && (
             <div className="ed-rt-sub">
               {(["styles", "settings", "animation"] as const).map((t) => (
-                <div key={t} className={"ed-rt-subtab" + (rightTab === t ? " active" : "")} onClick={() => { setRightTab(t); if (t === "animation") setAnimBoxOpen(true); }}>
+                <div key={t} className={"ed-rt-subtab" + (rightTab === t ? " active" : "")} onClick={() => setRightTab(t)}>
                   {t === "styles" ? "Styles" : t === "settings" ? "Caption settings" : "Animation"}
                 </div>
               ))}
@@ -1859,41 +1859,66 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   onChange={(e) => setFx({ blur: +e.target.value })} />
               </div>
 
-              <div className="ed-anim-lbl" style={{ marginTop: 18 }}>ANIMATION</div>
-              <div className="ed-vfx-anitabs">
-                {(["in", "loop", "out"] as const).map((t) => (
-                  <div key={t} className={"ed-vfx-anitab" + (animTab === t ? " active" : "")} onClick={() => setAnimTab(t)}>
-                    {t === "in" ? "In" : t === "loop" ? "Loop" : "Out"}
-                  </div>
-                ))}
-              </div>
-              {(() => {
-                const cards = animTab === "in" ? VFX_IN_CARDS : animTab === "loop" ? VFX_LOOP_CARDS : VFX_OUT_CARDS;
-                const field = animTab === "in" ? "animIn" : animTab === "loop" ? "animLoop" : "animOut";
-                const cur = videofx[field] || "none";
-                return (
-                  <div className="ed-vfx-grid">
-                    {cards.map(([key, label, demo]) => (
-                      <div key={key} className={"ed-vfx-card" + (key === "none" ? " none" : "") + (cur === key ? " active" : "")}
-                        onClick={() => setFx({ [field]: key })}>
-                        <div className="ed-vfx-stage">
-                          <span className={"ed-vfx-chip " + (key === "none" ? "" : demo)}>{key === "none" ? "—" : "Aa"}</span>
-                        </div>
-                        <div className="ed-vfx-lb">{label}</div>
-                        {cur === key && key !== "none" && <div className="ed-vfx-tick">✓</div>}
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
-              <div className="np-sub" style={{ marginTop: 8 }}>
-                {animTab === "in" ? "Plays once as the clip appears."
-                  : animTab === "loop" ? "Plays continuously while the clip is on screen."
-                  : "Plays once as the clip leaves."}
+              <div className="ed-anim-lbl" style={{ marginTop: 18 }}>ANIMATIONS</div>
+              <div className="ed-vfx-animrow">
+                <span className="ed-vfx-animrow-l">Animation</span>
+                {(() => {
+                  const field = animTab === "in" ? "animIn" : animTab === "loop" ? "animLoop" : "animOut";
+                  const cards = animTab === "in" ? VFX_IN_CARDS : animTab === "loop" ? VFX_LOOP_CARDS : VFX_OUT_CARDS;
+                  const cur = videofx[field] || "none";
+                  const lbl = (cards.find((c: any) => c[0] === cur)?.[1]) || "None";
+                  return (
+                    <button className="ed-vfx-animdd" onClick={() => setAnimBoxOpen(true)}>
+                      <span>{lbl}</span><span className="ed-vfx-animdd-cx">▾</span>
+                    </button>
+                  );
+                })()}
               </div>
 
               <button className="secondary" style={{ width: "100%", marginTop: 14 }}
                 onClick={() => setFx({ ...VFX_DEFAULT })}>↺ Reset video effects</button>
+            </div>
+          )}
+          {topTab === "video" && animBoxOpen && (
+            <div className="ed-animprops" style={animBoxPos ? { left: animBoxPos.x, top: animBoxPos.y, right: "auto" } : undefined}>
+              <div className="ed-animprops-hdr" onMouseDown={startAnimBoxDrag}>
+                <span className="ed-animprops-grip" aria-hidden>⋮⋮</span>
+                <span className="ed-animprops-h">Animations</span>
+                <button className="ed-animprops-x" title="Close" aria-label="Close" onClick={() => setAnimBoxOpen(false)}>×</button>
+              </div>
+              <div className="ed-animprops-body">
+                <div className="ed-vfx-anitabs">
+                  {(["in", "loop", "out"] as const).map((t) => (
+                    <div key={t} className={"ed-vfx-anitab" + (animTab === t ? " active" : "")} onClick={() => setAnimTab(t)}>
+                      {t === "in" ? "In" : t === "loop" ? "Loop" : "Out"}
+                    </div>
+                  ))}
+                </div>
+                {(() => {
+                  const cards = animTab === "in" ? VFX_IN_CARDS : animTab === "loop" ? VFX_LOOP_CARDS : VFX_OUT_CARDS;
+                  const field = animTab === "in" ? "animIn" : animTab === "loop" ? "animLoop" : "animOut";
+                  const cur = videofx[field] || "none";
+                  return (
+                    <div className="ed-vfx-grid">
+                      {cards.map(([key, label, demo]: any) => (
+                        <div key={key} className={"ed-vfx-card" + (key === "none" ? " none" : "") + (cur === key ? " active" : "")}
+                          onClick={() => setFx({ [field]: key })}>
+                          <div className="ed-vfx-stage">
+                            <span className={"ed-vfx-chip " + (key === "none" ? "" : demo)}>{key === "none" ? "—" : "Aa"}</span>
+                          </div>
+                          <div className="ed-vfx-lb">{label}</div>
+                          {cur === key && key !== "none" && <div className="ed-vfx-tick">✓</div>}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+                <div className="np-sub" style={{ marginTop: 8 }}>
+                  {animTab === "in" ? "Plays once as the clip appears."
+                    : animTab === "loop" ? "Plays continuously while the clip is on screen."
+                    : "Plays once as the clip leaves."}
+                </div>
+              </div>
             </div>
           )}
 
@@ -2335,28 +2360,6 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
           {topTab === "text" && rightTab === "animation" && (
             <div className="ed-rt-body">
-              <div className="ed-animprops-rail">
-                <div className="ed-animprops-railic" aria-hidden>✨</div>
-                <div className="ed-animprops-railt">Animation properties</div>
-                <div className="np-sub" style={{ marginTop: 4 }}>
-                  Entrance, exit &amp; per-word motion open in a floating panel.
-                </div>
-                {!animBoxOpen && (
-                  <button className="ed-animprops-open" onClick={() => { setAnimBoxOpen(true); setAnimBoxPos(null); }}>
-                    Open animation properties
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-          {topTab === "text" && rightTab === "animation" && animBoxOpen && (
-            <div className="ed-animprops" style={animBoxPos ? { left: animBoxPos.x, top: animBoxPos.y, right: "auto" } : undefined}>
-              <div className="ed-animprops-hdr" onMouseDown={startAnimBoxDrag}>
-                <span className="ed-animprops-grip" aria-hidden>⋮⋮</span>
-                <span className="ed-animprops-h">Animation properties</span>
-                <button className="ed-animprops-x" title="Close" aria-label="Close" onClick={() => setAnimBoxOpen(false)}>×</button>
-              </div>
-              <div className="ed-animprops-body">
               <div className="ed-anim-toggle">
                 <div>
                   <div className="ed-anim-title">Animations</div>
@@ -2431,7 +2434,6 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 </div>
 
                 <button className="secondary" style={{ width: "100%", marginTop: 14 }} onClick={resetCapSettings}>↺ Reset to defaults</button>
-              </div>
               </div>
             </div>
           )}

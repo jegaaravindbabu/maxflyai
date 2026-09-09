@@ -1667,7 +1667,7 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .ed-animprops-open:hover{filter:brightness(1.05);}
 
 .ed-animprops{
-  position:fixed;top:96px;right:28px;z-index:55;width:340px;max-width:calc(100vw - 40px);
+  position:fixed;top:84px;right:372px;z-index:55;width:320px;max-width:calc(100vw - 40px);
   max-height:calc(100vh - 140px);display:flex;flex-direction:column;
   background:var(--panel-2,#161a22);border:1px solid var(--line,#2a2f3a);
   border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.55),0 2px 0 rgba(255,255,255,.02) inset;
@@ -1688,3 +1688,18 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 }
 .ed-animprops-x:hover{background:rgba(255,255,255,.12);}
 .ed-animprops-body{padding:16px;overflow-y:auto;}
+
+
+/* Video-tab Animation dropdown trigger (opens the floating Animations box) */
+.ed-vfx-animrow{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;
+}
+.ed-vfx-animrow-l{font-size:13.5px;color:var(--fg,#e8ecf3);}
+.ed-vfx-animdd{
+  display:inline-flex;align-items:center;gap:14px;min-width:150px;justify-content:space-between;
+  padding:9px 12px;border-radius:10px;cursor:pointer;
+  background:var(--panel-2,#161a22);border:1px solid var(--line,#2a2f3a);
+  color:var(--fg,#e8ecf3);font-size:13.5px;font-weight:600;
+}
+.ed-vfx-animdd:hover{border-color:var(--accent,#c6ff3a);}
+.ed-vfx-animdd-cx{color:var(--muted,#8a93a6);font-size:12px;}
