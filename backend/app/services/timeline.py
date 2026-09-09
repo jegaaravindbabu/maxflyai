@@ -80,3 +80,60 @@ def keep_intervals(cuts: list[dict], duration_ms: int) -> list[dict]:
 
 def total_removed_ms(cuts: list[dict]) -> int:
     return sum(c["end_ms"] - c["start_ms"] for c in merge_cuts(cuts))
+
+def playlist_with_dups(cuts: list[dict], dups: list[dict], duration_ms: int) -> list[dict]:
+    """Build the ordered span playlist for export: keep-intervals (cuts removed),
+    with each dup span playing (1 + count) times. Dup spans are expected not to
+    overlap each other (they come from distinct timeline segments)."""
+    spans = keep_intervals(cuts, duration_ms)
+    agg: dict[tuple[int, int], int] = {}
+    for d in dups:
+        key = (int(d["start_ms"]), int(d["end_ms"]))
+        agg[key] = agg.get(key, 0) + 1
+    if not agg:
+        return spans
+    out: list[dict] = []
+    for sp in spans:
+        pieces = [{"start_ms": int(sp["start_ms"]), "end_ms": int(sp["end_ms"])}]
+        for (ds, de), k in sorted(agg.items()):
+            newp: list[dict] = []
+            for pc in pieces:
+                s0, e0 = pc["start_ms"], pc["end_ms"]
+                ov_s, ov_e = max(s0, ds), min(e0, de)
+                if ov_e <= ov_s:
+                    newp.append(pc)
+                    continue
+                if s0 < ov_s:
+                    newp.append({"start_ms": s0, "end_ms": ov_s})
+                for _ in range(k + 1):
+                    newp.append({"start_ms": ov_s, "end_ms": ov_e})
+                if ov_e < e0:
+                    newp.append({"start_ms": ov_e, "end_ms": e0})
+            pieces = newp
+        out.extend(pieces)
+    return [p for p in out if p["end_ms"] > p["start_ms"]]
+
+
+def apply_playlist_to_cues(cues: list[dict], spans: list[dict]) -> list[dict]:
+    """Remap cues onto an ordered span playlist (handles cuts AND duplicated
+    spans): each span occurrence emits the cues that overlap it, shifted to the
+    occurrence's position on the output timeline."""
+    out: list[dict] = []
+    offset = 0
+    idx = 0
+    for sp in spans:
+        s0, e0 = int(sp["start_ms"]), int(sp["end_ms"])
+        for c in cues:
+            cs, ce = int(c["start_ms"]), int(c["end_ms"])
+            ov_s, ov_e = max(cs, s0), min(ce, e0)
+            if ov_e <= ov_s:
+                continue
+            nc = dict(c)
+            nc["start_ms"] = offset + (ov_s - s0)
+            nc["end_ms"] = offset + (ov_e - s0)
+            nc["idx"] = idx
+            out.append(nc)
+            idx += 1
+        offset += e0 - s0
+    return out
+

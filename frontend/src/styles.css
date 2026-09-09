@@ -1790,3 +1790,9 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
   padding: 8px 16px; border-radius: 10px; box-shadow: 0 10px 34px rgba(0,0,0,.55); pointer-events: none;
   animation: ed-toast-in .18s ease; white-space: nowrap; }
 @keyframes ed-toast-in { from { opacity: 0; transform: translateX(-50%) translateY(6px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+/* duplicated-segment badge */
+.ed-seg-dup { position: absolute; left: 6px; top: 4px; z-index: 5; background: var(--accent);
+  color: var(--on-accent, #12160a); border: none; border-radius: 6px; padding: 1px 7px;
+  font-size: 11px; font-weight: 800; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.35); }
+.ed-seg-dup:hover { filter: brightness(1.08); }

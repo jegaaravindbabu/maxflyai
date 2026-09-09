@@ -377,6 +377,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
   });
   const [selSeg, setSelSeg] = useState<number | null>(null);
   const [cutEdits, setCutEdits] = useState<{ id: string; start_ms: number; end_ms: number }[]>([]);
+  const [dupEdits, setDupEdits] = useState<{ id: string; start_ms: number; end_ms: number }[]>([]);
+  const tl2Ref = useRef<HTMLDivElement | null>(null);
+  const [tlBoxW, setTlBoxW] = useState(1000);
   const [tlToast, setTlToast] = useState("");
   const tlToastRef = useRef<number | null>(null);
   const toast = (msg: string) => {
@@ -386,11 +389,22 @@ export function EditorPage({ projectId }: { projectId: string }) {
   };
   useEffect(() => {
     api.listEdits(projectId).then((rows: any[]) => {
-      setCutEdits((rows || [])
-        .filter((r) => r.type === "manual_cut" && r.enabled && r.payload_json && r.payload_json.source === "timeline")
+      const tl = (rows || []).filter((r) => r.enabled && r.payload_json && r.payload_json.source === "timeline");
+      setCutEdits(tl.filter((r) => r.type === "manual_cut")
+        .map((r) => ({ id: r.id, start_ms: r.payload_json.start_ms, end_ms: r.payload_json.end_ms })));
+      setDupEdits(tl.filter((r) => r.type === "dup_span")
         .map((r) => ({ id: r.id, start_ms: r.payload_json.start_ms, end_ms: r.payload_json.end_ms })));
     }).catch(() => {});
   }, [projectId]);
+  useEffect(() => {
+    const el = tl2Ref.current;
+    if (!el) return;
+    const upd = () => setTlBoxW(el.clientWidth || 1000);
+    upd();
+    const ro = new ResizeObserver(upd);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [proj?.id]);
   useEffect(() => { api.filterPresets().then((r) => { setFilterList(r.filters); setFilterGroups(r.groups || []); }).catch(() => {}); }, []);
   useEffect(() => {
     api.getFilter(projectId).then((r) => { setCurFilter(r.name); setAdjust({ brightness: r.brightness, contrast: r.contrast, saturation: r.saturation, warmth: r.warmth }); }).catch(() => {});
@@ -610,7 +624,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const wordMode = WORD_STYLES.includes(capStyle);
   const mediaSrc = proj.media_url ? (proj.media_url.startsWith("http") ? proj.media_url : api.mediaUrl(proj.media_url)) : "";
 
-  const TLW = Math.max(900, Math.round((dur / 1000) * 44)) * tlZoom;
+  const TLW = Math.max(320, tlBoxW - 2) * tlZoom;   // zoom 1 = whole video fits the visible timeline
   const tlStep = dur <= 20000 ? 2000 : dur <= 60000 ? 5000 : dur <= 180000 ? 15000 : 30000;
   const tlTicks: number[] = [];
   for (let t = 0; t <= dur; t += tlStep) tlTicks.push(t);
@@ -635,14 +649,36 @@ export function EditorPage({ projectId }: { projectId: string }) {
     if (at <= 200 || at >= dur - 200) { toast("Move the playhead into the clip, then press Split"); return; }
     if (videoCuts.some((c) => Math.abs(c - at) < 200)) { toast("Already split here"); return; }
     saveVideoCuts([...videoCuts, at]);
+    const crossing = dupEdits.filter((d) => d.start_ms < at - 60 && d.end_ms > at + 60);
+    crossing.forEach((d) => { api.deleteEdit(projectId, d.id).catch(() => {}); });
+    if (crossing.length) setDupEdits((p) => p.filter((d) => !crossing.some((x) => x.id === d.id)));
     setSelSeg(null);
     toast("Clip split at " + fmtT(at));
   }
   function duplicateAction() {
-    if (selSeg != null) { toast("Duplicating video segments isn't available yet"); return; }
+    if (selSeg != null) {
+      const s0 = Math.round(segBounds[selSeg]), e0 = Math.round(segBounds[selSeg + 1]);
+      if (cutEdits.some((c) => c.start_ms <= s0 + 60 && c.end_ms >= e0 - 60)) {
+        toast("Restore this segment before duplicating it"); return;
+      }
+      api.addEdit(projectId, "dup_span", { start_ms: s0, end_ms: e0, source: "timeline" })
+        .then((r) => {
+          setDupEdits((p) => {
+            const next = [...p, { id: r.id, start_ms: s0, end_ms: e0 }];
+            const n = 1 + next.filter((d) => d.start_ms >= s0 - 60 && d.end_ms <= e0 + 60).length;
+            toast("Segment duplicated — plays \u00d7" + n + " in the export");
+            return next;
+          });
+        })
+        .catch(() => toast("Couldn't duplicate the segment — try again"));
+      return;
+    }
     const t = targetCueIdx();
     if (t >= 0) { duplicateCap(t); toast("Caption duplicated"); }
-    else toast("Select a caption to duplicate");
+    else toast("Select a caption or a clip segment to duplicate");
+  }
+  async function removeDup(d: { id: string; start_ms: number; end_ms: number }) {
+    try { await api.deleteEdit(projectId, d.id); setDupEdits((p) => p.filter((x) => x.id !== d.id)); toast("Removed one copy"); } catch {}
   }
   async function deleteAction() {
     if (selSeg != null) {
@@ -651,6 +687,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
       try {
         const r = await api.addEdit(projectId, "manual_cut", { start_ms: s0, end_ms: e0, source: "timeline" });
         setCutEdits((p) => [...p, { id: r.id, start_ms: s0, end_ms: e0 }]);
+        const inside = dupEdits.filter((d) => d.start_ms >= s0 - 60 && d.end_ms <= e0 + 60);
+        inside.forEach((d) => { api.deleteEdit(projectId, d.id).catch(() => {}); });
+        if (inside.length) setDupEdits((p) => p.filter((d) => !inside.some((x) => x.id === d.id)));
         setSelSeg(null);
         toast("Segment removed — it will be cut from the export");
       } catch { toast("Couldn't remove the segment — try again"); }
@@ -2618,7 +2657,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             {filterLayers.length > 0 && trackHead("filters", "◑")}
             {trackHead("media", "▶", true)}
           </div>
-          <div className="ed-tl2">
+          <div className="ed-tl2" ref={tl2Ref}>
           <div className="ed-tl2-inner" style={{ width: TLW }}>
             <div className="ed-ph" style={{ left: `${(curMs / dur) * 100}%` }}><span className="ed-ph-knob" /></div>
             <div className="ed-tl2-ruler" onClick={scrub}>
@@ -2702,6 +2741,15 @@ export function EditorPage({ projectId }: { projectId: string }) {
                         title={removed ? "Removed segment — will be cut from the export" : "Click to select this segment"}
                         onClick={(ev) => { ev.stopPropagation(); setSelSeg(selSeg === i ? null : i); setSelected(new Set()); seek(s0 + 40); }}>
                         {(e0 - s0) / dur > 0.07 && <span className="ed-seg-lb">{fmtT(e0 - s0)}</span>}
+                        {(() => {
+                          const mine = dupEdits.filter((d) => d.start_ms >= s0 - 60 && d.end_ms <= e0 + 60);
+                          return mine.length > 0 && !removed ? (
+                            <button className="ed-seg-dup" title={"Plays \u00d7" + (mine.length + 1) + " in the export — click to remove one copy"}
+                              onClick={(ev) => { ev.stopPropagation(); removeDup(mine[mine.length - 1]); }}>
+                              {"\u00d7" + (mine.length + 1)}
+                            </button>
+                          ) : null;
+                        })()}
                         {removed && (
                           <button className="ed-seg-restore" title="Restore this segment"
                             onClick={(ev) => { ev.stopPropagation(); restoreCut(removed.id); }}>↺ Restore</button>

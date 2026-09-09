@@ -142,6 +142,18 @@ def _load_overlays(db, project_id: str) -> list[dict]:
              "color": r.color, "bold": r.bold} for r in rows]
 
 
+def _load_enabled_dups(db, project_id: str) -> list[dict]:
+    rows = (db.query(Edit)
+              .filter(Edit.project_id == project_id, Edit.enabled == True,  # noqa: E712
+                      Edit.type == "dup_span").all())
+    dups = []
+    for r in rows:
+        p = r.payload_json or {}
+        if "start_ms" in p and "end_ms" in p:
+            dups.append({"start_ms": int(p["start_ms"]), "end_ms": int(p["end_ms"])})
+    return dups
+
+
 def _load_enabled_cuts(db, project_id: str) -> list[dict]:
     rows = (db.query(Edit)
               .filter(Edit.project_id == project_id, Edit.enabled == True,  # noqa: E712
@@ -192,10 +204,17 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
 
         orig_cues = _load_cues(db, project_id)
         cuts = _load_enabled_cuts(db, project_id) if apply_cuts else []
+        dups = _load_enabled_dups(db, project_id) if apply_cuts else []
         removed_ms = timeline.total_removed_ms(cuts) if cuts else 0
-        cues = timeline.apply_cuts_to_cues(orig_cues, cuts) if cuts else orig_cues
+        dur0 = project.duration_ms or 0
+        playlist = (timeline.playlist_with_dups(cuts, dups, dur0)
+                    if (dups and dur0) else None)
+        if playlist:
+            cues = timeline.apply_playlist_to_cues(orig_cues, playlist)
+        else:
+            cues = timeline.apply_cuts_to_cues(orig_cues, cuts) if cuts else orig_cues
 
-        suffix = "_clean" if cuts else ""
+        suffix = "_clean" if (cuts or dups) else ""
 
         if fmt == "ass":
             content = build_ass(cues, style, use_translit, _load_capsettings(db, project_id), _load_overrides(db, project_id))
@@ -208,7 +227,17 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
         elif fmt == "mp4":
             # 1. trim the video to the kept intervals (physically remove dead air)
             src = storage.path(project.source_media_url)
-            if cuts:
+            if playlist is None and dups:
+                # duration was missing from the DB — probe so dups still apply
+                dur_p = ffmpeg_utils.probe_duration_ms(src) or 0
+                if dur_p:
+                    playlist = timeline.playlist_with_dups(cuts, dups, dur_p)
+                    cues = timeline.apply_playlist_to_cues(orig_cues, playlist)
+            if playlist:
+                fd, trimmed = tempfile.mkstemp(suffix=".mp4"); os.close(fd)
+                ffmpeg_utils.trim_and_concat(src, playlist, trimmed)
+                video_src = trimmed
+            elif cuts:
                 dur = project.duration_ms or ffmpeg_utils.probe_duration_ms(src) or 0
                 keep = timeline.keep_intervals(cuts, dur)
                 fd, trimmed = tempfile.mkstemp(suffix=".mp4"); os.close(fd)
