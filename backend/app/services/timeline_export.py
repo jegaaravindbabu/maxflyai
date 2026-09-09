@@ -142,7 +142,7 @@ def build_fcpxml(title: str, media_path: str, media_name: str, duration_ms: int,
     <effect id="r3" name="Basic Title" uid="{BASIC_TITLE_UID}"/>
   </resources>
   <library>
-    <event name="maxfly">
+    <event name="ceyonai">
       <project name="{escape(title)}">
         <sequence format="r1" duration="{total_t}" tcStart="0s" tcFormat="NDF">
           <spine>
@@ -198,7 +198,7 @@ def build_fcpxml_multitrack(title: str, total_ms: int, video_file: str,
         nl.join(assets) + nl +
         "  </resources>" + nl +
         "  <library>" + nl +
-        '    <event name="maxfly">' + nl +
+        '    <event name="ceyonai">' + nl +
         '      <project name="' + escape(title) + '">' + nl +
         '        <sequence format="r1" duration="' + dur + '" tcStart="0s" tcFormat="NDF">' + nl +
         "          <spine>" + nl +

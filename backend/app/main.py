@@ -13,7 +13,7 @@ from app.database import init_db
 from app.routers import uploads, projects, transcripts, exports, edits, billing
 from app.celery_app import celery_app  # noqa: F401  (configures eager mode + registers tasks)
 
-app = FastAPI(title="maxfly.ai API", version="0.1.0")
+app = FastAPI(title="ceyonai API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,

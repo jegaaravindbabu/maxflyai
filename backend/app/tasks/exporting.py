@@ -415,7 +415,7 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
             dur = project.duration_ms or ffmpeg_utils.probe_duration_ms(src) or 0
             keep = timeline.keep_intervals(cuts, dur) if cuts else [{"start_ms": 0, "end_ms": dur}]
             info = ffmpeg_utils.video_info(src)
-            title = project.name or "maxfly timeline"
+            title = project.name or "ceyonai timeline"
             media_name = project.source_filename or os.path.basename(src)
             if fmt == "edl":
                 content = timeline_export.build_edl(
@@ -448,13 +448,13 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                 with open(os.path.join(work, "captions.ass"), "w", encoding="utf-8") as fh:
                     fh.write(build_ass(cues, style, use_translit, _load_capsettings(db, project_id), _load_overrides(db, project_id)))
                 fcp = timeline_export.build_fcpxml_multitrack(
-                    project.name or "maxfly", total_ms, "video.mp4", "voice.wav", music_name,
+                    project.name or "ceyonai", total_ms, "video.mp4", "voice.wav", music_name,
                     cues=cues, fps_num=info["fps_num"], fps_den=info["fps_den"],
                     width=info["width"], height=info["height"])
                 with open(os.path.join(work, "timeline.fcpxml"), "w", encoding="utf-8") as fh:
                     fh.write(fcp)
                 readme = (
-                    "maxfly.ai multi-track export\n\n"
+                    "ceyonai multi-track export\n\n"
                     "Layers (rendered to the final cut timeline):\n"
                     "  video.mp4     - picture only, no audio\n"
                     "  voice.wav     - dialogue / main audio" + (" (enhanced)" if enhance_audio else "") + "\n"

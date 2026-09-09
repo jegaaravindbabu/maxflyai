@@ -344,7 +344,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   }
   const setFx = (patch: any) => setVideofx((v: any) => {
     const n = { ...v, ...patch };
-    try { localStorage.setItem("maxfly:vfx:" + projectId, JSON.stringify(n)); } catch {}
+    try { localStorage.setItem("ceyonai:vfx:" + projectId, JSON.stringify(n)); } catch {}
     api.setVideoFx(projectId, n).catch(() => {});
     return n;
   });
@@ -396,7 +396,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   useEffect(() => { api.captionStyles().then((r) => setStyles(r.styles)).catch(() => {}); }, []);
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(`maxfly:proj:${projectId}`);
+      const raw = localStorage.getItem(`ceyonai:proj:${projectId}`) || localStorage.getItem(`maxfly:proj:${projectId}`);
       if (raw) { const p = JSON.parse(raw); if (p.lang) setLang(p.lang); if (p.outputMode) setMode(p.outputMode); }
     } catch {}
   }, [projectId]);
@@ -404,7 +404,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   useEffect(() => { setMediaEl(videoRef.current); }, [proj?.id]);
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("maxfly:vfx:" + projectId);
+      const raw = localStorage.getItem("ceyonai:vfx:" + projectId) || localStorage.getItem("maxfly:vfx:" + projectId);
       if (raw) {
         const j = JSON.parse(raw);
         if (j.anim && !j.animIn) j.animIn = j.anim === "slide" ? "slideup" : (j.anim === "zoom" || j.anim === "fade") ? j.anim : "none";

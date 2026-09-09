@@ -96,7 +96,7 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
       for (const it of done) {
         const id = it.project!.id;
         try {
-          localStorage.setItem(`maxfly:proj:${id}`, JSON.stringify({ layout, outputMode, lang, maxChars, minDur, gapFrames }));
+          localStorage.setItem(`ceyonai:proj:${id}`, JSON.stringify({ layout, outputMode, lang, maxChars, minDur, gapFrames }));
         } catch {}
         try { await api.transcribe(id, lang, outputMode, {
           max_chars: maxChars, min_dur_secs: minDur, gap_frames: gapFrames, layout,

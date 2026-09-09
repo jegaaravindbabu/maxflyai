@@ -26,8 +26,8 @@ function Switch({ on, onChange, disabled }: { on: boolean; onChange?: (v: boolea
 function memberSince(): string {
   let iso: string | null = null;
   try {
-    iso = localStorage.getItem("maxfly:member_since");
-    if (!iso) { iso = new Date().toISOString(); localStorage.setItem("maxfly:member_since", iso); }
+    iso = localStorage.getItem("ceyonai:member_since") || localStorage.getItem("maxfly:member_since");
+    if (!iso) { iso = new Date().toISOString(); localStorage.setItem("ceyonai:member_since", iso); }
   } catch {}
   const d = iso ? new Date(iso) : new Date();
   return d.toLocaleDateString(undefined, { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -38,9 +38,9 @@ export function SettingsPage() {
   const [me, setMe] = useState<any>(null);
   useEffect(() => { api.billingMe().then(setMe).catch(() => {}); }, []);
 
-  const [autoPreset, setAutoPreset] = usePref("maxfly:pref:autoPreset", true);
-  const [sounds, setSounds] = usePref("maxfly:pref:sounds", true);
-  const [scopeWarn, setScopeWarn] = usePref("maxfly:pref:scopeWarn", true);
+  const [autoPreset, setAutoPreset] = usePref("ceyonai:pref:autoPreset", true);
+  const [sounds, setSounds] = usePref("ceyonai:pref:sounds", true);
+  const [scopeWarn, setScopeWarn] = usePref("ceyonai:pref:scopeWarn", true);
 
   const mail = email || "guest@ceyonai.com";
   const name = email ? email.split("@")[0].replace(/[._-]+/g, " ") : "Creator";
