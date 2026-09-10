@@ -111,6 +111,9 @@ class ImageOut(BaseModel):
     y_pct: float = 20.0
     size_pct: float = 40.0
 
+    class Config:
+        from_attributes = True
+
 
 class ImagePatch(BaseModel):
     start_ms: int | None = None
@@ -129,6 +132,9 @@ class BrollOut(BaseModel):
     x_pct: float = 0.0
     y_pct: float = 0.0
     size_pct: float = 100.0
+
+    class Config:
+        from_attributes = True
 
 
 class BrollPatch(BaseModel):
