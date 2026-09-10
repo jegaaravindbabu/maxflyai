@@ -259,6 +259,7 @@ def audio_enhance_filter(arnndn_model: str | None = None, strength: int = 50) ->
 
 
 def render_mp4(video_src: str, ass_path: str, out_path: str, width: int,
+               height: int | None = None,
                vfilters: list[str] | None = None,
                images: list[dict] | None = None,
                brolls: list[dict] | None = None,
@@ -300,17 +301,29 @@ def render_mp4(video_src: str, ass_path: str, out_path: str, width: int,
     base_idx = 1 + len(images)
     for j, br in enumerate(brolls):
         in_idx = base_idx + j
-        pxw = max(16, round(width * float(br.get("size_pct", 100)) / 100.0))
+        size = float(br.get("size_pct", 100))
         fx = max(0.0, min(1.0, float(br.get("x_pct", 0)) / 100.0))
         fy = max(0.0, min(1.0, float(br.get("y_pct", 0)) / 100.0))
         s = max(0, int(br.get("start_ms", 0))) / 1000.0
         e = max(0, int(br.get("end_ms", 3000))) / 1000.0
-        parts.append(f"[{in_idx}:v]scale={pxw}:-1,setpts=PTS-STARTPTS+{s:.3f}/TB[bv{j}]")
-        parts.append(
-            f"[{cur}][bv{j}]overlay="
-            f"x='max(0,min(main_w*{fx:.4f},main_w-overlay_w))':"
-            f"y='max(0,min(main_h*{fy:.4f},main_h-overlay_h))':"
-            f"enable='between(t,{s:.3f},{e:.3f})'[ovb{j}]")
+        if size >= 90 and height:
+            # full-frame B-roll: scale to cover the frame, crop, overlay for its span
+            W, H = int(width), int(height)
+            parts.append(
+                f"[{in_idx}:v]setpts=PTS-STARTPTS+{s:.3f}/TB,"
+                f"scale={W}:{H}:force_original_aspect_ratio=increase,"
+                f"crop={W}:{H}[bv{j}]")
+            parts.append(
+                f"[{cur}][bv{j}]overlay=0:0:"
+                f"enable='between(t,{s:.3f},{e:.3f})'[ovb{j}]")
+        else:
+            pxw = max(16, round(width * size / 100.0))
+            parts.append(f"[{in_idx}:v]scale={pxw}:-1,setpts=PTS-STARTPTS+{s:.3f}/TB[bv{j}]")
+            parts.append(
+                f"[{cur}][bv{j}]overlay="
+                f"x='max(0,min(main_w*{fx:.4f},main_w-overlay_w))':"
+                f"y='max(0,min(main_h*{fy:.4f},main_h-overlay_h))':"
+                f"enable='between(t,{s:.3f},{e:.3f})'[ovb{j}]")
         cur = f"ovb{j}"
     parts.append(f"[{cur}]subtitles='{safe}'[vout]")
     filter_complex = ";".join(parts)

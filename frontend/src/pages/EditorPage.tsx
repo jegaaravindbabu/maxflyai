@@ -1218,6 +1218,40 @@ export function EditorPage({ projectId }: { projectId: string }) {
     document.addEventListener("mouseup", up);
   }
 
+  // Drag / trim a B-roll clip ON THE TIMELINE (move whole clip, or trim an edge).
+  function startBrollClip(e: ReactMouseEvent, b: BrollClip, mode: "move" | "left" | "right") {
+    e.preventDefault(); e.stopPropagation();
+    setSelBroll(b.id); setSelOv(null); setSelImg(null); setRail("broll");
+    const lane = (e.currentTarget as HTMLElement).closest(".ed-lane") as HTMLElement | null;
+    if (!lane) return;
+    const rect = lane.getBoundingClientRect();
+    const startX = e.clientX;
+    const s0 = b.start_ms, e0 = b.end_ms;
+    const MIN = 300;
+    const move = (ev: MouseEvent) => {
+      const dMs = ((ev.clientX - startX) / rect.width) * dur;
+      let ns = s0, ne = e0;
+      if (mode === "move") {
+        ns = s0 + dMs; ne = e0 + dMs;
+        if (ns < 0) { ne -= ns; ns = 0; }
+        if (ne > dur) { ns -= (ne - dur); ne = dur; }
+      } else if (mode === "left") {
+        ns = Math.min(e0 - MIN, Math.max(0, s0 + dMs));
+      } else {
+        ne = Math.max(s0 + MIN, Math.min(dur, e0 + dMs));
+      }
+      patchBrollLocal(b.id, { start_ms: Math.round(ns), end_ms: Math.round(ne) });
+    };
+    const up = () => {
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", up);
+      const cur = brollsRef.current.find((v) => v.id === b.id);
+      if (cur) api.updateBroll(projectId, b.id, { start_ms: cur.start_ms, end_ms: cur.end_ms }).catch(() => {});
+    };
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", up);
+  }
+
   const transcribing = proj.status === "transcribing";
 
   return (
@@ -1899,11 +1933,17 @@ export function EditorPage({ projectId }: { projectId: string }) {
                     onClick={(e) => { e.stopPropagation(); setSelImg(im.id); setRail("images"); }} />
                 ))}
                 {!isHidden("broll") && brolls.filter((b) => curMs >= b.start_ms && curMs < b.end_ms).map((b) => (
-                  <video key={b.id} src={b.video_url} muted autoPlay loop playsInline draggable={false}
-                    className={"ed-imgovl" + (selBroll === b.id ? " sel" : "")}
-                    style={{ left: b.x_pct + "%", top: b.y_pct + "%", width: b.size_pct + "%" }}
-                    onMouseDown={(e) => startDragBroll(e, b)}
-                    onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setRail("broll"); }} />
+                  (b.size_pct ?? 100) >= 90 ? (
+                    <video key={b.id} src={b.video_url} muted autoPlay loop playsInline draggable={false}
+                      className={"ed-broll-fill" + (selBroll === b.id ? " sel" : "")}
+                      onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setSelOv(null); setRail("broll"); }} />
+                  ) : (
+                    <video key={b.id} src={b.video_url} muted autoPlay loop playsInline draggable={false}
+                      className={"ed-imgovl" + (selBroll === b.id ? " sel" : "")}
+                      style={{ left: b.x_pct + "%", top: b.y_pct + "%", width: b.size_pct + "%" }}
+                      onMouseDown={(e) => startDragBroll(e, b)}
+                      onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setRail("broll"); }} />
+                  )
                 ))}
               </>}
               overlay={activeCue && overlayText && !isHidden("captions") ? (
@@ -2892,9 +2932,15 @@ export function EditorPage({ projectId }: { projectId: string }) {
             {brolls.length > 0 && (
               <div className={"ed-lane" + (isHidden("broll") ? " lane-off" : "") + (isLocked("broll") ? " lane-lock" : "") + (tlFilter === "captions" ? " tl-dim" : "")} onClick={scrub}>
                 {brolls.map((b) => (
-                  <div key={b.id} className={"ed-tl-block ed-tl-broll" + (selBroll === b.id ? " sel" : "")}
+                  <div key={b.id} className={"ed-tl-block ed-tl-broll ed-tl-clip" + (selBroll === b.id ? " sel" : "")}
                     style={{ left: `${(b.start_ms / dur) * 100}%`, width: `${Math.max(((b.end_ms - b.start_ms) / dur) * 100, 1.2)}%` }}
-                    onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setRail("broll"); seek(b.start_ms); }}>{IcFilm2} B-roll</div>
+                    title="Drag to move · drag the edges to trim"
+                    onMouseDown={(e) => startBrollClip(e, b, "move")}
+                    onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setRail("broll"); }}>
+                    <span className="ed-clip-h l" onMouseDown={(e) => startBrollClip(e, b, "left")} />
+                    <span className="ed-clip-lb">{IcFilm2} {fmtT(b.end_ms - b.start_ms)}</span>
+                    <span className="ed-clip-h r" onMouseDown={(e) => startBrollClip(e, b, "right")} />
+                  </div>
                 ))}
               </div>
             )}

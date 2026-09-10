@@ -349,7 +349,7 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                 broll_inputs.append({"path": bpath, "start_ms": s0, "end_ms": e0,
                                      "x_pct": br["x_pct"], "y_pct": br["y_pct"], "size_pct": br["size_pct"]})
             if img_inputs or broll_inputs:
-                ffmpeg_utils.render_mp4(video_src, ass_path, out_path, ow,
+                ffmpeg_utils.render_mp4(video_src, ass_path, out_path, ow, oh,
                                         vfilters=vfilters, images=img_inputs,
                                         brolls=broll_inputs, audio_filter=audio_filter)
             else:

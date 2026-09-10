@@ -1949,3 +1949,23 @@ button > svg, a > svg, .pm-item > svg, .rtk-removed > svg, .del > svg, .np-label
 .ed-txtanim-card:hover .demo-flip  { animation: dm-flip  1s ease infinite; }
 .ed-txtanim-card:hover .demo-blur  { animation: dm-blur  1s ease infinite; }
 .ed-txtanim-card:hover .demo-expand{ animation: dm-expand 1s ease infinite; }
+
+/* ===== Timeline clips: draggable + trimmable (b-roll etc.) ===== */
+.ed-tl-clip { cursor: grab; user-select: none; display: flex; align-items: center; justify-content: center;
+  padding: 0; overflow: visible; }
+.ed-tl-clip:active { cursor: grabbing; }
+.ed-clip-lb { pointer-events: none; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  display: inline-flex; align-items: center; gap: 4px; padding: 0 10px; font-size: 11px; }
+.ed-clip-lb svg { width: 13px; height: 13px; flex: none; }
+.ed-clip-h { position: absolute; top: 0; bottom: 0; width: 9px; cursor: ew-resize; z-index: 3;
+  background: rgba(255,255,255,.001); }
+.ed-clip-h.l { left: -2px; } .ed-clip-h.r { right: -2px; }
+.ed-tl-clip.sel .ed-clip-h::after { content: ""; position: absolute; top: 4px; bottom: 4px; width: 3px;
+  border-radius: 2px; background: var(--accent); }
+.ed-tl-clip.sel .ed-clip-h.l::after { left: 2px; } .ed-tl-clip.sel .ed-clip-h.r::after { right: 2px; }
+.ed-tl-clip.sel { box-shadow: 0 0 0 1.5px var(--accent), 0 0 10px rgba(198,255,58,.25); }
+
+/* Full-frame B-roll on the monitor (covers the main video for its span) */
+.ed-broll-fill { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  z-index: 2; cursor: pointer; }
+.ed-broll-fill.sel { outline: 2px solid var(--accent); outline-offset: -2px; }
