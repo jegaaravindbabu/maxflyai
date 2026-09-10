@@ -139,7 +139,13 @@ def _load_overlays(db, project_id: str) -> list[dict]:
               .order_by(TextOverlay.idx).all())
     return [{"text": r.text, "start_ms": r.start_ms, "end_ms": r.end_ms,
              "x_pct": r.x_pct, "y_pct": r.y_pct, "font_size": r.font_size,
-             "color": r.color, "bold": r.bold} for r in rows]
+             "color": r.color, "bold": r.bold,
+             "anim": getattr(r, "anim", "none"),
+             "outline_color": getattr(r, "outline_color", "#000000"),
+             "outline_width": getattr(r, "outline_width", 3),
+             "shadow_color": getattr(r, "shadow_color", "#000000"),
+             "shadow_size": getattr(r, "shadow_size", 1),
+             "bg": getattr(r, "bg", "")} for r in rows]
 
 
 def _load_enabled_dups(db, project_id: str) -> list[dict]:

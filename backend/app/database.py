@@ -41,6 +41,12 @@ def init_db() -> None:
     _add_cols = [
         "ALTER TABLE exports ADD COLUMN IF NOT EXISTS error TEXT",
         "ALTER TABLE projects ADD COLUMN IF NOT EXISTS size_bytes BIGINT",
+        "ALTER TABLE text_overlays ADD COLUMN IF NOT EXISTS anim VARCHAR DEFAULT 'none' NOT NULL",
+        "ALTER TABLE text_overlays ADD COLUMN IF NOT EXISTS outline_color VARCHAR DEFAULT '#000000' NOT NULL",
+        "ALTER TABLE text_overlays ADD COLUMN IF NOT EXISTS outline_width INTEGER DEFAULT 3 NOT NULL",
+        "ALTER TABLE text_overlays ADD COLUMN IF NOT EXISTS shadow_color VARCHAR DEFAULT '#000000' NOT NULL",
+        "ALTER TABLE text_overlays ADD COLUMN IF NOT EXISTS shadow_size INTEGER DEFAULT 1 NOT NULL",
+        "ALTER TABLE text_overlays ADD COLUMN IF NOT EXISTS bg VARCHAR DEFAULT '' NOT NULL",
     ]
     with engine.begin() as conn:
         for stmt in _add_cols:

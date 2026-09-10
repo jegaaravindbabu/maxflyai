@@ -229,6 +229,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [styleSearchOpen, setStyleSearchOpen] = useState(false);
   const [overlays, setOverlays] = useState<Overlay[]>([]);
   const [selOv, setSelOv] = useState<string | null>(null);
+  const [textTab, setTextTab] = useState<"content" | "style" | "anim" | "outline" | "shadow">("content");
+  const TXT_ANIMS: [string, string][] = [["none", "None"], ["fade", "Fade"], ["slide_up", "Slide up"], ["slide_down", "Slide down"], ["pop", "Pop"], ["zoom", "Zoom"]];
   const [zooms, setZooms] = useState<{ id: string; start_ms: number; end_ms: number; scale: number }[]>([]);
   const [zoomScale, setZoomScale] = useState(1.2);
   const [zoomBusy, setZoomBusy] = useState(false);
@@ -752,10 +754,13 @@ export function EditorPage({ projectId }: { projectId: string }) {
       } catch { toast("Couldn't remove the segment — try again"); }
       return;
     }
+    if (selOv) { delText(selOv); toast("Text deleted"); return; }
+    if (selImg) { delImg(selImg); toast("Image deleted"); return; }
+    if (selBroll) { delBroll(selBroll); toast("B-roll deleted"); return; }
     if (selected.size) { const n = selected.size; bulkDelete(); toast("Deleted " + n + " caption" + (n > 1 ? "s" : "")); return; }
     const t = targetCueIdx();
     if (t >= 0) { deleteOne(t); toast("Caption deleted"); }
-    else toast("Click a caption or a clip segment first");
+    else toast("Select a caption, text, image or clip segment first");
   }
   async function restoreCut(editId: string) {
     try { await api.deleteEdit(projectId, editId); setCutEdits((p) => p.filter((c) => c.id !== editId)); toast("Segment restored"); } catch {}
@@ -1493,38 +1498,11 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   ))}
                 </div>
               )}
-              {selOv && (() => {
-                const o = overlays.find((v) => v.id === selOv);
-                if (!o) return null;
-                return (
-                  <div className="card ed-txt-editor">
-                    <div className="np-label">Text</div>
-                    <textarea className="ed-txt-input" value={o.text}
-                      onChange={(e) => patchLocal(o.id, { text: e.target.value })}
-                      onBlur={(e) => saveOverlay(o.id, { text: e.target.value })} />
-                    <div className="np-label" style={{ marginTop: 12 }}>Font size · {o.font_size}</div>
-                    <input type="range" min={32} max={160} value={o.font_size}
-                      onChange={(e) => patchLocal(o.id, { font_size: +e.target.value })}
-                      onMouseUp={(e) => saveOverlay(o.id, { font_size: +(e.target as HTMLInputElement).value })}
-                      style={{ width: "100%" }} />
-                    <div className="np-label" style={{ marginTop: 12 }}>Colour</div>
-                    <div className="ed-swatches">
-                      {["#ffffff", "#ffd21e", "#f97316", "#22c55e", "#22d3ee", "#a855f7", "#ec4899", "#ef4444"].map((c) => (
-                        <span key={c} className={"ed-swatch" + (o.color.toLowerCase() === c ? " active" : "")}
-                          style={{ background: c }} onClick={() => saveOverlay(o.id, { color: c })} />
-                      ))}
-                    </div>
-                    <label className="ed-setting"><span>Bold</span>
-                      <input type="checkbox" checked={o.bold} onChange={(e) => saveOverlay(o.id, { bold: e.target.checked })} /></label>
-                    <div className="ed-txt-time">
-                      <button className="secondary" onClick={() => saveOverlay(o.id, { start_ms: Math.round(curMs) })}>Start ⟵ playhead</button>
-                      <button className="secondary" onClick={() => saveOverlay(o.id, { end_ms: Math.round(curMs) })}>End ⟵ playhead</button>
-                    </div>
-                    <button className="ed-bulk-del" style={{ width: "100%", marginTop: 12 }} onClick={() => delText(o.id)}>{IcTrash} Delete text</button>
-                    <div className="np-sub" style={{ marginTop: 8 }}>Drag the text on the video to reposition it.</div>
-                  </div>
-                );
-              })()}
+              {overlays.length > 0 && (
+                <div className="np-sub" style={{ marginTop: 12, lineHeight: 1.5 }}>
+                  Click a text on the video (or in the list) to edit its font, colour, animation, outline &amp; shadow in the <b>Text</b> panel on the right. Drag it on the video to reposition; delete it from the timeline or the toolbar 🗑.
+                </div>
+              )}
             </>
           )}
 
@@ -1898,15 +1876,21 @@ export function EditorPage({ projectId }: { projectId: string }) {
                       textShadow: wd.glow ? "0 0 8px currentColor, 0 0 3px #000" : "0 1px 2px rgba(0,0,0,.6)" }}
                     onMouseDown={(e) => startDragWord(e, i)}>{w}</div>
                 ))}
-                {!isHidden("text") && overlays.filter((o) => curMs >= o.start_ms && curMs < o.end_ms).map((o) => (
-                  <div key={o.id} className={"ed-ovl" + (selOv === o.id ? " sel" : "")}
+                {!isHidden("text") && overlays.filter((o) => curMs >= o.start_ms && curMs < o.end_ms).map((o) => {
+                  const ow = o.outline_width ?? 0, ss = o.shadow_size ?? 0;
+                  return (
+                  <div key={o.id + "-" + (o.anim || "none")} className={"ed-ovl anim-" + (o.anim || "none") + (selOv === o.id ? " sel" : "")}
                     style={{ left: o.x_pct + "%", top: o.y_pct + "%", color: o.color,
-                             fontSize: Math.max(13, o.font_size * 0.26) + "px", fontWeight: o.bold ? 800 : 500 }}
+                             fontSize: Math.max(13, o.font_size * 0.26) + "px", fontWeight: o.bold ? 800 : 500,
+                             WebkitTextStroke: ow > 0 ? `${(ow * 0.12).toFixed(2)}px ${o.outline_color || "#000000"}` : undefined,
+                             textShadow: ss > 0 ? `${(ss * 0.5).toFixed(1)}px ${(ss * 0.5).toFixed(1)}px ${(ss * 0.7).toFixed(1)}px ${o.shadow_color || "#000000"}` : undefined,
+                             background: o.bg || undefined, padding: o.bg ? "2px 10px" : undefined, borderRadius: o.bg ? "6px" : undefined }}
                     onMouseDown={(e) => startDrag(e, o)}
-                    onClick={(e) => { e.stopPropagation(); setSelOv(o.id); setRail("texts"); }}>
+                    onClick={(e) => { e.stopPropagation(); setSelOv(o.id); }}>
                     {o.text}
                   </div>
-                ))}
+                  );
+                })}
                 {!isHidden("images") && images.filter((im) => curMs >= im.start_ms && curMs < im.end_ms).map((im) => (
                   <img key={im.id} src={im.image_url} draggable={false}
                     className={"ed-imgovl" + (selImg === im.id ? " sel" : "")}
@@ -1945,6 +1929,108 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
         {/* right panel */}
         <div className="ed-right">
+          {!expOpen && selOv && (() => {
+            const o = overlays.find((v) => v.id === selOv);
+            if (!o) return null;
+            const swatches = ["#ffffff", "#000000", "#ffd21e", "#f97316", "#22c55e", "#22d3ee", "#3b82f6", "#a855f7", "#ec4899", "#ef4444"];
+            return (
+              <div className="ed-rt-textovl">
+                <div className="ed-rt-exp-head">
+                  <span>Text</span>
+                  <button className="ed-rt-exp-x" title="Close" onClick={() => setSelOv(null)}>✕</button>
+                </div>
+                <div className="ed-txtovl-tabs">
+                  {([["content", "Content"], ["style", "Style"], ["anim", "Animation"], ["outline", "Outline"], ["shadow", "Shadow"]] as [string, string][]).map(([k, l]) => (
+                    <div key={k} className={"ed-txtovl-tab" + (textTab === k ? " active" : "")} onClick={() => setTextTab(k as any)}>{l}</div>
+                  ))}
+                </div>
+                <div className="ed-txtovl-body">
+                  {textTab === "content" && (
+                    <>
+                      <div className="np-label">Text</div>
+                      <textarea className="ed-txt-input" value={o.text} autoFocus
+                        onChange={(e) => patchLocal(o.id, { text: e.target.value })}
+                        onBlur={(e) => saveOverlay(o.id, { text: e.target.value })} />
+                      <div className="ed-cs-slider" style={{ marginTop: 14 }}>
+                        <div className="ed-cs-slabel"><span>Font size</span><span>{o.font_size}</span></div>
+                        <input type="range" min={24} max={200} value={o.font_size}
+                          onChange={(e) => patchLocal(o.id, { font_size: +e.target.value })}
+                          onMouseUp={(e) => saveOverlay(o.id, { font_size: +(e.target as HTMLInputElement).value })} />
+                      </div>
+                      <label className="ed-setting" style={{ marginTop: 12 }}><span>Bold</span>
+                        <input type="checkbox" checked={o.bold} onChange={(e) => saveOverlay(o.id, { bold: e.target.checked })} /></label>
+                    </>
+                  )}
+                  {textTab === "style" && (
+                    <>
+                      <div className="np-label">Text colour</div>
+                      <div className="ed-swatches">
+                        {swatches.map((c) => (
+                          <span key={c} className={"ed-swatch" + ((o.color || "").toLowerCase() === c ? " active" : "")}
+                            style={{ background: c }} onClick={() => saveOverlay(o.id, { color: c })} />
+                        ))}
+                        <input type="color" className="ed-color-pick" value={o.color || "#ffffff"}
+                          onChange={(e) => saveOverlay(o.id, { color: e.target.value })} />
+                      </div>
+                      <div className="np-label" style={{ marginTop: 16 }}>Background box</div>
+                      <div className="ed-swatches">
+                        <span className={"ed-swatch ed-swatch-none" + (!o.bg ? " active" : "")} onClick={() => saveOverlay(o.id, { bg: "" })} title="None">/</span>
+                        {["#000000", "#ffffff", "#c6ff3a", "#ef4444"].map((c) => (
+                          <span key={c} className={"ed-swatch" + ((o.bg || "").toLowerCase() === c ? " active" : "")}
+                            style={{ background: c }} onClick={() => saveOverlay(o.id, { bg: c })} />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  {textTab === "anim" && (
+                    <>
+                      <div className="np-label">Entrance animation</div>
+                      <div className="ed-txtanim-grid">
+                        {TXT_ANIMS.map(([k, l]) => (
+                          <div key={k} className={"ed-txtanim-card" + ((o.anim || "none") === k ? " active" : "")}
+                            onClick={() => saveOverlay(o.id, { anim: k })}>
+                            <div className={"ed-txtanim-demo demo-" + k}>Aa</div>
+                            <div className="ed-txtanim-lb">{l}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="np-sub" style={{ marginTop: 10 }}>Plays when the text appears — visible in preview &amp; burned into the export.</div>
+                    </>
+                  )}
+                  {textTab === "outline" && (
+                    <>
+                      <div className="ed-vfx-row"><span>Outline colour</span>
+                        <input type="color" value={o.outline_color || "#000000"} onChange={(e) => saveOverlay(o.id, { outline_color: e.target.value })} /></div>
+                      <div className="ed-cs-slider" style={{ marginTop: 12 }}>
+                        <div className="ed-cs-slabel"><span>Outline width</span><span>{o.outline_width ?? 3}</span></div>
+                        <input type="range" min={0} max={12} value={o.outline_width ?? 3}
+                          onChange={(e) => patchLocal(o.id, { outline_width: +e.target.value })}
+                          onMouseUp={(e) => saveOverlay(o.id, { outline_width: +(e.target as HTMLInputElement).value })} />
+                      </div>
+                    </>
+                  )}
+                  {textTab === "shadow" && (
+                    <>
+                      <div className="ed-vfx-row"><span>Shadow colour</span>
+                        <input type="color" value={o.shadow_color || "#000000"} onChange={(e) => saveOverlay(o.id, { shadow_color: e.target.value })} /></div>
+                      <div className="ed-cs-slider" style={{ marginTop: 12 }}>
+                        <div className="ed-cs-slabel"><span>Shadow size</span><span>{o.shadow_size ?? 1}</span></div>
+                        <input type="range" min={0} max={12} value={o.shadow_size ?? 1}
+                          onChange={(e) => patchLocal(o.id, { shadow_size: +e.target.value })}
+                          onMouseUp={(e) => saveOverlay(o.id, { shadow_size: +(e.target as HTMLInputElement).value })} />
+                      </div>
+                    </>
+                  )}
+
+                  <div className="ed-txtovl-timing">
+                    <button className="secondary" onClick={() => saveOverlay(o.id, { start_ms: Math.round(curMs) })}>Start at playhead</button>
+                    <button className="secondary" onClick={() => saveOverlay(o.id, { end_ms: Math.max(o.start_ms + 300, Math.round(curMs)) })}>End at playhead</button>
+                  </div>
+                  <button className="ed-bulk-del" style={{ width: "100%", marginTop: 12 }} onClick={() => { const id = o.id; setSelOv(null); delText(id); toast("Text deleted"); }}>{IcTrash} Delete text</button>
+                </div>
+              </div>
+            );
+          })()}
           {expOpen && (
             <div className="ed-rt-export">
               <div className="ed-rt-exp-head">

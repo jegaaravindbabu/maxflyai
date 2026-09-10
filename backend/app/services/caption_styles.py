@@ -694,7 +694,8 @@ def _hex_to_ass(hex_color: str) -> str:
 
 
 def build_overlay_events(overlays: list[dict]) -> str:
-    """Extra ASS Dialogue lines for positioned text overlays (PlayRes 1920x1080)."""
+    """Extra ASS Dialogue lines for positioned text overlays (PlayRes 1920x1080).
+    Supports per-overlay outline, shadow and entrance animation."""
     out = []
     for o in overlays:
         text = (o.get("text") or "").replace("\n", "\\N")
@@ -707,6 +708,27 @@ def build_overlay_events(overlays: list[dict]) -> str:
         bold = 1 if o.get("bold", True) else 0
         start = _ms_to_ass(int(o.get("start_ms", 0)))
         end = _ms_to_ass(int(o.get("end_ms", 3000)))
-        tags = f"{{\\an5\\pos({x},{y})\\fs{size}\\c{colour}\\b{bold}\\bord3\\shad1}}"
+        bord = max(0, int(o.get("outline_width", 3)))
+        oc = _hex_to_ass(o.get("outline_color", "#000000"))
+        shad = max(0, int(o.get("shadow_size", 1)))
+        sc = _hex_to_ass(o.get("shadow_color", "#000000"))
+        anim = (o.get("anim") or "none").lower()
+        # entrance animation (first ~400ms of the overlay)
+        amove = ""
+        afade = ""
+        ascale = ""
+        if anim == "fade":
+            afade = "\\fad(300,200)"
+        elif anim == "slide_up":
+            amove = f"\\move({x},{y+70},{x},{y},0,400)"; afade = "\\fad(250,0)"
+        elif anim == "slide_down":
+            amove = f"\\move({x},{y-70},{x},{y},0,400)"; afade = "\\fad(250,0)"
+        elif anim == "pop":
+            ascale = "\\fscx60\\fscy60\\t(0,260,\\fscx100\\fscy100)"; afade = "\\fad(120,0)"
+        elif anim == "zoom":
+            ascale = "\\fscx130\\fscy130\\t(0,300,\\fscx100\\fscy100)"; afade = "\\fad(200,0)"
+        pos = amove if amove else f"\\pos({x},{y})"
+        tags = (f"{{\\an5{pos}\\fs{size}\\c{colour}\\b{bold}"
+                f"\\bord{bord}\\3c{oc}\\shad{shad}\\4c{sc}{ascale}{afade}}}")
         out.append(f"Dialogue: 1,{start},{end},Default,,0,0,0,,{tags}{text}")
     return "\n".join(out)

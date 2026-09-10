@@ -178,6 +178,12 @@ class TextOverlay(Base):
     font_size = Column(Integer, nullable=False, default=72)
     color = Column(String, nullable=False, default="#ffffff")   # hex RRGGBB
     bold = Column(Boolean, nullable=False, default=True)
+    anim = Column(String, nullable=False, default="none")       # none|fade|slide_up|slide_down|pop|typewriter
+    outline_color = Column(String, nullable=False, default="#000000")
+    outline_width = Column(Integer, nullable=False, default=3)
+    shadow_color = Column(String, nullable=False, default="#000000")
+    shadow_size = Column(Integer, nullable=False, default=1)
+    bg = Column(String, nullable=False, default="")            # "" = none, else hex box behind text
     created_at = Column(DateTime(timezone=True), default=_now)
 
     project = relationship("Project", back_populates="overlays")

@@ -41,6 +41,12 @@ export interface Overlay {
   font_size: number;
   color: string;
   bold: boolean;
+  anim?: string;
+  outline_color?: string;
+  outline_width?: number;
+  shadow_color?: string;
+  shadow_size?: number;
+  bg?: string;
 }
 
 export interface ImageOverlay {

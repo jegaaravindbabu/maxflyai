@@ -56,6 +56,12 @@ class OverlayOut(BaseModel):
     font_size: int = 72
     color: str = "#ffffff"
     bold: bool = True
+    anim: str = "none"
+    outline_color: str = "#000000"
+    outline_width: int = 3
+    shadow_color: str = "#000000"
+    shadow_size: int = 1
+    bg: str = ""
 
     class Config:
         from_attributes = True
@@ -70,6 +76,12 @@ class OverlayIn(BaseModel):
     font_size: int = 72
     color: str = "#ffffff"
     bold: bool = True
+    anim: str = "none"
+    outline_color: str = "#000000"
+    outline_width: int = 3
+    shadow_color: str = "#000000"
+    shadow_size: int = 1
+    bg: str = ""
 
 
 class OverlayPatch(BaseModel):
@@ -81,6 +93,12 @@ class OverlayPatch(BaseModel):
     font_size: int | None = None
     color: str | None = None
     bold: bool | None = None
+    anim: str | None = None
+    outline_color: str | None = None
+    outline_width: int | None = None
+    shadow_color: str | None = None
+    shadow_size: int | None = None
+    bg: str | None = None
 
 
 class ImageOut(BaseModel):

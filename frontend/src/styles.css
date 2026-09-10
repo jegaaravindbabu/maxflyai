@@ -1858,3 +1858,50 @@ button > svg, a > svg, .pm-item > svg, .rtk-removed > svg, .del > svg, .np-label
 .ed-ovl { z-index: 4; }
 .ed-ovl.sel { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px;
   box-shadow: 0 0 0 4px rgba(198,255,58,.15); }
+
+/* ===== Text overlay — right-rail editor (HyproAI-style) ===== */
+.ed-rt-textovl { position: absolute; inset: 0; z-index: 22; background: var(--panel);
+  overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.ed-txtovl-tabs { display: flex; gap: 4px; background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 3px; }
+.ed-txtovl-tab { flex: 1; text-align: center; padding: 7px 4px; border-radius: 7px; font-size: 12px;
+  font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.ed-txtovl-tab:hover { color: var(--text); }
+.ed-txtovl-tab.active { background: var(--accent); color: var(--on-accent, #12160a); }
+.ed-txtovl-body { display: flex; flex-direction: column; }
+.ed-txtovl-body .ed-txt-input { width: 100%; min-height: 64px; }
+.ed-color-pick { width: 30px; height: 26px; padding: 0; border: 1px solid var(--border); border-radius: 6px;
+  background: none; cursor: pointer; }
+.ed-swatch-none { display: inline-flex; align-items: center; justify-content: center; color: var(--muted);
+  background: var(--panel-2); font-size: 13px; }
+.ed-txtovl-timing { display: flex; gap: 8px; margin-top: 16px; }
+.ed-txtovl-timing button { flex: 1; font-size: 12.5px; }
+.ed-txtanim-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px; }
+.ed-txtanim-card { border: 1px solid var(--border); border-radius: 10px; padding: 10px 4px 7px;
+  text-align: center; cursor: pointer; background: var(--panel-2); overflow: hidden; }
+.ed-txtanim-card:hover { border-color: rgba(198,255,58,.5); }
+.ed-txtanim-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.ed-txtanim-demo { font-weight: 800; font-size: 18px; color: var(--text); height: 26px; line-height: 26px; }
+.ed-txtanim-lb { font-size: 11px; color: var(--muted); margin-top: 5px; }
+.ed-txtanim-card.active .ed-txtanim-lb { color: var(--text); }
+.ed-txtanim-card:hover .demo-fade { animation: ovl-fade 1s ease infinite; }
+.ed-txtanim-card:hover .demo-slide_up { animation: ovl-demo-up 1s ease infinite; }
+.ed-txtanim-card:hover .demo-slide_down { animation: ovl-demo-down 1s ease infinite; }
+.ed-txtanim-card:hover .demo-pop { animation: ovl-demo-pop 1s ease infinite; }
+.ed-txtanim-card:hover .demo-zoom { animation: ovl-demo-zoom 1s ease infinite; }
+@keyframes ovl-demo-up { 0% { transform: translateY(10px); opacity: 0 } 60%,100% { transform: none; opacity: 1 } }
+@keyframes ovl-demo-down { 0% { transform: translateY(-10px); opacity: 0 } 60%,100% { transform: none; opacity: 1 } }
+@keyframes ovl-demo-pop { 0% { transform: scale(.5); opacity: 0 } 60%,100% { transform: scale(1); opacity: 1 } }
+@keyframes ovl-demo-zoom { 0% { transform: scale(1.5); opacity: 0 } 60%,100% { transform: scale(1); opacity: 1 } }
+
+/* live entrance animations on the monitor (element keeps its -50% centering) */
+@keyframes ovl-fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes ovl-up { from { opacity: 0; transform: translate(-50%, calc(-50% + 22px)) } to { opacity: 1; transform: translate(-50%, -50%) } }
+@keyframes ovl-down { from { opacity: 0; transform: translate(-50%, calc(-50% - 22px)) } to { opacity: 1; transform: translate(-50%, -50%) } }
+@keyframes ovl-pop { from { opacity: 0; transform: translate(-50%, -50%) scale(.6) } to { opacity: 1; transform: translate(-50%, -50%) scale(1) } }
+@keyframes ovl-zoom { from { opacity: 0; transform: translate(-50%, -50%) scale(1.3) } to { opacity: 1; transform: translate(-50%, -50%) scale(1) } }
+.ed-ovl.anim-fade { animation: ovl-fade .4s ease both; }
+.ed-ovl.anim-slide_up { animation: ovl-up .4s ease both; }
+.ed-ovl.anim-slide_down { animation: ovl-down .4s ease both; }
+.ed-ovl.anim-pop { animation: ovl-pop .32s cubic-bezier(.2,1.3,.5,1) both; }
+.ed-ovl.anim-zoom { animation: ovl-zoom .34s ease both; }
