@@ -15,15 +15,6 @@ from app.celery_app import celery_app  # noqa: F401  (configures eager mode + re
 
 app = FastAPI(title="ceyonai API", version="0.1.0")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origin_list,
-    allow_origin_regex=r"https://([a-z0-9-]+\.)*(ceyonai\.com|vercel\.app)",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 
 # Some client-side security software / ad-blockers filter requests whose URL
 # contains "/api/projects" (with a UUID) as a suspicious pattern, which made the
@@ -46,6 +37,19 @@ async def _neutral_prefix(request, call_next):
             except Exception:
                 pass
     return await call_next(request)
+
+
+# CORS is added LAST so it is the OUTERMOST middleware. If it is wrapped by the
+# _neutral_prefix BaseHTTPMiddleware, that layer drops the Access-Control-Allow-Origin
+# header on the way back out and the browser reports "No 'Access-Control-Allow-Origin'".
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origin_list + ["https://ceyonai.com", "https://www.ceyonai.com"],
+    allow_origin_regex=r"https://([a-z0-9-]+\.)*(ceyonai\.com|vercel\.app)",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.on_event("startup")
