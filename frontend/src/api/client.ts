@@ -110,6 +110,10 @@ export const api = {
     return j<any>(await afetch(`${BASE}/api/hub/${id}/edits/${editId}`, { method: "DELETE" }));
   },
 
+  async projectFrame(id: string) {
+    return j<{ data_url: string }>(await afetch(`${BASE}/api/hub/${id}/frame`));
+  },
+
   async filterPresets() {
     return j<{ filters: { id: string; label: string; group: string }[];
       groups: { name: string; sub: string }[] }>(await afetch(`${BASE}/api/filter-presets`));

@@ -8,7 +8,7 @@ from app.models import Project, Segment, Transcript, CaptionCue, Job, TextOverla
 from app.schemas import ProjectOut, ProjectDetail, SegmentOut, CueOut, OverlayOut, OverlayIn, OverlayPatch, ImageOut, ImagePatch, BrollOut, BrollPatch
 from app.services.auth import current_user, is_admin
 from app.services.storage import storage
-import os, tempfile
+import os, tempfile, subprocess, base64
 import httpx
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
@@ -77,6 +77,43 @@ def _build_project_detail(project_id: str, db: Session) -> ProjectDetail:
 def get_project(project_id: str, db: Session = Depends(get_db),
     _owner: Project = Depends(owned_project)):
     return _build_project_detail(project_id, db)
+
+
+_FRAME_CACHE: dict[str, str] = {}
+
+
+@router.get("/{project_id}/frame")
+def project_frame(project_id: str, db: Session = Depends(get_db),
+                  _owner: Project = Depends(owned_project)):
+    """A small JPEG data-URL of a representative frame of the project's video,
+    for the Filters panel thumbnails. Generated server-side with ffmpeg so it
+    works regardless of the browser's cross-origin canvas restrictions."""
+    project = db.get(Project, project_id)
+    if project is None or not project.source_media_url:
+        raise HTTPException(404, "no media")
+    key = project.source_media_url
+    if key in _FRAME_CACHE:
+        return {"data_url": _FRAME_CACHE[key]}
+    url = storage.url(key)
+    if not url:
+        raise HTTPException(404, "no media url")
+
+    def _grab(ss: str) -> bytes:
+        try:
+            p = subprocess.run(
+                ["ffmpeg", "-nostdin", "-y", "-ss", ss, "-i", url,
+                 "-frames:v", "1", "-vf", "scale=240:-1", "-f", "mjpeg", "pipe:1"],
+                capture_output=True, timeout=60)
+            return p.stdout or b""
+        except Exception:
+            return b""
+
+    data = _grab("1") or _grab("0")
+    if not data:
+        raise HTTPException(422, "could not extract frame")
+    durl = "data:image/jpeg;base64," + base64.b64encode(data).decode()
+    _FRAME_CACHE[key] = durl
+    return {"data_url": durl}
 
 
 class DetailIn(BaseModel):

@@ -461,25 +461,19 @@ export function EditorPage({ projectId }: { projectId: string }) {
     return () => ro.disconnect();
   }, [proj?.id]);
   useEffect(() => { api.filterPresets().then((r) => { setFilterList(r.filters); setFilterGroups(r.groups || []); }).catch(() => {}); }, []);
+  // The filter thumbnails show a real frame of the user's footage. We fetch it
+  // from the backend (ffmpeg extracts one frame) rather than capturing it from
+  // the <video> via canvas, because the clip is served cross-origin and a
+  // canvas capture would taint and silently fail. The returned data-URL renders
+  // in an <img> with CSS grades applied — no CORS/canvas dependency.
   useEffect(() => {
     if (rail !== "filters" || filmFrame) return;
-    const v = videoRef.current;
-    const grab = () => {
-      try {
-        const vw = v!.videoWidth, vh = v!.videoHeight;
-        if (!vw || !vh) return;
-        const c = document.createElement("canvas");
-        const scale = Math.min(1, 220 / Math.max(vw, vh));
-        c.width = Math.round(vw * scale); c.height = Math.round(vh * scale);
-        const ctx = c.getContext("2d");
-        if (!ctx) return;
-        ctx.drawImage(v!, 0, 0, c.width, c.height);
-        setFilmFrame(c.toDataURL("image/jpeg", 0.75));
-      } catch {}
-    };
-    if (v && v.readyState >= 2) grab();
-    else if (v) { const h = () => { grab(); v.removeEventListener("loadeddata", h); }; v.addEventListener("loadeddata", h); }
-  }, [rail, filmFrame]);
+    let cancelled = false;
+    api.projectFrame(projectId)
+      .then((r) => { if (!cancelled && r.data_url) setFilmFrame(r.data_url); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [rail, filmFrame, projectId]);
   useEffect(() => {
     api.getFilter(projectId).then((r) => { setCurFilter(r.name); setAdjust({ brightness: r.brightness, contrast: r.contrast, saturation: r.saturation, warmth: r.warmth }); }).catch(() => {});
     api.listFilterLayers(projectId).then((r) => setFilterLayers(r.layers)).catch(() => {});
