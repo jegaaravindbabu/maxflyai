@@ -194,6 +194,25 @@ const RAILS = [
   { id: "canvas", icon: rsvg(<><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" /><rect x="7" y="8" width="10" height="8" rx="1.5" /></>), label: "Canvas" },
 ];
 
+function normZoom(z: any): Zoom {
+  const s = Number(z?.start_ms) || 0;
+  const st = ["subtle", "medium", "strong"].includes(z?.strength) ? z.strength : "medium";
+  const num = (v: any, d: number) => (typeof v === "number" && isFinite(v) ? v : d);
+  return {
+    id: String(z?.id),
+    enabled: z?.enabled !== false,
+    start_ms: s,
+    end_ms: Number(z?.end_ms) > s ? Number(z.end_ms) : s + 2000,
+    strength: st,
+    scale: num(z?.scale, st === "subtle" ? 1.1 : st === "strong" ? 1.35 : 1.2),
+    fx: num(z?.fx, 0.5),
+    fy: num(z?.fy, 0.5),
+    ease_in: num(z?.ease_in, 0.35),
+    ease_out: num(z?.ease_out, 0.35),
+    source: z?.source === "manual" ? "manual" : "ai",
+  };
+}
+
 function fmtT(ms: number) {
   const s = Math.floor(ms / 1000);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -239,6 +258,10 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [zoomProg, setZoomProg] = useState("");
   const [selZoomId, setSelZoomId] = useState<string | null>(null);
   const [zoomAdvOpen, setZoomAdvOpen] = useState(false);
+  const contentZooms = useMemo(
+    () => (zoomOn ? zooms.filter((z) => z.enabled !== false) : []),
+    [zooms, zoomOn]
+  );
   const [filterList, setFilterList] = useState<{ id: string; label: string; group: string }[]>([]);
   const [filterGroups, setFilterGroups] = useState<{ name: string; sub: string }[]>([]);
   const [curFilter, setCurFilter] = useState("none");
@@ -445,7 +468,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   }, [projectId]);
   useEffect(() => { if (videoRef.current) videoRef.current.muted = mediaMuted; }, [mediaMuted]);
   useEffect(() => { setOverlays(proj?.overlays || []); }, [proj?.id]);
-  useEffect(() => { api.listAutozoom(projectId).then(setZooms).catch(() => {}); }, [projectId]);
+  useEffect(() => { api.listAutozoom(projectId).then((zs) => setZooms(zs.map(normZoom))).catch(() => {}); }, [projectId]);
   useEffect(() => {
     if (rail === "uploads" && upTab === "export") {
       api.listExports(projectId).then((l) => setUpExports(l as any)).catch(() => {});
@@ -737,10 +760,6 @@ export function EditorPage({ projectId }: { projectId: string }) {
   };
   const selZoom = zooms.find((z) => z.id === selZoomId) || null;
   const contentZoomOn = zoomOn && !selZoomId;
-  const contentZooms = useMemo(
-    () => (zoomOn ? zooms.filter((z) => z.enabled !== false) : []),
-    [zooms, zoomOn]
-  );
   const isHidden = (t: string) => hiddenTracks.has(t);
   const isLocked = (t: string) => lockedTracks.has(t);
   const toggleHide = (t: string) => setHiddenTracks((s) => { const n = new Set(s); n.has(t) ? n.delete(t) : n.add(t); return n; });
@@ -1034,7 +1053,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
     const flip = window.setTimeout(() => setZoomProg("Focusing on the subject\u2026"), 800);
     try {
       const r = await api.generateAutozoom(projectId, zoomDensity);
-      setZooms(r.zooms);
+      setZooms((r.zooms || []).map(normZoom));
       setSelZoomId(null);
       setZoomOn(true);
       toast(`Found ${r.count} moment${r.count === 1 ? "" : "s"} \u2014 preview, then aim.`);
@@ -1046,7 +1065,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
     const end = Math.min(dur || s0 + 2000, s0 + 2000);
     try {
       const z = await api.addZoom(projectId, s0, end, "medium");
-      setZooms((prev) => [...prev, z]);
+      setZooms((prev) => [...prev, normZoom(z)]);
       setSelZoomId(z.id);
       setZoomAdvOpen(false);
     } catch (e: any) { toast("Could not add zoom: " + e.message); }
