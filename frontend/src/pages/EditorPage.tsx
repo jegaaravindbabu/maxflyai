@@ -271,6 +271,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const brollInputRef = useRef<HTMLInputElement>(null);
   const brollsRef = useRef<BrollClip[]>([]);
   brollsRef.current = brolls;
+  const filterLayersRef = useRef<FilterLayer[]>([]);
+  filterLayersRef.current = filterLayers;
   const [bvQ, setBvQ] = useState("");
   const [bvRes, setBvRes] = useState<{ id: string; thumb: string; url: string; alt: string; duration?: number }[]>([]);
   const [bvBusy, setBvBusy] = useState(false);
@@ -1039,6 +1041,56 @@ export function EditorPage({ projectId }: { projectId: string }) {
     if (selLayer === id) deselectLayer();
   }
 
+  function patchLayerLocal(id: string, patch: Partial<FilterLayer>) {
+    setFilterLayers((prev) => prev.map((l) => l.id === id ? { ...l, ...patch } : l));
+  }
+  // Tap a grade card -> drop a filter clip on the timeline (HyproAI-style).
+  async function addFilterClip(name: string) {
+    let start = Math.round(curMs);
+    let end = start + 3000;
+    if (end > dur) { end = dur; start = Math.max(0, dur - 3000); }
+    if (end <= start) { start = 0; end = Math.min(dur, 3000); }
+    try {
+      const l = await api.addFilterLayer(projectId, { name, brightness: 0, contrast: 0, saturation: 0, warmth: 0, start_ms: start, end_ms: end });
+      setFilterLayers((prev) => [...prev, l]);
+      selectLayer(l.id, l);
+      toast("Filter added \u2014 drag it on the timeline to set when it applies");
+    } catch {}
+  }
+  // Drag a filter clip to move it, or drag its edges to stretch it.
+  function startFilterClip(e: ReactMouseEvent, l: FilterLayer, mode: "move" | "left" | "right") {
+    e.preventDefault(); e.stopPropagation();
+    setRail("filters"); selectLayer(l.id);
+    const lane = (e.currentTarget as HTMLElement).closest(".ed-lane") as HTMLElement | null;
+    if (!lane) return;
+    const rect = lane.getBoundingClientRect();
+    const startX = e.clientX;
+    const s0 = l.start_ms, e0 = l.end_ms;
+    const MIN = 300;
+    const move = (ev: MouseEvent) => {
+      const dMs = ((ev.clientX - startX) / rect.width) * dur;
+      let ns = s0, ne = e0;
+      if (mode === "move") {
+        ns = s0 + dMs; ne = e0 + dMs;
+        if (ns < 0) { ne -= ns; ns = 0; }
+        if (ne > dur) { ns -= (ne - dur); ne = dur; }
+      } else if (mode === "left") {
+        ns = Math.min(e0 - MIN, Math.max(0, s0 + dMs));
+      } else {
+        ne = Math.max(s0 + MIN, Math.min(dur, e0 + dMs));
+      }
+      patchLayerLocal(l.id, { start_ms: Math.round(ns), end_ms: Math.round(ne) });
+    };
+    const up = () => {
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", up);
+      const cur = filterLayersRef.current.find((x) => x.id === l.id);
+      if (cur) api.patchFilterLayer(projectId, l.id, { start_ms: cur.start_ms, end_ms: cur.end_ms }).catch(() => {});
+    };
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", up);
+  }
+
   // ---- Caption tools: emphasis word highlighted across all captions ----
   function applyEmphasis() {
     const w = emphasisDraft.trim();
@@ -1751,7 +1803,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             <>
               <div className="ed-left-head"><h3>Filters</h3></div>
               <p className="np-sub" style={{ margin: "0 0 12px" }}>
-                Tap a grade to preview it on your video. Fine-tune with Adjust below — everything bakes into the MP4 export.
+                Tap a grade to drop it as a clip on the timeline, then drag the clip to move it and drag its edges to stretch when it applies. Fine-tune the selected clip with Adjust below — everything bakes into the MP4 export.
               </p>
 
               <div className={"ed-filt-card" + (curFilter === "none" ? " active" : "")} onClick={() => applyFilter("none")}>
@@ -1766,7 +1818,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   <div className="ed-filt-ghead">{g.name}<span>{g.sub}</span></div>
                   <div className="ed-style-grid">
                     {filterList.filter((f) => f.group === g.name).map((f) => (
-                      <div key={f.id} className={"ed-style-card ed-filt-card2" + (curFilter === f.id ? " active" : "")} onClick={() => applyFilter(f.id)}>
+                      <div key={f.id} className={"ed-style-card ed-filt-card2" + (curFilter === f.id ? " active" : "")} onClick={() => addFilterClip(f.id)}>
                         <div className="ed-filt-prev">
                           {filmFrame ? <img src={filmFrame} className="ed-filt-img" style={{ filter: FILTER_CSS[f.id] }} alt="" />
                                      : <div className={"ed-filt-fallback ed-filt-" + f.id} />}
@@ -2970,11 +3022,14 @@ export function EditorPage({ projectId }: { projectId: string }) {
             {filterLayers.length > 0 && (
               <div className={"ed-lane" + (isHidden("filters") ? " lane-off" : "") + (isLocked("filters") ? " lane-lock" : "") + (tlFilter === "captions" ? " tl-dim" : "")} onClick={scrub}>
                 {filterLayers.map((l) => (
-                  <div key={l.id} className={"ed-tl-block ed-tl-filter" + (selLayer === l.id ? " sel" : "")}
+                  <div key={l.id} className={"ed-tl-block ed-tl-filter ed-tl-clip" + (selLayer === l.id ? " sel" : "")}
                     style={{ left: `${(l.start_ms / dur) * 100}%`, width: `${Math.max(((l.end_ms - l.start_ms) / dur) * 100, 1.2)}%` }}
-                    title={gradeLabel(l.name)}
-                    onClick={(e) => { e.stopPropagation(); setRail("filters"); selectLayer(l.id); seek(l.start_ms); }}>
-                    {IcHalf} {gradeLabel(l.name)}
+                    title="Drag to move \u00b7 drag the edges to stretch"
+                    onMouseDown={(e) => startFilterClip(e, l, "move")}
+                    onClick={(e) => { e.stopPropagation(); setRail("filters"); selectLayer(l.id); }}>
+                    <span className="ed-clip-h l" onMouseDown={(e) => startFilterClip(e, l, "left")} />
+                    <span className="ed-clip-lb">{IcHalf} {gradeLabel(l.name)}</span>
+                    <span className="ed-clip-h r" onMouseDown={(e) => startFilterClip(e, l, "right")} />
                   </div>
                 ))}
               </div>
