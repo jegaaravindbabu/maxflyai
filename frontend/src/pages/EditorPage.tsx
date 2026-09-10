@@ -332,6 +332,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [animTab, setAnimTab] = useState<"in" | "loop" | "out">("in");
   const [animBoxOpen, setAnimBoxOpen] = useState(false);
   const [animBoxPos, setAnimBoxPos] = useState<{ x: number; y: number } | null>(null);
+  const [lineStyleOpen, setLineStyleOpen] = useState(false);
+  const [lineStylePos, setLineStylePos] = useState<{ x: number; y: number } | null>(null);
   function startAnimBoxDrag(e: React.MouseEvent) {
     e.preventDefault();
     const start = { mx: e.clientX, my: e.clientY };
@@ -343,6 +345,22 @@ export function EditorPage({ projectId }: { projectId: string }) {
       const nx = Math.max(8, Math.min(window.innerWidth - r.width - 8, base.x + (ev.clientX - start.mx)));
       const ny = Math.max(8, Math.min(window.innerHeight - 60, base.y + (ev.clientY - start.my)));
       setAnimBoxPos({ x: nx, y: ny });
+    };
+    const onUp = () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+  function startLineStyleDrag(e: React.MouseEvent) {
+    e.preventDefault();
+    const start = { mx: e.clientX, my: e.clientY };
+    const box = (e.currentTarget as HTMLElement).closest(".ed-linestyle") as HTMLElement | null;
+    if (!box) return;
+    const r = box.getBoundingClientRect();
+    const base = { x: r.left, y: r.top };
+    const onMove = (ev: MouseEvent) => {
+      const nx = Math.max(8, Math.min(window.innerWidth - r.width - 8, base.x + (ev.clientX - start.mx)));
+      const ny = Math.max(8, Math.min(window.innerHeight - 60, base.y + (ev.clientY - start.my)));
+      setLineStylePos({ x: nx, y: ny });
     };
     const onUp = () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
     window.addEventListener("mousemove", onMove);
@@ -589,7 +607,17 @@ export function EditorPage({ projectId }: { projectId: string }) {
     setCapOverrides((pr) => ({ ...pr, [c]: { ...(pr[c] || {}), style: "" } }));
     api.setCaptionOverride(projectId, activeIdx, { style: "" }).catch(() => {});
   }
-    function copyStyle() { setStyleClip({ ...effSettings }); }
+    // Apply a whole preset to just the selected caption (used by the Line styling panel).
+  function applyCaptionPreset(id: string) {
+    if (activeIdx >= 0) {
+      const cc = _cidx;
+      setCapOverrides((pr) => ({ ...pr, [cc]: { ...(pr[cc] || {}), style: id } }));
+      api.setCaptionOverride(projectId, activeIdx, { style: id }).catch(() => {});
+    } else {
+      setCapStyle(id);
+    }
+  }
+  function copyStyle() { setStyleClip({ ...effSettings }); }
   function pasteStyleTo(scope: "caption" | "all") {
     if (!styleClip) return;
     if (scope === "all") {
@@ -2246,6 +2274,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             <div className={"ed-rt-tab" + (topTab === "text" ? " active" : "")} onClick={() => setTopTab("text")}>Text</div>
           </div>
           {topTab === "text" && (
+            <>
             <div className="ed-rt-sub">
               {(["styles", "settings", "animation"] as const).map((t) => (
                 <div key={t} className={"ed-rt-subtab" + (rightTab === t ? " active" : "")} onClick={() => setRightTab(t)}>
@@ -2253,6 +2282,10 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 </div>
               ))}
             </div>
+            <button className="ed-ls-open" onClick={() => setLineStyleOpen(true)} title="Open the floating line styling panel">
+              ⤢ Line styling panel
+            </button>
+            </>
           )}
 
           {(topTab === "video" || topTab === "audio") && !clipSelected && (
@@ -2353,6 +2386,93 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
               <button className="secondary" style={{ width: "100%", marginTop: 14 }}
                 onClick={() => setFx({ ...VFX_DEFAULT })}>{IcReset} Reset video effects</button>
+            </div>
+          )}
+          {lineStyleOpen && topTab === "text" && (
+            <div className="ed-animprops ed-linestyle" style={lineStylePos ? { left: lineStylePos.x, top: lineStylePos.y, right: "auto" } : undefined}>
+              <div className="ed-animprops-hdr" onMouseDown={startLineStyleDrag}>
+                <span className="ed-animprops-grip" aria-hidden>⋮⋮</span>
+                <span className="ed-animprops-h">Line styling{activeIdx >= 0 ? " · caption " + (activeIdx + 1) : ""}</span>
+                <button className="ed-animprops-x" title="Close" onClick={() => setLineStyleOpen(false)}>×</button>
+              </div>
+              <div className="ed-animprops-body ed-ls-body">
+                <div className="ed-ls-sec">Preset {activeIdx >= 0 ? "for this caption" : "(all captions)"}</div>
+                <div className="ed-ls-presets">
+                  {lineStyles.slice(0, 16).map((st) => (
+                    <div key={st.id} className={"ed-ls-preset" + (((capOvStyle || capStyle) === st.id) ? " active" : "")}
+                      title={st.label} onClick={() => applyCaptionPreset(st.id)}>
+                      <span className={"cap cap-" + st.id}>Aa</span>
+                      <span className="ed-ls-preset-lb">{st.label}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="ed-ls-parts">
+                  {([["top", "Top line"], ["big", "Big word"], ["bottom", "Bottom line"]] as [any, string][]).map(([k, l]) => (
+                    <button key={k} className={capPart === k ? "active" : ""} onClick={() => setCapPart(k)}>{l}</button>
+                  ))}
+                </div>
+                {(() => {
+                  const isB = capPart === "bottom", isBig = capPart === "big";
+                  const opKey = isB ? "opacity" : isBig ? "big_opacity" : "top_opacity";
+                  const caseKey = isB ? "case" : isBig ? "big_case" : "top_case";
+                  const sizeKey = isBig ? "big_size" : "size";
+                  const colorKey = isBig ? "emph_color" : "text_color";
+                  const opVal = (capSettings as any)[opKey] ?? 100;
+                  const caseVal = (capSettings as any)[caseKey] || "";
+                  const sizeVal = isBig ? (capSettings.big_size ?? (capSettings.size ?? 64)) : (capSettings.size ?? 64);
+                  const colorVal = (capSettings as any)[colorKey] || (isBig ? "#ffd21e" : "#ffffff");
+                  return (
+                    <>
+                      {isB && (
+                        <div className="ed-ls-row"><span>Font</span>
+                          <Dropdown value={capSettings.font || ""} searchable placeholder="Font"
+                            options={CS_FONTS.map(([v, l]) => ({ value: v, label: l }))}
+                            onChange={(v) => saveCapSetting({ font: v })} />
+                        </div>
+                      )}
+                      {(isB || isBig) && (
+                        <div className="ed-ls-slider">
+                          <div className="ed-cs-slabel"><span>Size</span><span>{sizeVal}</span></div>
+                          <input type="range" min={24} max={220} step={1} value={sizeVal}
+                            onChange={(e) => setCapSettings((pr) => ({ ...pr, [sizeKey]: +e.target.value }))}
+                            onMouseUp={(e) => saveCapSetting({ [sizeKey]: +(e.target as HTMLInputElement).value })} />
+                        </div>
+                      )}
+                      {(isB || isBig) && (
+                        <div className="ed-ls-row"><span>Colour</span>
+                          <input type="color" value={colorVal} onChange={(e) => saveCapSetting({ [colorKey]: e.target.value })} />
+                        </div>
+                      )}
+                      {isB && (
+                        <div className="ed-ls-row"><span>Align</span>
+                          <div className="ed-ls-seg">
+                            {([["left", "L"], ["center", "C"], ["right", "R"]] as [string, string][]).map(([v, l]) => (
+                              <button key={v} className={(capSettings.align || "center") === v ? "active" : ""} onClick={() => saveCapSetting({ align: v })}>{l}</button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div className="ed-ls-row"><span>Case</span>
+                        <div className="ed-ls-seg">
+                          {([["as_typed", "Aa"], ["upper", "AG"], ["lower", "ag"], ["title", "Ag"]] as [string, string][]).map(([v, l]) => (
+                            <button key={v} className={caseVal === v ? "active" : ""} onClick={() => saveCapSetting({ [caseKey]: v })}>{l}</button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="ed-ls-slider">
+                        <div className="ed-cs-slabel"><span>Opacity</span><span>{opVal}%</span></div>
+                        <input type="range" min={0} max={100} step={1} value={opVal}
+                          onChange={(e) => setCapSettings((pr) => ({ ...pr, [opKey]: +e.target.value }))}
+                          onMouseUp={(e) => saveCapSetting({ [opKey]: +(e.target as HTMLInputElement).value })} />
+                      </div>
+                      {isBig && (
+                        <label className="ed-ls-check"><input type="checkbox" checked={!!capSettings.big_glow} onChange={(e) => saveCapSetting({ big_glow: e.target.checked })} /> Glow</label>
+                      )}
+                    </>
+                  );
+                })()}
+                <div className="ed-ls-foot">Changes apply as you make them.</div>
+              </div>
             </div>
           )}
           {topTab === "video" && clipSelected && animBoxOpen && (

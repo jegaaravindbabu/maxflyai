@@ -2005,3 +2005,28 @@ button > svg, a > svg, .pm-item > svg, .rtk-removed > svg, .del > svg, .np-label
 .ed-style-scope button:disabled { opacity: .4; cursor: not-allowed; }
 .ed-style-clearov { width: 100%; margin-bottom: 10px; background: transparent; border: 1px dashed var(--border); color: var(--muted); font: 600 12px inherit; padding: 8px; border-radius: 8px; cursor: pointer; }
 .ed-style-clearov:hover { border-color: var(--accent); color: var(--text); }
+
+/* ===== Floating Line styling panel ===== */
+.ed-ls-open { width: calc(100% - 32px); margin: 0 16px 10px; background: #0b0d15; border: 1px solid var(--border); color: var(--text); font: 600 13px inherit; padding: 9px; border-radius: 9px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.ed-ls-open:hover { border-color: var(--accent); }
+.ed-linestyle { width: 340px; }
+.ed-ls-body { max-height: 70vh; overflow-y: auto; }
+.ed-ls-sec { font-size: 11px; font-weight: 700; letter-spacing: .5px; color: var(--muted); text-transform: uppercase; margin: 2px 0 8px; }
+.ed-ls-presets { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 12px; }
+.ed-ls-preset { flex: 0 0 auto; width: 70px; background: #0b0d15; border: 1px solid var(--border); border-radius: 9px; padding: 8px 4px; text-align: center; cursor: pointer; }
+.ed-ls-preset.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.ed-ls-preset .cap { font-size: 22px; display: block; line-height: 1.1; }
+.ed-ls-preset-lb { display: block; font-size: 10px; color: var(--muted); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ed-ls-parts { display: flex; gap: 6px; background: #0b0d15; border: 1px solid var(--border); border-radius: 9px; padding: 4px; margin-bottom: 12px; }
+.ed-ls-parts button { flex: 1; background: transparent; border: none; color: var(--muted); font: 600 12px inherit; padding: 7px 4px; border-radius: 6px; cursor: pointer; }
+.ed-ls-parts button.active { background: var(--accent); color: var(--on-accent, #fff); }
+.ed-ls-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; font-size: 13px; }
+.ed-ls-row > span { color: var(--muted); flex: none; }
+.ed-ls-row input[type=color] { width: 40px; height: 26px; border: 1px solid var(--border); border-radius: 6px; background: none; cursor: pointer; }
+.ed-ls-slider { margin-bottom: 12px; }
+.ed-ls-slider input[type=range] { width: 100%; }
+.ed-ls-seg { display: flex; gap: 4px; }
+.ed-ls-seg button { min-width: 34px; background: #0b0d15; border: 1px solid var(--border); color: var(--text); font: 600 12px inherit; padding: 6px 8px; border-radius: 6px; cursor: pointer; }
+.ed-ls-seg button.active { background: var(--accent); color: var(--on-accent, #fff); border-color: var(--accent); }
+.ed-ls-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+.ed-ls-foot { font-size: 11px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 8px; }
