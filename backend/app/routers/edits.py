@@ -130,7 +130,25 @@ def detect_fillers(project_id: str, aggressive: bool = False,
 
 
 class AutoZoomIn(BaseModel):
-    scale: float = 1.2
+    density: str = "balanced"       # fewer | balanced | more
+    scale: float | None = None      # legacy; ignored when density is used
+
+
+class AutoZoomAddIn(BaseModel):
+    start_ms: int
+    end_ms: int | None = None
+    strength: str = "medium"
+
+
+class ZoomPatchIn(BaseModel):
+    start_ms: int | None = None
+    end_ms: int | None = None
+    strength: str | None = None
+    fx: float | None = None
+    fy: float | None = None
+    ease_in: float | str | None = None
+    ease_out: float | str | None = None
+    enabled: bool | None = None
 
 
 @router.delete("/{project_id}/edits/{edit_id}")
@@ -161,7 +179,7 @@ def generate_autozoom(project_id: str, body: AutoZoomIn, db: Session = Depends(g
     cues = (db.query(CaptionCue).filter(CaptionCue.project_id == project_id)
               .order_by(CaptionCue.idx).all())
     cue_dicts = [{"start_ms": c.start_ms, "end_ms": c.end_ms} for c in cues]
-    segs = autozoom.auto_segments(cue_dicts, project.duration_ms or 0, body.scale)
+    segs = autozoom.auto_segments(cue_dicts, project.duration_ms or 0, body.density)
     # replace existing zoom edits
     (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "zoom")
        .delete(synchronize_session=False))
@@ -182,6 +200,67 @@ def clear_autozoom(project_id: str, db: Session = Depends(get_db),
        .delete(synchronize_session=False))
     db.commit()
     return {"ok": True}
+
+
+@router.post("/{project_id}/autozoom/add")
+def add_autozoom(project_id: str, body: AutoZoomAddIn, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    project = db.get(Project, project_id)
+    if project is None:
+        raise HTTPException(404, "project not found")
+    start = max(0, int(body.start_ms))
+    end = int(body.end_ms) if body.end_ms is not None else start + 2000
+    if end <= start:
+        end = start + 2000
+    dur = project.duration_ms or 0
+    if dur:
+        end = min(end, dur)
+        if end <= start:
+            start = max(0, end - 2000)
+    z = autozoom.default_zoom(start, end, body.strength, source="manual")
+    e = Edit(project_id=project_id, type="zoom", payload_json=z, enabled=True)
+    db.add(e)
+    db.flush()
+    out = {"id": e.id, "enabled": True, **z}
+    db.commit()
+    return out
+
+
+@router.patch("/{project_id}/autozoom/{zoom_id}")
+def patch_autozoom(project_id: str, zoom_id: str, body: ZoomPatchIn,
+    db: Session = Depends(get_db), _owner: Project = Depends(owned_project)):
+    edit = db.get(Edit, zoom_id)
+    if edit is None or edit.project_id != project_id or edit.type != "zoom":
+        raise HTTPException(404, "zoom not found")
+    p = dict(edit.payload_json or {})
+    data = body.model_dump(exclude_unset=True)
+    if "enabled" in data:
+        edit.enabled = bool(data.pop("enabled"))
+    for key in ("start_ms", "end_ms"):
+        if key in data and data[key] is not None:
+            p[key] = int(data[key])
+    for key in ("fx", "fy"):
+        if key in data and data[key] is not None:
+            p[key] = max(0.0, min(float(data[key]), 1.0))
+    if data.get("strength"):
+        st = str(data["strength"]).lower()
+        if st in autozoom.STRENGTH:
+            p["strength"] = st
+            p["scale"] = autozoom.strength_scale(st)
+    for key in ("ease_in", "ease_out"):
+        if key in data and data[key] is not None:
+            v = data[key]
+            if isinstance(v, str):
+                p[key] = autozoom.SPEED.get(v.lower(), 0.35)
+            else:
+                p[key] = max(0.05, min(float(v), 1.5))
+    if p.get("end_ms", 0) <= p.get("start_ms", 0):
+        p["end_ms"] = p.get("start_ms", 0) + 500
+    edit.payload_json = p
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(edit, "payload_json")
+    db.commit()
+    return {"id": edit.id, "enabled": edit.enabled, **p}
 
 
 class FilterIn(BaseModel):

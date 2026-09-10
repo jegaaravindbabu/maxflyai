@@ -1,5 +1,19 @@
 import type { Project, ProjectDetail, Overlay, ImageOverlay, BrollClip } from "../types";
 
+export interface Zoom {
+  id: string;
+  enabled: boolean;
+  start_ms: number;
+  end_ms: number;
+  strength: "subtle" | "medium" | "strong";
+  scale: number;
+  fx: number;
+  fy: number;
+  ease_in: number;
+  ease_out: number;
+  source: "ai" | "manual";
+}
+
 const BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? "https://maxfly-api.onrender.com" : "");
 
 let authToken: string | null = null;
@@ -84,14 +98,13 @@ export const api = {
   },
 
   async listAutozoom(id: string) {
-    return j<{ id: string; enabled: boolean; start_ms: number; end_ms: number; scale: number }[]>(
-      await afetch(`${BASE}/api/hub/${id}/autozoom`));
+    return j<Zoom[]>(await afetch(`${BASE}/api/hub/${id}/autozoom`));
   },
 
-  async generateAutozoom(id: string, scale: number) {
-    return j<{ count: number; zooms: any[] }>(await afetch(`${BASE}/api/hub/${id}/autozoom/generate`, {
+  async generateAutozoom(id: string, density: string) {
+    return j<{ count: number; zooms: Zoom[] }>(await afetch(`${BASE}/api/hub/${id}/autozoom/generate`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scale }),
+      body: JSON.stringify({ density }),
     }));
   },
 
@@ -99,10 +112,17 @@ export const api = {
     return j<any>(await afetch(`${BASE}/api/hub/${id}/autozoom`, { method: "DELETE" }));
   },
 
-  async addZoom(id: string, start_ms: number, end_ms: number, scale: number) {
-    return j<any>(await afetch(`${BASE}/api/hub/${id}/edits`, {
+  async addZoom(id: string, start_ms: number, end_ms: number, strength = "medium") {
+    return j<Zoom>(await afetch(`${BASE}/api/hub/${id}/autozoom/add`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "zoom", payload_json: { start_ms, end_ms, scale }, enabled: true }),
+      body: JSON.stringify({ start_ms, end_ms, strength }),
+    }));
+  },
+
+  async patchZoom(id: string, zoomId: string, patch: Partial<Zoom>) {
+    return j<Zoom>(await afetch(`${BASE}/api/hub/${id}/autozoom/${zoomId}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
     }));
   },
 

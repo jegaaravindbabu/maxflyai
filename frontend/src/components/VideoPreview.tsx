@@ -14,11 +14,14 @@ interface Props {
   /** When set + enhanceOn, the video is muted and this cleaned track plays in sync. */
   enhancedSrc?: string;
   enhanceOn?: boolean;
+  /** Live punch-in zooms previewed during playback (aimed at each focus point). */
+  contentZooms?: { start_ms: number; end_ms: number; scale: number; fx: number; fy: number; ease_in: number; ease_out: number }[];
+  contentZoomOn?: boolean;
 }
 
 export const VideoPreview = forwardRef<HTMLVideoElement, Props>(
   function VideoPreview(
-    { src, overlay, frameOverlay, videoStyle, zoom, safeZone, onSurfaceClick, controls, cropOverlay, enhancedSrc, enhanceOn },
+    { src, overlay, frameOverlay, videoStyle, zoom, safeZone, onSurfaceClick, controls, cropOverlay, enhancedSrc, enhanceOn, contentZooms, contentZoomOn },
     ref
   ) {
     const wrapRef = useRef<HTMLDivElement>(null);
@@ -85,13 +88,50 @@ export const VideoPreview = forwardRef<HTMLVideoElement, Props>(
       }
     }, [useEnh, enhancedSrc]);
 
+    // Live punch-in zoom: drive the <video> transform imperatively each frame from
+    // the real playhead so the push-in stays smooth (timeupdate fires too rarely).
+    // The focus point is kept fixed on screen; captions/overlays are NOT zoomed
+    // (they sit full-size on top, exactly like the burned export).
+    useEffect(() => {
+      const v = vidRef.current;
+      if (!v) return;
+      const pz = zoom && zoom !== 1 ? zoom : 1;
+      const baseT = pz !== 1 ? `scale(${pz})` : "";
+      const reset = () => { v.style.transform = baseT; v.style.transformOrigin = baseT ? "center center" : ""; };
+      if (!contentZoomOn || !contentZooms || contentZooms.length === 0) { reset(); return; }
+      let raf = 0;
+      const tick = () => {
+        const t = v.currentTime;
+        let k = 1, fx = 0.5, fy = 0.5;
+        for (const z of contentZooms) {
+          const a = z.start_ms / 1000, b = z.end_ms / 1000;
+          if (t >= a && t <= b) {
+            const pin = Math.min(Math.max((t - a) / Math.max(0.05, z.ease_in), 0), 1);
+            const pout = Math.min(Math.max((b - t) / Math.max(0.05, z.ease_out), 0), 1);
+            const kk = 1 + (z.scale - 1) * pin * pout;
+            if (kk > k) { k = kk; fx = z.fx; fy = z.fy; }
+          }
+        }
+        if (k > 1.001) {
+          const cx = (fx * 100).toFixed(2), cy = (fy * 100).toFixed(2);
+          v.style.transformOrigin = "0 0";
+          v.style.transform =
+            (pz !== 1 ? `translate(50%,50%) scale(${pz}) translate(-50%,-50%) ` : "") +
+            `translate(${cx}%,${cy}%) scale(${k.toFixed(4)}) translate(-${cx}%,-${cy}%)`;
+        } else { reset(); }
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+      return () => { cancelAnimationFrame(raf); reset(); };
+    }, [contentZoomOn, contentZooms, zoom]);
+
     // Zoom scales the video + composited overlays together, keeping them aligned.
     // The <video> stays a normal in-flow child so the frame always renders.
     const zt: React.CSSProperties | undefined =
       zoom && zoom !== 1 ? { transform: `scale(${zoom})`, transformOrigin: "center center" } : undefined;
     return (
       <div className="preview-wrap" ref={wrapRef}>
-        <video ref={setRefs} src={src} style={{ ...(videoStyle || {}), ...(zt || {}) }}
+        <video ref={setRefs} src={src} style={{ ...(videoStyle || {}), ...(contentZoomOn ? {} : (zt || {})) }}
           onLoadedMetadata={onMeta} playsInline muted={useEnh}
           onPlay={onPlay} onPause={onPause} onSeeked={onSeeked}
           onRateChange={onRateChange} onVolumeChange={onVolumeChange} onTimeUpdate={onTimeUpdate}

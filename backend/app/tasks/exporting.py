@@ -38,8 +38,13 @@ def _load_zoom_segments(db, project_id: str) -> list[dict]:
     for r in rows:
         p = r.payload_json or {}
         if "start_ms" in p and "end_ms" in p:
+            st = str(p.get("strength", "medium")).lower()
+            scale = float(p.get("scale", autozoom.strength_scale(st)))
             segs.append({"start_ms": int(p["start_ms"]), "end_ms": int(p["end_ms"]),
-                         "scale": float(p.get("scale", 1.2))})
+                         "scale": scale, "strength": st,
+                         "fx": float(p.get("fx", 0.5)), "fy": float(p.get("fy", 0.5)),
+                         "ease_in": float(p.get("ease_in", 0.35)),
+                         "ease_out": float(p.get("ease_out", 0.35))})
     segs.sort(key=lambda z: z["start_ms"])
     return segs
 

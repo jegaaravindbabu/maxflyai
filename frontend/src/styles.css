@@ -2030,3 +2030,70 @@ button > svg, a > svg, .pm-item > svg, .rtk-removed > svg, .del > svg, .np-label
 .ed-ls-seg button.active { background: var(--accent); color: var(--on-accent, #fff); border-color: var(--accent); }
 .ed-ls-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
 .ed-ls-foot { font-size: 11px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 8px; }
+
+/* ===== Auto Zoom panel (HyproAI-style) ===== */
+.ed-az-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.ed-az-head h3 { margin: 0; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+.ed-az-beta { font-size: 10px; font-weight: 700; letter-spacing: .5px; color: var(--accent);
+  border: 1px solid var(--accent); border-radius: 20px; padding: 1px 8px; text-transform: uppercase; }
+.ed-az-toggle { width: 42px; height: 24px; border-radius: 20px; background: var(--panel-2);
+  border: 1px solid var(--border); position: relative; cursor: pointer; padding: 0; transition: background .15s; }
+.ed-az-toggle i { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--muted); transition: transform .15s, background .15s; }
+.ed-az-toggle.on { background: var(--accent); border-color: transparent; }
+.ed-az-toggle.on i { transform: translateX(18px); background: #0c1108; }
+
+.ed-az-listhd { display: flex; align-items: center; justify-content: space-between;
+  margin: 18px 0 8px; font-size: 11px; font-weight: 700; letter-spacing: .8px; color: var(--muted); }
+.ed-az-clear { background: none; border: none; color: var(--muted); font-size: 12px; cursor: pointer;
+  padding: 0; text-decoration: underline; }
+.ed-az-clear:hover { color: var(--text); }
+
+.ed-az-empty { text-align: center; color: var(--muted); font-size: 13px; padding: 26px 14px;
+  border: 1px dashed var(--border); border-radius: 12px; line-height: 1.5; }
+.ed-az-empty-ic { opacity: .5; margin-bottom: 8px; display: flex; justify-content: center; }
+
+.ed-az-list { display: flex; flex-direction: column; gap: 8px; }
+.ed-az-row { background: var(--panel-2); border: 1px solid var(--border); border-radius: 11px; overflow: hidden; }
+.ed-az-row.open { border-color: var(--accent); }
+.ed-az-rowhd { display: flex; align-items: center; gap: 8px; padding: 9px 10px; cursor: pointer; }
+.ed-az-play { width: 22px; height: 22px; flex: 0 0 auto; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--panel); color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+.ed-az-play:hover { border-color: var(--accent); color: var(--accent); }
+.ed-az-time { font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; }
+.ed-az-badge { font-size: 9px; font-weight: 800; letter-spacing: .4px; padding: 2px 6px; border-radius: 5px; }
+.ed-az-badge.ai { color: #0c1108; background: var(--accent); }
+.ed-az-badge.manual { color: var(--muted); background: var(--panel); border: 1px solid var(--border); }
+.ed-az-str { font-size: 12px; color: var(--muted); }
+.ed-az-caret { margin-left: auto; color: var(--muted); font-size: 13px; }
+.ed-az-del { background: none; border: none; color: var(--muted); cursor: pointer; padding: 2px 4px; display: flex; }
+.ed-az-del:hover { color: #ff6b6b; }
+
+.ed-az-body { padding: 4px 12px 12px; border-top: 1px solid var(--border); }
+.ed-az-flabel { font-size: 12px; color: var(--muted); margin: 10px 0 6px; }
+.ed-az-speeds { display: flex; gap: 10px; }
+.ed-az-speed { flex: 1; min-width: 0; }
+.ed-az-speed .ed-seg-btn { padding: 7px 2px; font-size: 11px; }
+.ed-az-adv { width: 100%; text-align: left; background: none; border: none; color: var(--accent-2);
+  font-size: 12px; cursor: pointer; padding: 12px 0 0; }
+.ed-az-advbox { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 8px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; }
+.ed-az-aimhint { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 12px; }
+.ed-az-rowacts { display: flex; gap: 8px; margin-top: 12px; }
+.ed-az-revert { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: var(--panel); border: 1px solid var(--border); color: var(--text); border-radius: 9px; padding: 9px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.ed-az-revert:hover { border-color: var(--accent); }
+.ed-az-done { flex: 1; background: var(--accent); color: #0c1108; border: none; border-radius: 9px;
+  padding: 9px; cursor: pointer; font-size: 13px; font-weight: 700; }
+
+/* focus-dot aiming overlay on the preview */
+.ed-zoomaim { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
+.ed-zoomaim-rect { position: absolute; border: 2px solid var(--accent); border-radius: 4px;
+  box-shadow: 0 0 0 100vmax rgba(0,0,0,.28); }
+.ed-zoomaim-c { position: absolute; width: 7px; height: 7px; background: var(--accent); border-radius: 50%; }
+.ed-zoomaim-c.tl { left: -4px; top: -4px; } .ed-zoomaim-c.tr { right: -4px; top: -4px; }
+.ed-zoomaim-c.bl { left: -4px; bottom: -4px; } .ed-zoomaim-c.br { right: -4px; bottom: -4px; }
+.ed-zoomaim-dot { position: absolute; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%;
+  background: var(--accent); border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.5);
+  cursor: grab; pointer-events: auto; padding: 0; }
+.ed-zoomaim-dot:active { cursor: grabbing; }

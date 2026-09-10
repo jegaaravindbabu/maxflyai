@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
-import { api } from "../api/client";
+import { api, type Zoom } from "../api/client";
 import type { ProjectDetail, Overlay, ImageOverlay, BrollClip, Cue, Project } from "../types";
 import { VideoPreview } from "../components/VideoPreview";
 import { CaptionOverlay } from "../components/CaptionOverlay";
@@ -232,9 +232,13 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [selOv, setSelOv] = useState<string | null>(null);
   const [textTab, setTextTab] = useState<"content" | "style" | "anim" | "outline" | "shadow">("content");
   const TXT_ANIMS: [string, string][] = [["none", "None"], ["fade", "Fade"], ["slide_up", "Slide up"], ["slide_down", "Slide down"], ["slide_left", "Slide left"], ["slide_right", "Slide right"], ["rise", "Rise"], ["drop", "Drop"], ["pop", "Pop"], ["zoom", "Zoom"], ["bounce", "Bounce"], ["rotate", "Rotate"], ["flip", "Flip"], ["blur", "Blur"], ["expand", "Expand"]];
-  const [zooms, setZooms] = useState<{ id: string; start_ms: number; end_ms: number; scale: number }[]>([]);
-  const [zoomScale, setZoomScale] = useState(1.2);
+  const [zooms, setZooms] = useState<Zoom[]>([]);
+  const [zoomDensity, setZoomDensity] = useState<"fewer" | "balanced" | "more">("balanced");
+  const [zoomOn, setZoomOn] = useState(true);
   const [zoomBusy, setZoomBusy] = useState(false);
+  const [zoomProg, setZoomProg] = useState("");
+  const [selZoomId, setSelZoomId] = useState<string | null>(null);
+  const [zoomAdvOpen, setZoomAdvOpen] = useState(false);
   const [filterList, setFilterList] = useState<{ id: string; label: string; group: string }[]>([]);
   const [filterGroups, setFilterGroups] = useState<{ name: string; sub: string }[]>([]);
   const [curFilter, setCurFilter] = useState("none");
@@ -731,6 +735,12 @@ export function EditorPage({ projectId }: { projectId: string }) {
     clipPath: (videofx.cropT || videofx.cropR || videofx.cropB || videofx.cropL)
       ? `inset(${videofx.cropT}% ${videofx.cropR}% ${videofx.cropB}% ${videofx.cropL}%)` : undefined,
   };
+  const selZoom = zooms.find((z) => z.id === selZoomId) || null;
+  const contentZoomOn = zoomOn && !selZoomId;
+  const contentZooms = useMemo(
+    () => (zoomOn ? zooms.filter((z) => z.enabled !== false) : []),
+    [zooms, zoomOn]
+  );
   const isHidden = (t: string) => hiddenTracks.has(t);
   const isLocked = (t: string) => lockedTracks.has(t);
   const toggleHide = (t: string) => setHiddenTracks((s) => { const n = new Set(s); n.has(t) ? n.delete(t) : n.add(t); return n; });
@@ -1014,21 +1024,92 @@ export function EditorPage({ projectId }: { projectId: string }) {
     }
   }
 
+  const ZOOM_SPEED: Record<string, number> = { fast: 0.15, medium: 0.35, slow: 0.70 };
+  const speedLabel = (sec: number) => (sec <= 0.22 ? "fast" : sec >= 0.55 ? "slow" : "medium");
+  const zoomStrengthPct = (z: Zoom) => Math.round((z.scale - 1) * 100);
+
   async function generateZoom() {
     setZoomBusy(true);
-    try { const r = await api.generateAutozoom(projectId, zoomScale); setZooms(r.zooms); }
-    catch (e: any) { alert("Auto zoom failed: " + e.message); }
-    finally { setZoomBusy(false); }
+    setZoomProg("Finding moments\u2026");
+    const flip = window.setTimeout(() => setZoomProg("Focusing on the subject\u2026"), 800);
+    try {
+      const r = await api.generateAutozoom(projectId, zoomDensity);
+      setZooms(r.zooms);
+      setSelZoomId(null);
+      setZoomOn(true);
+      toast(`Found ${r.count} moment${r.count === 1 ? "" : "s"} \u2014 preview, then aim.`);
+    } catch (e: any) { toast("Auto zoom failed: " + e.message); }
+    finally { window.clearTimeout(flip); setZoomProg(""); setZoomBusy(false); }
   }
   async function addZoomHere() {
     const s0 = Math.round(curMs);
-    await api.addZoom(projectId, s0, s0 + 2500, zoomScale);
-    api.listAutozoom(projectId).then(setZooms).catch(() => {});
+    const end = Math.min(dur || s0 + 2000, s0 + 2000);
+    try {
+      const z = await api.addZoom(projectId, s0, end, "medium");
+      setZooms((prev) => [...prev, z]);
+      setSelZoomId(z.id);
+      setZoomAdvOpen(false);
+    } catch (e: any) { toast("Could not add zoom: " + e.message); }
   }
-  async function clearZoom() { await api.clearAutozoom(projectId); setZooms([]); }
+  async function clearZoom() {
+    await api.clearAutozoom(projectId);
+    setZooms([]); setSelZoomId(null);
+  }
   async function delZoom(id: string) {
     setZooms((prev) => prev.filter((z) => z.id !== id));
+    if (selZoomId === id) setSelZoomId(null);
     try { await api.deleteEdit(projectId, id); } catch {}
+  }
+  function patchZoomLocal(id: string, patch: Partial<Zoom>) {
+    setZooms((prev) => prev.map((z) => (z.id === id ? { ...z, ...patch } : z)));
+  }
+  async function commitZoom(id: string, patch: Partial<Zoom>) {
+    patchZoomLocal(id, patch);
+    try { const z = await api.patchZoom(projectId, id, patch); patchZoomLocal(id, z); } catch {}
+  }
+  function setZoomStrength(id: string, st: "subtle" | "medium" | "strong") {
+    const scale = st === "subtle" ? 1.10 : st === "strong" ? 1.35 : 1.20;
+    commitZoom(id, { strength: st, scale });
+  }
+  function setZoomSpeed(id: string, which: "ease_in" | "ease_out", label: string) {
+    commitZoom(id, { [which]: ZOOM_SPEED[label] } as Partial<Zoom>);
+  }
+  function setZoomDuration(id: string, ms: number) {
+    const z = zooms.find((x) => x.id === id); if (!z) return;
+    commitZoom(id, { end_ms: z.start_ms + Math.max(400, Math.round(ms)) });
+  }
+  function revertZoom(id: string) {
+    commitZoom(id, { strength: "medium", scale: 1.20, fx: 0.5, fy: 0.5, ease_in: 0.35, ease_out: 0.35 });
+  }
+  async function toggleZoomMaster() {
+    const next = !zoomOn;
+    setZoomOn(next);
+    setZooms((prev) => prev.map((z) => ({ ...z, enabled: next })));
+    for (const z of zooms) { try { await api.patchZoom(projectId, z.id, { enabled: next }); } catch {} }
+  }
+  function startZoomAim(e: ReactMouseEvent, id: string) {
+    e.preventDefault(); e.stopPropagation();
+    const wrap = (e.currentTarget as HTMLElement).closest(".preview-wrap") as HTMLElement | null;
+    if (!wrap) return;
+    const z0 = zooms.find((x) => x.id === id); if (!z0) return;
+    const half = 0.5 / Math.max(1.05, z0.scale);
+    let last = { fx: z0.fx, fy: z0.fy };
+    const move = (ev: MouseEvent) => {
+      const r = wrap.getBoundingClientRect();
+      let fx = (ev.clientX - r.left) / r.width;
+      let fy = (ev.clientY - r.top) / r.height;
+      fx = Math.max(half, Math.min(1 - half, fx));
+      fy = Math.max(half, Math.min(1 - half, fy));
+      last = { fx, fy };
+      patchZoomLocal(id, last);
+    };
+    const up = () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+      api.patchZoom(projectId, id, last).catch(() => {});
+    };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
   }
 
   const gradeLabel = (name: string) => filterList.find((f) => f.id === name)?.label || name;
@@ -1813,36 +1894,109 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
           {rail === "zoom" && (
             <>
-              <div className="ed-left-head"><h3>Auto Zoom</h3></div>
-              <div className="ed-hint-box">Adds dynamic punch-in zooms to keep the edit lively. Applied when you export MP4.</div>
-              <div className="ed-anim-lbl">INTENSITY</div>
+              <div className="ed-az-head">
+                <h3>Auto Zoom <span className="ed-az-beta">Beta</span></h3>
+                <button className={"ed-az-toggle" + (zoomOn ? " on" : "")} role="switch" aria-checked={zoomOn}
+                  title={zoomOn ? "Auto Zoom on" : "Auto Zoom off"} onClick={toggleZoomMaster}><i /></button>
+              </div>
+              <div className="ed-hint-box">Punch-in zooms that keep the edit lively. Detect them automatically or drop your own, then drag the dot on the preview to aim each one. They play live here and bake into the MP4.</div>
+
+              <div className="ed-anim-lbl">HOW MANY</div>
               <div className="ed-seg-row">
-                {[["Subtle", 1.1], ["Medium", 1.2], ["Strong", 1.35]].map(([lb, v]) => (
-                  <div key={lb as string} className={"ed-seg-btn" + (zoomScale === v ? " active" : "")}
-                    onClick={() => setZoomScale(v as number)}>{lb}</div>
+                {(["fewer", "balanced", "more"] as const).map((d) => (
+                  <div key={d} className={"ed-seg-btn" + (zoomDensity === d ? " active" : "")}
+                    onClick={() => setZoomDensity(d)}>{d[0].toUpperCase() + d.slice(1)}</div>
                 ))}
               </div>
+
               <button style={{ width: "100%", marginTop: 14 }} onClick={generateZoom} disabled={zoomBusy}>
-                {zoomBusy ? "Generating…" : <>{IcAI} Generate auto zoom</>}
+                {zoomBusy ? (zoomProg || "Working…") : <>{IcAI} Auto-detect zooms</>}
               </button>
-              <button className="secondary" style={{ width: "100%", marginTop: 8 }} onClick={addZoomHere}>+ Add zoom at playhead</button>
-              <div className="ed-cap-count" style={{ marginTop: 16 }}>{zooms.length} zoom{zooms.length === 1 ? "" : "s"}</div>
-              {zooms.length > 0 && (
-                <>
-                  <div className="ed-txt-list">
-                    {zooms.map((z) => (
-                      <div key={z.id} className="ed-txt-item" onClick={() => seek(z.start_ms)}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span>{fmtT(z.start_ms)} – {fmtT(z.end_ms)} · {Math.round((z.scale - 1) * 100)}%</span>
-                          <button className="ed-cap-acts" style={{ display: "flex" }} onClick={(e) => { e.stopPropagation(); delZoom(z.id); }}>
-                            <span className="del" style={{ padding: "2px 8px" }}>{IcTrash}</span>
+              <button className="secondary" style={{ width: "100%", marginTop: 8 }} onClick={addZoomHere}>+ Add a zoom</button>
+
+              <div className="ed-az-listhd">
+                <span>ZOOMS · {zooms.length}</span>
+                {zooms.length > 0 && <button className="ed-az-clear" onClick={clearZoom}>Clear all</button>}
+              </div>
+
+              {zooms.length === 0 ? (
+                <div className="ed-az-empty">
+                  <div className="ed-az-empty-ic">{IcAI}</div>
+                  No zooms yet. Auto-detect, or add one at the playhead.
+                </div>
+              ) : (
+                <div className="ed-az-list">
+                  {zooms.map((z) => {
+                    const open = selZoomId === z.id;
+                    const durMs = z.end_ms - z.start_ms;
+                    return (
+                      <div key={z.id} className={"ed-az-row" + (open ? " open" : "")}>
+                        <div className="ed-az-rowhd" onClick={() => { setSelZoomId(open ? null : z.id); setZoomAdvOpen(false); if (!open) seek(z.start_ms); }}>
+                          <button className="ed-az-play" title="Jump to zoom" onClick={(e) => { e.stopPropagation(); seek(z.start_ms); }}>
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                           </button>
+                          <span className="ed-az-time">{fmtT(z.start_ms)}</span>
+                          <span className={"ed-az-badge " + z.source}>{z.source === "ai" ? "AI" : "MANUAL"}</span>
+                          <span className="ed-az-str">{z.strength[0].toUpperCase() + z.strength.slice(1)}</span>
+                          <span className="ed-az-caret">{open ? "⌃" : "⌄"}</span>
+                          <button className="ed-az-del" title="Delete zoom" onClick={(e) => { e.stopPropagation(); delZoom(z.id); }}>{IcTrash}</button>
                         </div>
+                        {open && (
+                          <div className="ed-az-body">
+                            <div className="ed-az-flabel">Zoom strength</div>
+                            <div className="ed-seg-row">
+                              {(["subtle", "medium", "strong"] as const).map((st) => (
+                                <div key={st} className={"ed-seg-btn" + (z.strength === st ? " active" : "")}
+                                  onClick={() => setZoomStrength(z.id, st)}>{st[0].toUpperCase() + st.slice(1)}</div>
+                              ))}
+                            </div>
+
+                            <div className="ed-cs-slabel" style={{ marginTop: 12 }}><span>Duration</span><span>{(durMs / 1000).toFixed(1)}s</span></div>
+                            <input type="range" min={500} max={4000} step={100} value={durMs}
+                              onChange={(e) => setZoomDuration(z.id, +e.target.value)} style={{ width: "100%" }} />
+
+                            <div className="ed-az-speeds">
+                              <div className="ed-az-speed">
+                                <div className="ed-az-flabel">Speed in</div>
+                                <div className="ed-seg-row">
+                                  {["fast", "medium", "slow"].map((sp) => (
+                                    <div key={sp} className={"ed-seg-btn" + (speedLabel(z.ease_in) === sp ? " active" : "")}
+                                      onClick={() => setZoomSpeed(z.id, "ease_in", sp)}>{sp[0].toUpperCase() + sp.slice(1)}</div>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="ed-az-speed">
+                                <div className="ed-az-flabel">Speed out</div>
+                                <div className="ed-seg-row">
+                                  {["fast", "medium", "slow"].map((sp) => (
+                                    <div key={sp} className={"ed-seg-btn" + (speedLabel(z.ease_out) === sp ? " active" : "")}
+                                      onClick={() => setZoomSpeed(z.id, "ease_out", sp)}>{sp[0].toUpperCase() + sp.slice(1)}</div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+
+                            <button className="ed-az-adv" onClick={() => setZoomAdvOpen((v) => !v)}>
+                              {zoomAdvOpen ? "⌃" : "⌄"} Advanced — motion curve
+                            </button>
+                            {zoomAdvOpen && (
+                              <div className="ed-az-advbox">
+                                Ease in {z.ease_in.toFixed(2)}s · ease out {z.ease_out.toFixed(2)}s · peak {zoomStrengthPct(z)}%.
+                                The push accelerates over the ease-in and releases over the ease-out.
+                              </div>
+                            )}
+
+                            <div className="ed-az-aimhint">Drag the orange dot on the preview to aim this zoom at your subject.</div>
+                            <div className="ed-az-rowacts">
+                              <button className="ed-az-revert" onClick={() => revertZoom(z.id)}>{IcUndo} Revert</button>
+                              <button className="ed-az-done" onClick={() => setSelZoomId(null)}>Done</button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                  <button className="secondary" style={{ width: "100%", marginTop: 12 }} onClick={clearZoom}>Clear all zooms</button>
-                </>
+                    );
+                  })}
+                </div>
               )}
             </>
           )}
@@ -1979,6 +2133,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
               } : undefined}>
             <VideoPreview ref={videoRef} src={mediaSrc} videoStyle={videoFxStyle} zoom={previewZoom} safeZone={safeZone} onSurfaceClick={() => { const next = !clipSelected; setClipSelected(next); if (next) setTopTab("video"); }}
               enhancedSrc={enhancedUrl || undefined} enhanceOn={!!enhancedUrl}
+              contentZooms={contentZooms} contentZoomOn={contentZoomOn}
               cropOverlay={topTab === "video" && videofx.cropOpen ? (
                 <div className="ed-crop-layer">
                   <div className="ed-crop-rect" style={{ top: videofx.cropT + "%", right: videofx.cropR + "%", bottom: videofx.cropB + "%", left: videofx.cropL + "%" }}>
@@ -2067,6 +2222,21 @@ export function EditorPage({ projectId }: { projectId: string }) {
                       onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setRail("broll"); }} />
                   )
                 ))}
+                {rail === "zoom" && selZoom && (() => {
+                  const half = 50 / Math.max(1.05, selZoom.scale);
+                  const cx = selZoom.fx * 100, cy = selZoom.fy * 100;
+                  return (
+                    <div className="ed-zoomaim" aria-hidden={false}>
+                      <div className="ed-zoomaim-rect"
+                        style={{ left: (cx - half) + "%", top: (cy - half) + "%", width: (half * 2) + "%", height: (half * 2) + "%" }}>
+                        <span className="ed-zoomaim-c tl" /><span className="ed-zoomaim-c tr" />
+                        <span className="ed-zoomaim-c bl" /><span className="ed-zoomaim-c br" />
+                      </div>
+                      <button className="ed-zoomaim-dot" style={{ left: cx + "%", top: cy + "%" }}
+                        title="Drag to aim the zoom" onMouseDown={(e) => startZoomAim(e, selZoom.id)} />
+                    </div>
+                  );
+                })()}
               </>}
               overlay={activeCue && overlayText && !isHidden("captions") ? (
                 <CaptionOverlay text={overlayText} styleId={effStyle} cue={activeCue} curMs={curMs} keyId={activeIdx} settings={effSettings} wordOverrides={activeWordOv} selWord={selWordSafe} />
