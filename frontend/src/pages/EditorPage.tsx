@@ -849,12 +849,14 @@ export function EditorPage({ projectId }: { projectId: string }) {
     load();
   }
   async function addText() {
-    const at = Math.round(curMs);
-    const o = await api.addOverlay(projectId, { text: "Your text", start_ms: at, end_ms: at + 3000,
-      x_pct: 50, y_pct: 20, font_size: 72, color: "#ffffff", bold: true });
+    const at = Math.max(0, Math.min(Math.round(curMs), Math.max(0, dur - 1000)));
+    const end = Math.min(dur, at + 4000);
+    const o = await api.addOverlay(projectId, { text: "Your text", start_ms: at, end_ms: end,
+      x_pct: 50, y_pct: 42, font_size: 72, color: "#ffffff", bold: true });
     setOverlays((prev) => [...prev, o]);
     setSelOv(o.id);
     setRail("texts");
+    seek(at + 50);   // move the playhead onto the text so it shows immediately
   }
   function patchLocal(id: string, patch: Partial<Overlay>) {
     setOverlays((prev) => prev.map((o) => (o.id === id ? { ...o, ...patch } : o)));
@@ -1481,8 +1483,11 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 <div className="ed-txt-list">
                   {overlays.map((o) => (
                     <div key={o.id} className={"ed-txt-item" + (selOv === o.id ? " active" : "")}
-                      onClick={() => { setSelOv(o.id); seek(o.start_ms); }}>
-                      <div className="ed-txt-preview" style={{ color: o.color, fontWeight: o.bold ? 800 : 500 }}>{o.text || "(empty)"}</div>
+                      onClick={() => { setSelOv(o.id); seek(o.start_ms + 50); }}>
+                      <div className="ed-txt-row">
+                        <div className="ed-txt-preview" style={{ color: o.color, fontWeight: o.bold ? 800 : 500 }}>{o.text || "(empty)"}</div>
+                        <button className="ed-txt-x" title="Delete" onClick={(e) => { e.stopPropagation(); delText(o.id); }}>{IcTrash}</button>
+                      </div>
                       <div className="np-sub">{fmtT(o.start_ms)} – {fmtT(o.end_ms)}</div>
                     </div>
                   ))}
@@ -1883,27 +1888,20 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   </button>
                 </div>
               </>}
-              frameOverlay={!isHidden("captions") && movedWords.length > 0 ? (
-                <>
-                  {movedWords.map(({ i, w, wd }) => (
-                    <div key={i}
-                      className={"ed-wordmove" + (selWordSafe === i ? " sel" : "")}
-                      style={{ left: wd.x + "%", top: wd.y + "%",
-                        color: wd.color || effSettings.text_color || "#fff",
-                        fontSize: Math.max(12, ((Number(wd.size) || Number(effSettings.size) || 64) / 64) * 22) + "px",
-                        textShadow: wd.glow ? "0 0 8px currentColor, 0 0 3px #000" : "0 1px 2px rgba(0,0,0,.6)" }}
-                      onMouseDown={(e) => startDragWord(e, i)}>{w}</div>
-                  ))}
-                </>
-              ) : null}
-              overlay={<>
-                {activeCue && overlayText && !isHidden("captions") ? (
-                  <CaptionOverlay text={overlayText} styleId={effStyle} cue={activeCue} curMs={curMs} keyId={activeIdx} settings={effSettings} wordOverrides={activeWordOv} selWord={selWordSafe} />
-                ) : null}
+              frameOverlay={<>
+                {!isHidden("captions") && movedWords.length > 0 && movedWords.map(({ i, w, wd }) => (
+                  <div key={i}
+                    className={"ed-wordmove" + (selWordSafe === i ? " sel" : "")}
+                    style={{ left: wd.x + "%", top: wd.y + "%",
+                      color: wd.color || effSettings.text_color || "#fff",
+                      fontSize: Math.max(12, ((Number(wd.size) || Number(effSettings.size) || 64) / 64) * 22) + "px",
+                      textShadow: wd.glow ? "0 0 8px currentColor, 0 0 3px #000" : "0 1px 2px rgba(0,0,0,.6)" }}
+                    onMouseDown={(e) => startDragWord(e, i)}>{w}</div>
+                ))}
                 {!isHidden("text") && overlays.filter((o) => curMs >= o.start_ms && curMs < o.end_ms).map((o) => (
                   <div key={o.id} className={"ed-ovl" + (selOv === o.id ? " sel" : "")}
                     style={{ left: o.x_pct + "%", top: o.y_pct + "%", color: o.color,
-                             fontSize: Math.max(11, o.font_size * 0.24) + "px", fontWeight: o.bold ? 800 : 500 }}
+                             fontSize: Math.max(13, o.font_size * 0.26) + "px", fontWeight: o.bold ? 800 : 500 }}
                     onMouseDown={(e) => startDrag(e, o)}
                     onClick={(e) => { e.stopPropagation(); setSelOv(o.id); setRail("texts"); }}>
                     {o.text}
@@ -1923,7 +1921,10 @@ export function EditorPage({ projectId }: { projectId: string }) {
                     onMouseDown={(e) => startDragBroll(e, b)}
                     onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setRail("broll"); }} />
                 ))}
-              </>} />
+              </>}
+              overlay={activeCue && overlayText && !isHidden("captions") ? (
+                <CaptionOverlay text={overlayText} styleId={effStyle} cue={activeCue} curMs={curMs} keyId={activeIdx} settings={effSettings} wordOverrides={activeWordOv} selWord={selWordSafe} />
+              ) : null} />
             </div>
           </div>
           <div className="ed-mon-bar">

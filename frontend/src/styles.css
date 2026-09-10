@@ -1847,3 +1847,14 @@ button > svg, a > svg, .pm-item > svg, .rtk-removed > svg, .del > svg, .np-label
 .ed-vid-play, .sb-logo .mark, .auth-logo-mark, .lp-logo-mark, .ed-play-logo,
 .ed-audio-enh-ic { display: inline-flex; align-items: center; justify-content: center; }
 .proj-play svg, .lp-play svg, .sb-logo .mark svg, .lp-logo-mark svg, .ed-play-logo svg { display: block; }
+
+/* ===== Text panel — tidy list rows ===== */
+.ed-txt-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ed-txt-row .ed-txt-preview { flex: 1; min-width: 0; }
+.ed-txt-x { flex: none; background: none; border: none; color: var(--muted); cursor: pointer;
+  padding: 2px; border-radius: 6px; display: inline-flex; opacity: 0; transition: opacity .12s, color .12s; }
+.ed-txt-item:hover .ed-txt-x, .ed-txt-item.active .ed-txt-x { opacity: 1; }
+.ed-txt-x:hover { color: #ff6b6b; background: rgba(255,107,107,.1); }
+.ed-ovl { z-index: 4; }
+.ed-ovl.sel { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px;
+  box-shadow: 0 0 0 4px rgba(198,255,58,.15); }
