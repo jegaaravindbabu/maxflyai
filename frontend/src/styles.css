@@ -1997,3 +1997,11 @@ button > svg, a > svg, .pm-item > svg, .rtk-removed > svg, .del > svg, .np-label
 .cap-rubik_clean { font-family: "Rubik", system-ui, sans-serif; font-weight: 700; color: #fff; background: rgba(0,0,0,.35); text-shadow: 1px 2px 3px #000; }
 .cap-coral_pop { font-family: "Righteous", system-ui, sans-serif; color: #ff6b3d; background: rgba(0,0,0,.3); -webkit-text-stroke: 1px #000; text-shadow: 1px 2px 3px #000; }
 .cap-titan_gold { font-family: "Titan One", system-ui, sans-serif; text-transform: uppercase; color: #f5c518; -webkit-text-stroke: 1.5px #000; text-shadow: 2px 2px 0 #000; }
+
+/* ===== Per-caption preset scope toggle ===== */
+.ed-style-scope { display: flex; gap: 6px; background: #0b0d15; border: 1px solid var(--border); border-radius: 9px; padding: 4px; margin-bottom: 10px; }
+.ed-style-scope button { flex: 1; background: transparent; border: none; color: var(--muted); font: 600 12px inherit; padding: 7px 8px; border-radius: 6px; cursor: pointer; }
+.ed-style-scope button.active { background: var(--accent); color: var(--on-accent, #fff); }
+.ed-style-scope button:disabled { opacity: .4; cursor: not-allowed; }
+.ed-style-clearov { width: 100%; margin-bottom: 10px; background: transparent; border: 1px dashed var(--border); color: var(--muted); font: 600 12px inherit; padding: 8px; border-radius: 8px; cursor: pointer; }
+.ed-style-clearov:hover { border-color: var(--accent); color: var(--text); }

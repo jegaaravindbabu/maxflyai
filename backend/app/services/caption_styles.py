@@ -244,7 +244,7 @@ def _wmatch(w: str, emph: str) -> bool:
 
 
 def _karaoke_text(text: str, dur_ms: int, emph: str = "", accent: str = "", primary: str = "",
-                  case=None, alpha=None, base_alpha: str = "00") -> str:
+                  case=None, alpha=None, base_alpha: str = "00", big_glow: bool = False) -> str:
     """Split cue into words with per-word \\kf timing (centiseconds)."""
     plain = text.replace("\n", " \\N ")
     words = [w for w in plain.split(" ") if w != ""]
@@ -261,11 +261,18 @@ def _karaoke_text(text: str, dur_ms: int, emph: str = "", accent: str = "", prim
         if w == "\\N":
             out.append("\\N")
             continue
+        # length-weighted karaoke timing with a per-word floor so short words
+        # (and punctuation) still read, and the last word absorbs the remainder.
         share = round(total_cs * len(w) / total_chars)
-        share = max(1, min(share, total_cs - used))
+        share = max(3, min(share, max(3, total_cs - used)))
         used += share
         if _wmatch(w, emph):
-            out.append("{\\kf" + str(share) + o_extra + "}" + _case_str(w, case) + "{" + c_extra + "} ")
+            # Big word: the emphasised word scales up and pops as it is spoken,
+            # matching HyproAI's animated "big word". Scale + colour for its span,
+            # then reset scale/colour for the trailing space.
+            o_open = "{\\kf" + str(share) + "\\fscx118\\fscy118" + ("\\blur3" if big_glow else "") + o_extra + "}"
+            close = "{\\fscx100\\fscy100" + ("\\blur0" if big_glow else "") + c_extra + "} "
+            out.append(o_open + _case_str(w, case) + close)
         else:
             out.append("{\\kf" + str(share) + "}" + w + " ")
     return "".join(out).strip()
@@ -637,15 +644,34 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
         _cidx = str(c.get("oidx", c.get("idx", _i)))
         _cap_ov = _cap_ovs.get(_cidx) or {}
         _word_ov = _word_ovs.get(_cidx) or {}
-        _cap_pre = _cap_inline(_cap_ov)
-        _base_size = int(float(_cap_ov["size"])) if _cap_ov.get("size") else p["size"]
+        # Per-caption preset override: a caption may carry its own "style" preset,
+        # swapping font / size / colours / outline / shadow / animation for just
+        # that line (HyproAI's "preset for this caption"); absent -> the video preset.
+        _ov_style = _cap_ov.get("style")
+        _use_pre = bool(_ov_style) and _ov_style in PRESETS and _ov_style != style
+        if _use_pre:
+            pc = dict(PRESETS[_ov_style]); pc["font"] = resolve_font(pc["font"])
+            cue_anim = None if (st.get("anim_enabled") is False) else pc.get("anim")
+        else:
+            pc = p
+            cue_anim = anim
+        cue_primary = pc["primary"]
+        cue_emcol = emph_color or (YELLOW if cue_primary == ACCENT else ACCENT)
+        cue_pre = ""
+        if _use_pre:
+            cue_pre = ("\\fn" + pc["font"] + "\\fs" + str(int(pc["size"]))
+                       + "\\1c" + pc["primary"] + "&\\3c" + pc["outline"] + "&"
+                       + "\\bord" + str(pc.get("outline_w", 3)) + "\\shad" + str(pc.get("shadow", 1))
+                       + "\\b" + ("1" if pc.get("bold") == -1 else "0"))
+        _ci = _cap_inline(_cap_ov)
+        _cap_pre = (cue_pre + _ci) if (cue_pre or _ci) else ""
+        _base_size = int(float(_cap_ov["size"])) if _cap_ov.get("size") else pc["size"]
         txt = (c.get("translit_text") if use_translit and c.get("translit_text") else c["text"]) or ""
-        txt = _case(txt)
-        # Top line = first line of a two-line caption. Case is safe in every mode;
-        # opacity is applied inline in the plain/whole-caption path only (karaoke and
-        # per-word paths tokenise on spaces, so an inline alpha span there would break
-        # the per-word timing tags).
-        _karaoke_mode = (anim == "karaoke") or (scope in ("word", "single", "line") and anim in _WORD_MOTION)
+        if case_mode:
+            txt = _case(txt)
+        elif pc.get("upper"):
+            txt = txt.upper()
+        _karaoke_mode = (cue_anim == "karaoke") or (scope in ("word", "single", "line") and cue_anim in _WORD_MOTION)
         if ("\n" in txt) and (top_case in ("upper", "lower", "title") or top_alpha):
             _first, _rest = txt.split("\n", 1)
             _first = _case_str(_first, top_case)
@@ -654,37 +680,37 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
             txt = _first + "\n" + _rest
         dur = max(c["end_ms"] - c["start_ms"], 1)
         em = (st.get("emphasis") or "").strip()
-        emcol = emph_color or (YELLOW if p["primary"] == ACCENT else ACCENT)
-        if anim == "karaoke":
-            body = _karaoke_text(txt, dur, em, emcol, p["primary"], big_case, big_alpha, base_alpha)
+        emcol = cue_emcol
+        if cue_anim == "karaoke":
+            body = _karaoke_text(txt, dur, em, emcol, cue_primary, big_case, big_alpha, base_alpha, big_glow)
             prefix = glow_tag + "{\\fad(80,80)}"
-        elif scope in ("word", "single", "line") and anim in _WORD_MOTION:
+        elif scope in ("word", "single", "line") and cue_anim in _WORD_MOTION:
             if scope == "single":
-                body = _single_anim_text(txt, dur, anim, speed, em, emcol, p["primary"], big_case, big_alpha, base_alpha)
+                body = _single_anim_text(txt, dur, cue_anim, speed, em, emcol, cue_primary, big_case, big_alpha, base_alpha)
             elif scope == "line":
-                body = _line_anim_text(txt, dur, anim, speed, em, emcol, p["primary"], big_case, big_alpha, base_alpha)
+                body = _line_anim_text(txt, dur, cue_anim, speed, em, emcol, cue_primary, big_case, big_alpha, base_alpha)
             else:
-                body = _word_anim_text(txt, dur, anim, speed, em, emcol, p["primary"], big_case, big_alpha, base_alpha)
+                body = _word_anim_text(txt, dur, cue_anim, speed, em, emcol, cue_primary, big_case, big_alpha, base_alpha)
             prefix = glow_tag
         _moved = []
-        if anim == "karaoke" or (scope in ("word", "single", "line") and anim in _WORD_MOTION):
+        if cue_anim == "karaoke" or (scope in ("word", "single", "line") and cue_anim in _WORD_MOTION):
             pass  # body/prefix already set above
         else:
             if _word_ov:
-                body, _moved = _word_override_split(txt, _word_ov, p["primary"], _base_size)
+                body, _moved = _word_override_split(txt, _word_ov, cue_primary, _base_size)
                 if em:
-                    body = _emphasize(body, em, emcol, p["primary"], big_case, big_alpha, base_alpha, big_size=big_size, big_glow=big_glow, base_size=_base_size)
+                    body = _emphasize(body, em, emcol, cue_primary, big_case, big_alpha, base_alpha, big_size=big_size, big_glow=big_glow, base_size=_base_size)
             else:
                 body = txt.replace("\n", "\\N")
                 if em:
-                    body = _emphasize(body, em, emcol, p["primary"], big_case, big_alpha, base_alpha, big_size=big_size, big_glow=big_glow, base_size=p["size"])
-            prefix = glow_tag + _anim_prefix(anim, dur, speed)
+                    body = _emphasize(body, em, emcol, cue_primary, big_case, big_alpha, base_alpha, big_size=big_size, big_glow=big_glow, base_size=pc["size"])
+            prefix = glow_tag + _anim_prefix(cue_anim, dur, speed)
         if _cap_pre:
             prefix = "{" + _cap_pre + "}" + prefix
         _sa, _ea = _ms_to_ass(c['start_ms']), _ms_to_ass(c['end_ms'])
         lines.append(f"Dialogue: {layer},{_sa},{_ea},Default,,0,0,0,,{prefix}{body}")
         for _mw, _mwd in _moved:
-            lines.append(_word_pos_event(_mw, _mwd, p["primary"], _base_size, (layer or 0) + 5, _sa, _ea))
+            lines.append(_word_pos_event(_mw, _mwd, cue_primary, _base_size, (layer or 0) + 5, _sa, _ea))
     return "\n".join(lines) + "\n"
 
 

@@ -214,6 +214,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [styleClip, setStyleClip] = useState<Record<string, any> | null>(null);
   const [customiseOpen, setCustomiseOpen] = useState(true);
   const [stylesTab, setStylesTab] = useState<"lines" | "words" | "saved">("lines");
+  const [styleScope, setStyleScope] = useState<"all" | "caption">("all");
   // Looping clock so the word-style preview cards animate on their own (like HyproAI).
   const [cardTick, setCardTick] = useState(0);
   useEffect(() => {
@@ -571,7 +572,24 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const effSettings = activeIdx >= 0 ? { ...capSettings, ...(capOverrides[_cidx] || {}) } : capSettings;
   const activeWordOv = wordOverrides[_cidx] || {};
   const activeWords = overlayText ? overlayText.split(/\s+/).filter(Boolean) : [];
-  function copyStyle() { setStyleClip({ ...effSettings }); }
+  // Apply a preset either to the whole video (global capStyle) or to just the
+  // selected caption (stored as a per-caption "style" override).
+  function applyPreset(id: string) {
+    if (styleScope === "caption" && activeIdx >= 0) {
+      const c = _cidx;
+      setCapOverrides((pr) => ({ ...pr, [c]: { ...(pr[c] || {}), style: id } }));
+      api.setCaptionOverride(projectId, activeIdx, { style: id }).catch(() => {});
+    } else {
+      setCapStyle(id);
+    }
+  }
+  function clearCaptionPreset() {
+    if (activeIdx < 0) return;
+    const c = _cidx;
+    setCapOverrides((pr) => ({ ...pr, [c]: { ...(pr[c] || {}), style: "" } }));
+    api.setCaptionOverride(projectId, activeIdx, { style: "" }).catch(() => {});
+  }
+    function copyStyle() { setStyleClip({ ...effSettings }); }
   function pasteStyleTo(scope: "caption" | "all") {
     if (!styleClip) return;
     if (scope === "all") {
@@ -655,7 +673,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
     document.addEventListener("mousemove", move);
     document.addEventListener("mouseup", up);
   }
-  const effStyle = animOn ? capStyle : "classic";
+  const capOvStyle = activeIdx >= 0 ? ((capOverrides[_cidx] || {}) as any).style : undefined;
+  const effStyle = capOvStyle || (animOn ? capStyle : "classic");
+  const activeStyleId = (styleScope === "caption" && capOvStyle) ? capOvStyle : capStyle;
   const _resMul = expRes === "1080" ? 1.6 : expRes === "720" ? 1.1 : expRes === "480" ? 0.8 : 1.2;
   const _estSec = Math.round((dur / 1000) * _resMul + 12);
   const estText = _estSec <= 75 ? "Estimated time: under a minute" : `Estimated time: about ${Math.round(_estSec / 60)} min (based on video length)`;
@@ -2447,9 +2467,18 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
               {stylesTab !== "saved" && (
                 <>
+                  <div className="ed-style-scope">
+                    <button className={styleScope === "all" ? "active" : ""} onClick={() => setStyleScope("all")}>All captions</button>
+                    <button className={styleScope === "caption" ? "active" : ""} disabled={activeIdx < 0}
+                      title={activeIdx < 0 ? "Select a caption on the timeline first" : "Style only the selected caption"}
+                      onClick={() => setStyleScope("caption")}>This caption</button>
+                  </div>
+                  {styleScope === "caption" && activeIdx >= 0 && capOvStyle && (
+                    <button className="ed-style-clearov" onClick={clearCaptionPreset}>↺ Use the video style for this caption</button>
+                  )}
                   <div className="ed-preset-list">
                     {(stylesTab === "lines" ? lineStyles : wordStyles).filter((st) => st.label.toLowerCase().includes(styleSearch.toLowerCase())).map((st) => (
-                      <div key={st.id} className={"ed-preset-card" + (capStyle === st.id ? " active" : "")} onClick={() => setCapStyle(st.id)}>
+                      <div key={st.id} className={"ed-preset-card" + (activeStyleId === st.id ? " active" : "")} onClick={() => applyPreset(st.id)}>
                         <div className="ed-preset-name">{st.label}</div>
                         <div className="ed-preset-stage">
                           {stylesTab === "words" ? (
@@ -2463,7 +2492,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                             <span className={"cap cap-" + st.id} key={st.id} style={{ color: capSettings.text_color || undefined }}>Welcome to the <span className="cap-emph" style={{ color: capSettings.highlight_color || undefined }}>future</span><br />of ceyonai editing</span>
                           )}
                         </div>
-                        {capStyle === st.id && <div className="ed-showcase-check">✓</div>}
+                        {activeStyleId === st.id && <div className="ed-showcase-check">✓</div>}
                       </div>
                     ))}
                   </div>
