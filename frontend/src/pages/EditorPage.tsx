@@ -230,7 +230,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [overlays, setOverlays] = useState<Overlay[]>([]);
   const [selOv, setSelOv] = useState<string | null>(null);
   const [textTab, setTextTab] = useState<"content" | "style" | "anim" | "outline" | "shadow">("content");
-  const TXT_ANIMS: [string, string][] = [["none", "None"], ["fade", "Fade"], ["slide_up", "Slide up"], ["slide_down", "Slide down"], ["pop", "Pop"], ["zoom", "Zoom"]];
+  const TXT_ANIMS: [string, string][] = [["none", "None"], ["fade", "Fade"], ["slide_up", "Slide up"], ["slide_down", "Slide down"], ["slide_left", "Slide left"], ["slide_right", "Slide right"], ["rise", "Rise"], ["drop", "Drop"], ["pop", "Pop"], ["zoom", "Zoom"], ["bounce", "Bounce"], ["rotate", "Rotate"], ["flip", "Flip"], ["blur", "Blur"], ["expand", "Expand"]];
   const [zooms, setZooms] = useState<{ id: string; start_ms: number; end_ms: number; scale: number }[]>([]);
   const [zoomScale, setZoomScale] = useState(1.2);
   const [zoomBusy, setZoomBusy] = useState(false);

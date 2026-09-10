@@ -713,22 +713,41 @@ def build_overlay_events(overlays: list[dict]) -> str:
         shad = max(0, int(o.get("shadow_size", 1)))
         sc = _hex_to_ass(o.get("shadow_color", "#000000"))
         anim = (o.get("anim") or "none").lower()
-        # entrance animation (first ~400ms of the overlay)
-        amove = ""
-        afade = ""
-        ascale = ""
+        # entrance animation — built from ASS \\move / \\t transforms + \\fad.
+        amove = ""       # replaces \\pos when the text travels in
+        extra = ""       # scale / rotate / blur / spacing transforms + fades
+        DX = round(size * 2.2)   # horizontal travel scales with font size
+        DY = round(size * 1.1)
         if anim == "fade":
-            afade = "\\fad(300,200)"
+            extra = "\\fad(320,180)"
         elif anim == "slide_up":
-            amove = f"\\move({x},{y+70},{x},{y},0,400)"; afade = "\\fad(250,0)"
+            amove = f"\\move({x},{y+DY},{x},{y},0,420)"; extra = "\\fad(260,0)"
         elif anim == "slide_down":
-            amove = f"\\move({x},{y-70},{x},{y},0,400)"; afade = "\\fad(250,0)"
+            amove = f"\\move({x},{y-DY},{x},{y},0,420)"; extra = "\\fad(260,0)"
+        elif anim == "slide_left":
+            amove = f"\\move({x+DX},{y},{x},{y},0,420)"; extra = "\\fad(260,0)"
+        elif anim == "slide_right":
+            amove = f"\\move({x-DX},{y},{x},{y},0,420)"; extra = "\\fad(260,0)"
+        elif anim == "rise":
+            amove = f"\\move({x},{y+DY*2},{x},{y},0,520)"; extra = "\\fad(360,0)"
+        elif anim == "drop":
+            amove = f"\\move({x},{y-DY*2},{x},{y},0,460)"; extra = "\\fad(220,0)"
         elif anim == "pop":
-            ascale = "\\fscx60\\fscy60\\t(0,260,\\fscx100\\fscy100)"; afade = "\\fad(120,0)"
+            extra = "\\fscx50\\fscy50\\t(0,180,\\fscx112\\fscy112)\\t(180,300,\\fscx100\\fscy100)\\fad(120,0)"
         elif anim == "zoom":
-            ascale = "\\fscx130\\fscy130\\t(0,300,\\fscx100\\fscy100)"; afade = "\\fad(200,0)"
+            extra = "\\fscx160\\fscy160\\t(0,340,\\fscx100\\fscy100)\\fad(220,0)"
+        elif anim == "bounce":
+            amove = f"\\move({x},{y-DY},{x},{y},0,380)"; extra = "\\fscx85\\fscy85\\t(0,240,\\fscx108\\fscy108)\\t(240,400,\\fscx100\\fscy100)\\fad(120,0)"
+        elif anim == "rotate":
+            extra = "\\frz35\\fscx70\\fscy70\\t(0,420,\\frz0\\fscx100\\fscy100)\\fad(180,0)"
+        elif anim == "flip":
+            extra = "\\fry95\\t(0,360,\\fry0)\\fad(140,0)"
+        elif anim == "blur":
+            extra = "\\blur10\\t(0,420,\\blur0)\\fad(240,0)"
+        elif anim == "expand":
+            extra = "\\fsp{sp}\\t(0,420,\\fsp0)\\fad(180,0)".replace("{sp}", str(round(size * 0.3)))
         pos = amove if amove else f"\\pos({x},{y})"
         tags = (f"{{\\an5{pos}\\fs{size}\\c{colour}\\b{bold}"
-                f"\\bord{bord}\\3c{oc}\\shad{shad}\\4c{sc}{ascale}{afade}}}")
+                f"\\bord{bord}\\3c{oc}\\shad{shad}\\4c{sc}{extra}}}")
         out.append(f"Dialogue: 1,{start},{end},Default,,0,0,0,,{tags}{text}")
     return "\n".join(out)
