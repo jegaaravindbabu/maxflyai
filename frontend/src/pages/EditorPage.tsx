@@ -238,6 +238,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [filterGroups, setFilterGroups] = useState<{ name: string; sub: string }[]>([]);
   const [curFilter, setCurFilter] = useState("none");
   const [adjust, setAdjust] = useState<Adjust>({ brightness: 0, contrast: 0, saturation: 0, warmth: 0 });
+  const [filmFrame, setFilmFrame] = useState<string>("");
   const [filterLayers, setFilterLayers] = useState<FilterLayer[]>([]);
   const [selLayer, setSelLayer] = useState<string | null>(null);
   const [hiddenTracks, setHiddenTracks] = useState<Set<string>>(new Set());
@@ -461,6 +462,25 @@ export function EditorPage({ projectId }: { projectId: string }) {
   }, [proj?.id]);
   useEffect(() => { api.filterPresets().then((r) => { setFilterList(r.filters); setFilterGroups(r.groups || []); }).catch(() => {}); }, []);
   useEffect(() => {
+    if (rail !== "filters" || filmFrame) return;
+    const v = videoRef.current;
+    const grab = () => {
+      try {
+        const vw = v!.videoWidth, vh = v!.videoHeight;
+        if (!vw || !vh) return;
+        const c = document.createElement("canvas");
+        const scale = Math.min(1, 220 / Math.max(vw, vh));
+        c.width = Math.round(vw * scale); c.height = Math.round(vh * scale);
+        const ctx = c.getContext("2d");
+        if (!ctx) return;
+        ctx.drawImage(v!, 0, 0, c.width, c.height);
+        setFilmFrame(c.toDataURL("image/jpeg", 0.75));
+      } catch {}
+    };
+    if (v && v.readyState >= 2) grab();
+    else if (v) { const h = () => { grab(); v.removeEventListener("loadeddata", h); }; v.addEventListener("loadeddata", h); }
+  }, [rail, filmFrame]);
+  useEffect(() => {
     api.getFilter(projectId).then((r) => { setCurFilter(r.name); setAdjust({ brightness: r.brightness, contrast: r.contrast, saturation: r.saturation, warmth: r.warmth }); }).catch(() => {});
     api.listFilterLayers(projectId).then((r) => setFilterLayers(r.layers)).catch(() => {});
     api.listImages(projectId).then(setImages).catch(() => {});
@@ -654,8 +674,12 @@ export function EditorPage({ projectId }: { projectId: string }) {
   if (videofx.shadowBlur || videofx.shadowX || videofx.shadowY)
     _fparts.push(`drop-shadow(${videofx.shadowX}px ${videofx.shadowY}px ${Math.max(0, videofx.shadowBlur)}px ${videofx.shadowColor})`);
   const _vanim = [VFX_ANIM_LOOP[videofx.animLoop || "none"], VFX_ANIM_IN[videofx.animIn || "none"]].filter(Boolean).join(", ");
+  const _gradeLayer = filterLayers.find((l) => curMs >= l.start_ms && curMs < l.end_ms);
+  const _gradeCss = _gradeLayer
+    ? cssForFilter(_gradeLayer.name, _gradeLayer)
+    : cssForFilter(curFilter, adjust);
   const videoFxStyle: React.CSSProperties = {
-    filter: _fparts.join(" ") || undefined,
+    filter: [_fparts.join(" "), _gradeCss].filter(Boolean).join(" ") || undefined,
     animation: _vanim || undefined,
     opacity: videofx.opacity / 100,
     borderRadius: videofx.radius ? (videofx.radius / 2) + "%" : undefined,
@@ -1736,9 +1760,10 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 Tap a grade to preview it on your video. Fine-tune with Adjust below — everything bakes into the MP4 export.
               </p>
 
-              <div className="ed-filt-card" onClick={() => applyFilter("none")}
-                   style={curFilter === "none" ? { borderColor: "var(--accent)" } : undefined}>
-                <div className="ed-filt-prev ed-filt-none" />
+              <div className={"ed-filt-card" + (curFilter === "none" ? " active" : "")} onClick={() => applyFilter("none")}>
+                <div className="ed-filt-prev">
+                  {filmFrame ? <img src={filmFrame} className="ed-filt-img" alt="" /> : <div className="ed-filt-none" />}
+                </div>
                 <div className="ed-style-lb">Original</div>
               </div>
 
@@ -1747,8 +1772,11 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   <div className="ed-filt-ghead">{g.name}<span>{g.sub}</span></div>
                   <div className="ed-style-grid">
                     {filterList.filter((f) => f.group === g.name).map((f) => (
-                      <div key={f.id} className={"ed-style-card" + (curFilter === f.id ? " active" : "")} onClick={() => applyFilter(f.id)}>
-                        <div className={"ed-filt-prev ed-filt-" + f.id} />
+                      <div key={f.id} className={"ed-style-card ed-filt-card2" + (curFilter === f.id ? " active" : "")} onClick={() => applyFilter(f.id)}>
+                        <div className="ed-filt-prev">
+                          {filmFrame ? <img src={filmFrame} className="ed-filt-img" style={{ filter: FILTER_CSS[f.id] }} alt="" />
+                                     : <div className={"ed-filt-fallback ed-filt-" + f.id} />}
+                        </div>
                         <div className="ed-style-lb">{f.label}</div>
                       </div>
                     ))}
@@ -1789,7 +1817,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 )}
                 {filterLayers.map((l) => (
                   <div key={l.id} className={"ed-layer-row" + (selLayer === l.id ? " sel" : "")} onClick={() => selectLayer(l.id)}>
-                    <span className="ed-layer-swatch"><span className={"ed-filt-prev ed-filt-" + l.name} /></span>
+                    <span className="ed-layer-swatch">{filmFrame ? <img src={filmFrame} className="ed-filt-img" style={{ filter: FILTER_CSS[l.name] }} alt="" /> : <span className={"ed-filt-prev ed-filt-" + l.name} />}</span>
                     <span className="ed-layer-name">{gradeLabel(l.name)}</span>
                     <span className="ed-layer-range">{fmtT(l.start_ms)}–{fmtT(l.end_ms)}</span>
                     <button className="ed-layer-del" title="Delete layer" onClick={(e) => { e.stopPropagation(); deleteLayer(l.id); }}>×</button>

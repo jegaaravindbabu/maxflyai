@@ -1969,3 +1969,19 @@ button > svg, a > svg, .pm-item > svg, .rtk-removed > svg, .del > svg, .np-label
 .ed-broll-fill { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
   z-index: 2; cursor: pointer; }
 .ed-broll-fill.sel { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* ===== Filters: live thumbnails on the user's own frame (HyproAI-style) ===== */
+.ed-filt-prev { overflow: hidden; position: relative; background: #0b0d15; }
+.ed-filt-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ed-style-card.ed-filt-card2 { padding: 0; overflow: hidden; }
+.ed-filt-card2 .ed-filt-prev { height: 92px; width: 100%; border-radius: 0; margin: 0; }
+.ed-filt-card2 .ed-style-lb { padding: 7px 8px; font-size: 12px; font-weight: 600; text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ed-filt-card2.active { box-shadow: 0 0 0 2px var(--accent); }
+.ed-filt-card .ed-filt-prev { height: 40px; width: 64px; border-radius: 8px; }
+.ed-filt-card .ed-filt-img { border-radius: 8px; }
+.ed-layer-swatch .ed-filt-img { width: 34px; height: 34px; border-radius: 6px; object-fit: cover; }
+.ed-filt-group { margin-top: 6px; }
+.ed-filt-ghead { display: flex; align-items: baseline; justify-content: space-between; font-size: 12px;
+  font-weight: 700; color: var(--text); margin: 14px 0 8px; }
+.ed-filt-ghead span { font-size: 11px; font-weight: 500; color: var(--muted); }
