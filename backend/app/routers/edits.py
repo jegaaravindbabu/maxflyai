@@ -179,6 +179,71 @@ def detect_retakes(project_id: str, threshold: float = 0.62,
     return {"count": len(cands), "candidates": cands}
 
 
+@router.get("/{project_id}/retake-plan")
+def retake_plan(project_id: str, filler: bool = True, aggressive: bool = False,
+                threshold: float = 0.62, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    """Unified word-transcript for the Retake Remover modal.
+
+    Sarvam gives phrase-level (segment) timing, not word-level, so each segment's
+    duration is split proportionally across its words. Each word token carries a
+    flag: 'retake' (an earlier near-duplicate take), 'filler' (a disfluency
+    segment), or null. The client renders the transcript, lets the user toggle
+    words, and applies the kept 'remove' tokens as ripple-delete cuts."""
+    project = db.get(Project, project_id)
+    if project is None:
+        raise HTTPException(404, "project not found")
+    transcript = (db.query(Transcript).filter(Transcript.project_id == project_id)
+                    .order_by(Transcript.created_at.desc()).first())
+    if transcript is None:
+        return {"tokens": [], "retake_count": 0, "filler_count": 0, "total_ms": 0}
+    segs = (db.query(Segment).filter(Segment.transcript_id == transcript.id)
+              .order_by(Segment.idx).all())
+    seg_dicts = [{"idx": s.idx, "text": s.text or "", "start_ms": s.start_ms,
+                  "end_ms": s.end_ms} for s in segs]
+
+    # segment idx -> flag
+    flag: dict[int, str] = {}
+    cands = retake.find_retakes(seg_dicts, threshold=threshold)
+    retake_segs = set()
+    for c in cands:
+        for cut in c.get("cuts", []):
+            retake_segs.add(cut["idx"])
+    for i in retake_segs:
+        flag[i] = "retake"
+    filler_count_segs = 0
+    if filler:
+        fcuts = fillers.detect_filler_cuts(
+            [{"text": d["text"], "start_ms": d["start_ms"], "end_ms": d["end_ms"], "idx": d["idx"]}
+             for d in seg_dicts], aggressive=aggressive)
+        franges = {(f["start_ms"], f["end_ms"]) for f in fcuts}
+        for d in seg_dicts:
+            if (d["start_ms"], d["end_ms"]) in franges and d["idx"] not in flag:
+                flag[d["idx"]] = "filler"
+                filler_count_segs += 1
+
+    tokens = []
+    ti = 0
+    for d in seg_dicts:
+        words = (d["text"] or "").split()
+        if not words:
+            continue
+        s0, e0 = int(d["start_ms"]), int(d["end_ms"])
+        span = max(1, e0 - s0)
+        n = len(words)
+        fl = flag.get(d["idx"])
+        for wi, w in enumerate(words):
+            ws = s0 + round(span * wi / n)
+            we = s0 + round(span * (wi + 1) / n)
+            tokens.append({"i": ti, "seg_idx": d["idx"], "text": w,
+                           "start_ms": ws, "end_ms": we, "flag": fl})
+            ti += 1
+
+    total = sum(t["end_ms"] - t["start_ms"] for t in tokens if t["flag"])
+    return {"tokens": tokens, "retake_count": len(retake_segs),
+            "filler_count": filler_count_segs, "total_ms": total}
+
+
 @router.get("/{project_id}/fillers")
 def detect_fillers(project_id: str, aggressive: bool = False,
                    db: Session = Depends(get_db),

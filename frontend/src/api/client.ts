@@ -470,6 +470,15 @@ export const api = {
       await afetch(`${BASE}/api/hub/${id}/fillers?aggressive=${aggressive}`));
   },
 
+  async retakePlan(id: string, filler = true, aggressive = false) {
+    const p = new URLSearchParams();
+    p.set("filler", String(filler));
+    if (aggressive) p.set("aggressive", "true");
+    return j<{ tokens: { i: number; seg_idx: number; text: string; start_ms: number; end_ms: number; flag: "retake" | "filler" | null }[];
+      retake_count: number; filler_count: number; total_ms: number }>(
+      await afetch(`${BASE}/api/hub/${id}/retake-plan?${p.toString()}`));
+  },
+
   async detectRetakes(id: string, threshold = 0.62) {
     return j<{ count: number; candidates: {
       similarity: number;

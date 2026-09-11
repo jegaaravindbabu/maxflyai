@@ -9,8 +9,7 @@ import { Filmstrip } from "../components/Filmstrip";
 import { Dropdown } from "../components/Dropdown";
 import { SilenceModal } from "../components/SilenceModal";
 import { IScissors } from "../components/icons";
-import { RetakeRemover } from "../components/RetakeRemover";
-import { FillerRemover } from "../components/FillerRemover";
+import { RetakeModal } from "../components/RetakeModal";
 
 const LANGS = [
   ["unknown", "Auto-detect"], ["ta-IN", "Tamil"], ["hi-IN", "Hindi"],
@@ -408,6 +407,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [tlFilter, setTlFilter] = useState<"all" | "videos" | "captions">("all");
   const [aiMenu, setAiMenu] = useState(false);
   const [silenceOpen, setSilenceOpen] = useState(false);
+  const [retakeOpen, setRetakeOpen] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
   const cuesRef = useRef<Cue[]>([]);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -1940,14 +1940,19 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 <p className="rtk-intro">Detect dead air by AI (from your captions) or a manual dB threshold, preview the cuts on a waveform, then remove them. Cuts apply at export and can be undone.</p>
                 <button className="rtk-scan" onClick={() => setSilenceOpen(true)}>{IScissors} Auto remove silence</button>
               </div>
-              <FillerRemover projectId={projectId} onSeek={seek} />
+              <div className="rtk" style={{ marginTop: 16 }}>
+                <div className="rtk-title">Retakes &amp; filler words</div>
+                <p className="rtk-intro">Find retakes (a re-said phrase) and filler words on your transcript, review each word, and remove them. Cuts apply at export and can be undone.</p>
+                <button className="rtk-scan" onClick={() => setRetakeOpen(true)}>{IScissors} Remove retakes &amp; fillers</button>
+              </div>
             </>
           )}
 
           {rail === "retake" && (
             <>
               <div className="ed-left-head"><h3>Retake Remover</h3></div>
-              <RetakeRemover projectId={projectId} onSeek={seek} />
+              <div className="ed-hint-box">Fumbled a line and re-said it? Find near-duplicate takes and filler words on your transcript, review each word, and remove them. Cuts apply at export and can be undone.</div>
+              <button className="rtk-scan" style={{ marginTop: 12 }} onClick={() => setRetakeOpen(true)}>{IScissors} Open Retake Remover</button>
             </>
           )}
 
@@ -3300,8 +3305,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
               {aiMenu && (
                 <div className="ed-tb-aimenu" onMouseLeave={() => setAiMenu(false)}>
                   <div className="ed-tb-aiitem" onClick={() => { setSilenceOpen(true); setAiMenu(false); }}>Remove silences</div>
-                  <div className="ed-tb-aiitem" onClick={() => { setRail("tools"); setAiMenu(false); }}>Remove filler words</div>
-                  <div className="ed-tb-aiitem" onClick={() => { setRail("retake"); setAiMenu(false); }}>Remove retakes</div>
+                  <div className="ed-tb-aiitem" onClick={() => { setRetakeOpen(true); setAiMenu(false); }}>Remove filler words</div>
+                  <div className="ed-tb-aiitem" onClick={() => { setRetakeOpen(true); setAiMenu(false); }}>Remove retakes</div>
                   <div className="ed-tb-aiitem" onClick={() => { setRail("zoom"); setAiMenu(false); }}>Auto zoom</div>
                   <div className="ed-tb-aiitem" onClick={() => { setRail("tools"); setAiMenu(false); }}>Re-transcribe</div>
                 </div>
@@ -3510,6 +3515,14 @@ export function EditorPage({ projectId }: { projectId: string }) {
           onApplied={(n, savedMs) => {
             api.listEdits(projectId).catch(() => {});
             toast(`Removed ${n} silence${n === 1 ? "" : "s"} (\u2212${(savedMs / 1000).toFixed(1)}s) \u2014 applies on export`);
+          }} />
+      )}
+      {retakeOpen && (
+        <RetakeModal projectId={projectId} onSeek={seek}
+          onClose={() => setRetakeOpen(false)}
+          onApplied={(n, savedMs) => {
+            api.listEdits(projectId).catch(() => {});
+            toast(`Removed ${n} word${n === 1 ? "" : "s"} (\u2212${(savedMs / 1000).toFixed(1)}s) \u2014 applies on export`);
           }} />
       )}
     </div>
