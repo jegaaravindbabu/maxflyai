@@ -1470,6 +1470,40 @@ export function EditorPage({ projectId }: { projectId: string }) {
     document.addEventListener("mouseup", up);
   }
 
+  // Drag / trim an IMAGE clip ON THE TIMELINE (move whole clip, or trim an edge).
+  function startImageClip(e: ReactMouseEvent, im: ImageOverlay, mode: "move" | "left" | "right") {
+    e.preventDefault(); e.stopPropagation();
+    setSelImg(im.id); setSelOv(null); setSelBroll(null); setRail("images");
+    const lane = (e.currentTarget as HTMLElement).closest(".ed-lane") as HTMLElement | null;
+    if (!lane) return;
+    const rect = lane.getBoundingClientRect();
+    const startX = e.clientX;
+    const s0 = im.start_ms, e0 = im.end_ms;
+    const MIN = 300;
+    const move = (ev: MouseEvent) => {
+      const dMs = ((ev.clientX - startX) / rect.width) * dur;
+      let ns = s0, ne = e0;
+      if (mode === "move") {
+        ns = s0 + dMs; ne = e0 + dMs;
+        if (ns < 0) { ne -= ns; ns = 0; }
+        if (ne > dur) { ns -= (ne - dur); ne = dur; }
+      } else if (mode === "left") {
+        ns = Math.min(e0 - MIN, Math.max(0, s0 + dMs));
+      } else {
+        ne = Math.max(s0 + MIN, Math.min(dur, e0 + dMs));
+      }
+      patchImgLocal(im.id, { start_ms: Math.round(ns), end_ms: Math.round(ne) });
+    };
+    const up = () => {
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", up);
+      const cur = imagesRef.current.find((v) => v.id === im.id);
+      if (cur) api.updateImage(projectId, im.id, { start_ms: cur.start_ms, end_ms: cur.end_ms }).catch(() => {});
+    };
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", up);
+  }
+
   const transcribing = proj.status === "transcribing";
 
   return (
@@ -1761,7 +1795,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
           {rail === "images" && (
             <>
               <div className="ed-left-head"><h3>Images / B-roll</h3></div>
-              <div className="ed-hint-box">Overlay a logo, sticker, or stock photo on the video. Drag it on the preview to position; it burns into the exported MP4.</div>
+              <div className="ed-hint-box">Tap a photo to drop it on the timeline as a full-frame clip. Drag the clip to move it, drag its edges to trim, and delete it from the timeline. Shrink it below to make it a logo/sticker overlay you can position on the preview. Burns into the exported MP4.</div>
               <div className="ed-stock">
                 <input className="ed-stock-input" placeholder="Search stock photos…" value={stockQ}
                   onChange={(e) => setStockQ(e.target.value)}
@@ -1801,7 +1835,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 if (!im) return null;
                 return (
                   <div className="card ed-txt-editor">
-                    <div className="np-label">Size · {Math.round(im.size_pct)}%</div>
+                    <div className="np-label">Size · {Math.round(im.size_pct)}% {im.size_pct >= 90 ? "(full frame)" : "(overlay)"}</div>
                     <input type="range" min={8} max={100} value={im.size_pct} style={{ width: "100%" }}
                       onChange={(e) => patchImgLocal(im.id, { size_pct: +e.target.value })}
                       onMouseUp={(e) => saveImg(im.id, { size_pct: +(e.target as HTMLInputElement).value })} />
@@ -1810,7 +1844,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                       <button className="secondary" onClick={() => saveImg(im.id, { end_ms: Math.round(curMs) })}>End ⟵ playhead</button>
                     </div>
                     <button className="ed-bulk-del" style={{ width: "100%", marginTop: 12 }} onClick={() => delImg(im.id)}>{IcTrash} Delete image</button>
-                    <div className="np-sub" style={{ marginTop: 8 }}>Drag the image on the video to reposition it.</div>
+                    <div className="np-sub" style={{ marginTop: 8 }}>{im.size_pct >= 90 ? "Full-frame photo — it covers the video for its span. Shrink it to reposition as an overlay." : "Drag the image on the video to reposition it."}</div>
                   </div>
                 );
               })()}
@@ -2222,11 +2256,17 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   );
                 })}
                 {!isHidden("images") && images.filter((im) => curMs >= im.start_ms && curMs < im.end_ms).map((im) => (
-                  <img key={im.id} src={im.image_url} draggable={false}
-                    className={"ed-imgovl" + (selImg === im.id ? " sel" : "")}
-                    style={{ left: im.x_pct + "%", top: im.y_pct + "%", width: im.size_pct + "%" }}
-                    onMouseDown={(e) => startDragImg(e, im)}
-                    onClick={(e) => { e.stopPropagation(); setSelImg(im.id); setRail("images"); }} />
+                  (im.size_pct ?? 100) >= 90 ? (
+                    <img key={im.id} src={im.image_url} draggable={false}
+                      className={"ed-broll-fill" + (selImg === im.id ? " sel" : "")}
+                      onClick={(e) => { e.stopPropagation(); setSelImg(im.id); setSelBroll(null); setSelOv(null); setRail("images"); }} />
+                  ) : (
+                    <img key={im.id} src={im.image_url} draggable={false}
+                      className={"ed-imgovl" + (selImg === im.id ? " sel" : "")}
+                      style={{ left: im.x_pct + "%", top: im.y_pct + "%", width: im.size_pct + "%" }}
+                      onMouseDown={(e) => startDragImg(e, im)}
+                      onClick={(e) => { e.stopPropagation(); setSelImg(im.id); setRail("images"); }} />
+                  )
                 ))}
                 {!isHidden("broll") && brolls.filter((b) => curMs >= b.start_ms && curMs < b.end_ms).map((b) => (
                   (b.size_pct ?? 100) >= 90 ? (
@@ -3334,9 +3374,15 @@ export function EditorPage({ projectId }: { projectId: string }) {
             {images.length > 0 && (
               <div className={"ed-lane" + (isHidden("images") ? " lane-off" : "") + (isLocked("images") ? " lane-lock" : "") + (tlFilter === "captions" ? " tl-dim" : "")} onClick={scrub}>
                 {images.map((im) => (
-                  <div key={im.id} className={"ed-tl-block ed-tl-img" + (selImg === im.id ? " sel" : "")}
+                  <div key={im.id} className={"ed-tl-block ed-tl-img ed-tl-clip" + (selImg === im.id ? " sel" : "")}
                     style={{ left: `${(im.start_ms / dur) * 100}%`, width: `${Math.max(((im.end_ms - im.start_ms) / dur) * 100, 1.2)}%` }}
-                    onClick={(e) => { e.stopPropagation(); setSelImg(im.id); setRail("images"); seek(im.start_ms); }}>{IcImageS}</div>
+                    title="Drag to move · drag the edges to trim"
+                    onMouseDown={(e) => startImageClip(e, im, "move")}
+                    onClick={(e) => { e.stopPropagation(); setSelImg(im.id); setRail("images"); }}>
+                    <span className="ed-clip-h l" onMouseDown={(e) => startImageClip(e, im, "left")} />
+                    <span className="ed-clip-lb">{IcImageS} {fmtT(im.end_ms - im.start_ms)}</span>
+                    <span className="ed-clip-h r" onMouseDown={(e) => startImageClip(e, im, "right")} />
+                  </div>
                 ))}
               </div>
             )}

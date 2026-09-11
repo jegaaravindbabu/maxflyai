@@ -174,7 +174,7 @@ export const api = {
     fd.append("file", file);
     fd.append("start_ms", String(start_ms));
     fd.append("end_ms", String(end_ms));
-    fd.append("x_pct", "50"); fd.append("y_pct", "20"); fd.append("size_pct", "40");
+    fd.append("x_pct", "0"); fd.append("y_pct", "0"); fd.append("size_pct", "100");
     return j<ImageOverlay>(await afetch(`${BASE}/api/hub/${id}/images`, { method: "POST", body: fd }));
   },
   async updateImage(id: string, imageId: string, body: Partial<ImageOverlay>) {
@@ -215,7 +215,7 @@ export const api = {
   async addImageFromUrl(id: string, url: string, start_ms: number, end_ms: number) {
     return j<ImageOverlay>(await afetch(`${BASE}/api/hub/${id}/images/from-url`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url, start_ms, end_ms, x_pct: 50, y_pct: 20, size_pct: 40 }),
+      body: JSON.stringify({ url, start_ms, end_ms, x_pct: 0, y_pct: 0, size_pct: 100 }),
     }));
   },
 
