@@ -123,6 +123,39 @@ def detect_silences(audio_path: str, noise_db: float = -30.0,
     return out
 
 
+def audio_peaks(audio_path: str, buckets: int = 400) -> list[float]:
+    """Downsample the audio to a small array of 0..1 RMS peaks for a waveform.
+    Extracts mono s16le at 8 kHz and buckets it into `buckets` RMS values."""
+    import array
+    cp = subprocess.run(
+        ["ffmpeg", "-nostdin", "-threads", "1", "-i", audio_path,
+         "-ac", "1", "-ar", "8000", "-f", "s16le", "-acodec", "pcm_s16le", "-"],
+        capture_output=True, timeout=_FFMPEG_TIMEOUT)
+    raw = cp.stdout or b""
+    if not raw:
+        return []
+    samples = array.array("h")
+    samples.frombytes(raw[: len(raw) - (len(raw) % 2)])
+    n = len(samples)
+    if n == 0:
+        return []
+    buckets = max(16, min(int(buckets), 2000))
+    step = max(1, n // buckets)
+    peaks: list[float] = []
+    for i in range(0, n, step):
+        chunk = samples[i:i + step]
+        if not chunk:
+            continue
+        acc = 0.0
+        for v in chunk:
+            acc += (v / 32768.0) ** 2
+        peaks.append((acc / len(chunk)) ** 0.5)
+    mx = max(peaks) if peaks else 1.0
+    if mx > 0:
+        peaks = [round(min(1.0, p / mx), 3) for p in peaks]
+    return peaks[:buckets]
+
+
 def burn_captions(media_path: str, ass_path: str, out_path: str,
                   audio_filter: str | None = None, video_prefilter: str | None = None) -> str:
     """Burn a styled ASS subtitle track into the video (M1 export).

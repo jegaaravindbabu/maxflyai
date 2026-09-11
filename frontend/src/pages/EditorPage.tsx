@@ -7,7 +7,8 @@ import { CaptionOverlay } from "../components/CaptionOverlay";
 import { Waveform } from "../components/Waveform";
 import { Filmstrip } from "../components/Filmstrip";
 import { Dropdown } from "../components/Dropdown";
-import { SilenceRemover } from "../components/SilenceRemover";
+import { SilenceModal } from "../components/SilenceModal";
+import { IScissors } from "../components/icons";
 import { RetakeRemover } from "../components/RetakeRemover";
 import { FillerRemover } from "../components/FillerRemover";
 
@@ -406,6 +407,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [tlZoom, setTlZoom] = useState(1);
   const [tlFilter, setTlFilter] = useState<"all" | "videos" | "captions">("all");
   const [aiMenu, setAiMenu] = useState(false);
+  const [silenceOpen, setSilenceOpen] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
   const cuesRef = useRef<Cue[]>([]);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -1933,7 +1935,11 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   {transcribing ? "Transcribing…" : cues.length ? "Re-transcribe" : "Transcribe"}
                 </button>
               </div>
-              <SilenceRemover projectId={projectId} durationMs={dur} onSeek={seek} />
+              <div className="rtk" style={{ marginTop: 16 }}>
+                <div className="rtk-title">Silence remover</div>
+                <p className="rtk-intro">Detect dead air by AI (from your captions) or a manual dB threshold, preview the cuts on a waveform, then remove them. Cuts apply at export and can be undone.</p>
+                <button className="rtk-scan" onClick={() => setSilenceOpen(true)}>{IScissors} Auto remove silence</button>
+              </div>
               <FillerRemover projectId={projectId} onSeek={seek} />
             </>
           )}
@@ -3293,7 +3299,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
               <button className="ed-tb-btn wide" title="AI tools" onClick={() => setAiMenu((v) => !v)}>{IcAI} AI tools ▾</button>
               {aiMenu && (
                 <div className="ed-tb-aimenu" onMouseLeave={() => setAiMenu(false)}>
-                  <div className="ed-tb-aiitem" onClick={() => { setRail("tools"); setAiMenu(false); }}>Remove silences</div>
+                  <div className="ed-tb-aiitem" onClick={() => { setSilenceOpen(true); setAiMenu(false); }}>Remove silences</div>
                   <div className="ed-tb-aiitem" onClick={() => { setRail("tools"); setAiMenu(false); }}>Remove filler words</div>
                   <div className="ed-tb-aiitem" onClick={() => { setRail("retake"); setAiMenu(false); }}>Remove retakes</div>
                   <div className="ed-tb-aiitem" onClick={() => { setRail("zoom"); setAiMenu(false); }}>Auto zoom</div>
@@ -3497,6 +3503,14 @@ export function EditorPage({ projectId }: { projectId: string }) {
             )}
           </div>
         </div>
+      )}
+      {silenceOpen && (
+        <SilenceModal projectId={projectId} durationMs={dur} onSeek={seek}
+          onClose={() => setSilenceOpen(false)}
+          onApplied={(n, savedMs) => {
+            api.listEdits(projectId).catch(() => {});
+            toast(`Removed ${n} silence${n === 1 ? "" : "s"} (\u2212${(savedMs / 1000).toFixed(1)}s) \u2014 applies on export`);
+          }} />
       )}
     </div>
   );

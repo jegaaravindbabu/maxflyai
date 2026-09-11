@@ -29,7 +29,7 @@ export function SilenceRemover({ projectId, durationMs, onSeek }: Props) {
   async function detect(minMs = minSilenceMs) {
     setBusy(true); setErr(null);
     try {
-      const r = await api.detectSilences(projectId, minMs);
+      const r = await api.detectSilences(projectId, { minSilenceMs: minMs });
       setThreshold(r.threshold_db);
       setCuts(r.silences.map((s) => ({ ...s, enabled: false })));
     } catch (e: any) {

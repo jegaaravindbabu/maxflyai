@@ -33,11 +33,40 @@ class EditToggle(BaseModel):
     enabled: bool
 
 
-@router.get("/{project_id}/silences")
-def detect_silences(project_id: str, noise_db: float | None = None,
-                    min_silence_ms: int = 350, db: Session = Depends(get_db),
+def _pad_and_filter(regions: list[dict], pad_before_ms: int, pad_after_ms: int,
+                    min_ms: int, duration_ms: int) -> list[dict]:
+    """Shrink each silence region by the speech-protection pads and drop any that
+    fall below the minimum, clamping to the clip."""
+    out = []
+    for r in regions:
+        s = int(r["start_ms"]) + max(0, pad_before_ms)
+        e = int(r["end_ms"]) - max(0, pad_after_ms)
+        if duration_ms:
+            s = max(0, min(s, duration_ms)); e = max(0, min(e, duration_ms))
+        if e - s >= max(120, min_ms):
+            out.append({"start_ms": s, "end_ms": e})
+    return out
+
+
+def _cue_gap_silences(cues: list, duration_ms: int, min_ms: int) -> list[dict]:
+    """AI mode: silence = the pauses BETWEEN spoken cues (and lead-in / trailing),
+    read straight from caption timings — works at any noise level."""
+    spans = sorted([(int(c.start_ms), int(c.end_ms)) for c in cues], key=lambda x: x[0])
+    gaps: list[dict] = []
+    prev_end = 0
+    for s, e in spans:
+        if s - prev_end >= min_ms:
+            gaps.append({"start_ms": prev_end, "end_ms": s})
+        prev_end = max(prev_end, e)
+    if duration_ms and duration_ms - prev_end >= min_ms:
+        gaps.append({"start_ms": prev_end, "end_ms": duration_ms})
+    return gaps
+
+
+@router.get("/{project_id}/waveform")
+def waveform(project_id: str, buckets: int = 400, db: Session = Depends(get_db),
     _owner: Project = Depends(owned_project)):
-    """Detect silence spans on the media (candidate cuts for review — not applied)."""
+    """Downsampled 0..1 audio peaks for the silence-remover waveform preview."""
     project = db.get(Project, project_id)
     if project is None:
         raise HTTPException(404, "project not found")
@@ -45,11 +74,52 @@ def detect_silences(project_id: str, noise_db: float | None = None,
     audio = None
     try:
         audio = ffmpeg_utils.extract_audio(media_path)
-        if noise_db is None:
+        peaks = ffmpeg_utils.audio_peaks(audio, buckets=buckets)
+        return {"peaks": peaks, "count": len(peaks), "duration_ms": project.duration_ms or 0}
+    except Exception:
+        return {"peaks": [], "count": 0, "duration_ms": project.duration_ms or 0}
+    finally:
+        if audio and audio != media_path and os.path.exists(audio):
+            os.remove(audio)
+
+
+@router.get("/{project_id}/silences")
+def detect_silences(project_id: str, mode: str = "audio",
+                    noise_db: float | None = None, min_silence_ms: int = 350,
+                    pad_before_ms: int = 0, pad_after_ms: int = 0,
+                    db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    """Detect silence spans on the media (candidate cuts for review — not applied).
+    mode='ai' reads caption timings (no threshold); mode='audio' uses a dB threshold."""
+    project = db.get(Project, project_id)
+    if project is None:
+        raise HTTPException(404, "project not found")
+    dur = project.duration_ms or 0
+
+    if mode == "ai":
+        cues = (db.query(CaptionCue).filter(CaptionCue.project_id == project_id)
+                  .order_by(CaptionCue.idx).all())
+        if cues:
+            raw = _cue_gap_silences(cues, dur, min_silence_ms)
+            sil = _pad_and_filter(raw, pad_before_ms, pad_after_ms, min_silence_ms, dur)
+            total = sum(r["end_ms"] - r["start_ms"] for r in sil)
+            return {"mode": "ai", "threshold_db": None, "count": len(sil),
+                    "total_ms": total, "silences": sil}
+        # no captions yet -> fall through to audio detection
+
+    media_path = storage.path(project.source_media_url)
+    audio = None
+    try:
+        audio = ffmpeg_utils.extract_audio(media_path)
+        nz = noise_db
+        if nz is None:
             mean = ffmpeg_utils.mean_volume(audio)
-            noise_db = (mean + 2.0) if mean is not None else -30.0
-        silences = ffmpeg_utils.detect_silences(audio, noise_db=noise_db, min_ms=min_silence_ms)
-        return {"threshold_db": round(noise_db, 1), "count": len(silences), "silences": silences}
+            nz = (mean + 2.0) if mean is not None else -30.0
+        raw = ffmpeg_utils.detect_silences(audio, noise_db=nz, min_ms=min_silence_ms)
+        sil = _pad_and_filter(raw, pad_before_ms, pad_after_ms, min_silence_ms, dur)
+        total = sum(r["end_ms"] - r["start_ms"] for r in sil)
+        return {"mode": "audio", "threshold_db": round(nz, 1), "count": len(sil),
+                "total_ms": total, "silences": sil}
     finally:
         if audio and audio != media_path and os.path.exists(audio):
             os.remove(audio)

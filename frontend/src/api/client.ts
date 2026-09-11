@@ -429,10 +429,24 @@ export const api = {
       await afetch(`${BASE}/api/hub/${id}/exports`));
   },
 
-  async detectSilences(id: string, minSilenceMs?: number) {
-    const qs = minSilenceMs != null ? `?min_silence_ms=${Math.round(minSilenceMs)}` : "";
-    return j<{ threshold_db: number; count: number; silences: { start_ms: number; end_ms: number }[] }>(
+  async detectSilences(id: string, opts: { mode?: "ai" | "audio"; noiseDb?: number;
+    minSilenceMs?: number; padBeforeMs?: number; padAfterMs?: number } = {}) {
+    const p = new URLSearchParams();
+    if (opts.mode) p.set("mode", opts.mode);
+    if (opts.noiseDb != null) p.set("noise_db", String(opts.noiseDb));
+    if (opts.minSilenceMs != null) p.set("min_silence_ms", String(Math.round(opts.minSilenceMs)));
+    if (opts.padBeforeMs != null) p.set("pad_before_ms", String(Math.round(opts.padBeforeMs)));
+    if (opts.padAfterMs != null) p.set("pad_after_ms", String(Math.round(opts.padAfterMs)));
+    const qs = p.toString() ? `?${p.toString()}` : "";
+    return j<{ mode: string; threshold_db: number | null; count: number; total_ms: number;
+      silences: { start_ms: number; end_ms: number }[] }>(
       await afetch(`${BASE}/api/hub/${id}/silences${qs}`)
+    );
+  },
+
+  async waveform(id: string, buckets = 400) {
+    return j<{ peaks: number[]; count: number; duration_ms: number }>(
+      await afetch(`${BASE}/api/hub/${id}/waveform?buckets=${buckets}`)
     );
   },
 
