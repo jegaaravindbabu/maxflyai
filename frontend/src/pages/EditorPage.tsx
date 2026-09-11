@@ -10,6 +10,7 @@ import { Dropdown } from "../components/Dropdown";
 import { SilenceModal } from "../components/SilenceModal";
 import { IScissors } from "../components/icons";
 import { RetakeModal } from "../components/RetakeModal";
+import { TranscribeModal } from "../components/TranscribeModal";
 
 const LANGS = [
   ["unknown", "Auto-detect"], ["ta-IN", "Tamil"], ["hi-IN", "Hindi"],
@@ -408,6 +409,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [aiMenu, setAiMenu] = useState(false);
   const [silenceOpen, setSilenceOpen] = useState(false);
   const [retakeOpen, setRetakeOpen] = useState(false);
+  const [transcribeOpen, setTranscribeOpen] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
   const cuesRef = useRef<Cue[]>([]);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -870,6 +872,14 @@ export function EditorPage({ projectId }: { projectId: string }) {
     setBusy(true);
     try { await api.transcribe(projectId, lang, mode); await load(); }
     catch (e: any) { alert("Transcription failed: " + e.message); }
+    finally { setBusy(false); }
+  }
+  async function runTranscribeWith(l: string, m: string, prefs: { max_chars: number; min_dur_secs: number; gap_frames: number; layout: string }) {
+    setLang(l); setMode(m);
+    try { localStorage.setItem("ceyonai:prefs:" + projectId, JSON.stringify({ lang: l, outputMode: m })); } catch {}
+    setBusy(true);
+    try { await api.transcribe(projectId, l, m, prefs); await load(); toast("Transcribing your video\u2026"); }
+    catch (e: any) { toast("Transcription failed: " + e.message); throw e; }
     finally { setBusy(false); }
   }
   function cloneCues(list: Cue[]) {
@@ -1919,20 +1929,11 @@ export function EditorPage({ projectId }: { projectId: string }) {
           {rail === "tools" && (
             <>
               <div className="ed-left-head"><h3>AI Tools</h3></div>
-              <div className="ed-tools-transcribe card">
-                <div className="np-label">Language</div>
-                <Dropdown value={lang} searchable placeholder="Select language"
-                  options={LANGS.map(([v, l]) => ({ value: v, label: l }))}
-                  onChange={setLang} />
-                <div className="np-label" style={{ marginTop: 10 }}>Mode</div>
-                <Dropdown value={mode} onChange={setMode} options={[
-                  { value: "transcribe", label: "Native Script", sub: "Original language script" },
-                  { value: "translit", label: "Romanized (Thanglish)", sub: "Latin script transliteration" },
-                  { value: "codemix", label: "Code-mix", sub: "Mixed native + Latin" },
-                  { value: "translate", label: "English Translation", sub: "Translated to English" },
-                ]} />
-                <button style={{ marginTop: 12, width: "100%" }} onClick={runTranscribe} disabled={busy || transcribing}>
-                  {transcribing ? "Transcribing…" : cues.length ? "Re-transcribe" : "Transcribe"}
+              <div className="rtk">
+                <div className="rtk-title">Transcription</div>
+                <p className="rtk-intro">Rebuild the captions in any language and output style \u2014 native script, Thanglish, code-mix, English, or verbatim \u2014 and choose how they\u2019re chunked.</p>
+                <button className="rtk-scan" onClick={() => setTranscribeOpen(true)} disabled={transcribing}>
+                  {transcribing ? "Transcribing\u2026" : (cues.length ? "Re-transcribe captions" : "Transcribe captions")}
                 </button>
               </div>
               <div className="rtk" style={{ marginTop: 16 }}>
@@ -3198,7 +3199,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
               <Dropdown value={lang} searchable placeholder="Select language"
                 options={LANGS.map(([v, l]) => ({ value: v, label: l }))}
                 onChange={setLang} />
-              <button style={{ width: "100%", marginTop: 12 }} onClick={runTranscribe} disabled={busy || transcribing}>
+              <button style={{ width: "100%", marginTop: 12 }} onClick={() => setTranscribeOpen(true)} disabled={busy || transcribing}>
                 {transcribing ? "Transcribing…" : "Re-transcribe"}
               </button>
 
@@ -3308,7 +3309,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   <div className="ed-tb-aiitem" onClick={() => { setRetakeOpen(true); setAiMenu(false); }}>Remove filler words</div>
                   <div className="ed-tb-aiitem" onClick={() => { setRetakeOpen(true); setAiMenu(false); }}>Remove retakes</div>
                   <div className="ed-tb-aiitem" onClick={() => { setRail("zoom"); setAiMenu(false); }}>Auto zoom</div>
-                  <div className="ed-tb-aiitem" onClick={() => { setRail("tools"); setAiMenu(false); }}>Re-transcribe</div>
+                  <div className="ed-tb-aiitem" onClick={() => { setTranscribeOpen(true); setAiMenu(false); }}>Re-transcribe</div>
                 </div>
               )}
             </div>
@@ -3524,6 +3525,13 @@ export function EditorPage({ projectId }: { projectId: string }) {
             api.listEdits(projectId).catch(() => {});
             toast(`Removed ${n} word${n === 1 ? "" : "s"} (\u2212${(savedMs / 1000).toFixed(1)}s) \u2014 applies on export`);
           }} />
+      )}
+      {transcribeOpen && (
+        <TranscribeModal languages={LANGS as [string, string][]} initialLang={lang} initialMode={mode}
+          hasCaptions={cues.length > 0}
+          currentLangLabel={(LANGS.find((l) => l[0] === lang) || [])[1]}
+          onClose={() => setTranscribeOpen(false)}
+          onRun={runTranscribeWith} />
       )}
     </div>
   );
