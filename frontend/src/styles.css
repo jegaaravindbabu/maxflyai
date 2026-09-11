@@ -2258,7 +2258,7 @@ button > svg, a > svg, .pm-item > svg, .rtk-removed > svg, .del > svg, .np-label
 .cy-orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5;z-index:0;pointer-events:none;}
 .cy-orb.a{width:520px;height:520px;background:#7c5cff;left:-160px;top:-60px;}
 .cy-orb.b{width:460px;height:460px;background:#22d3ee;right:-140px;top:60px;opacity:.35;}
-.cy-hero .cy-wrap>*{position:relative;z-index:1;}
+.cy-hero .cy-wrap{position:relative;z-index:1;}
 .cy-hero h1{font-size:66px;line-height:1.02;font-weight:700;margin:22px 0 0;}
 .cy-hero-sub{max-width:600px;margin:20px auto 0;color:var(--cmuted);font-size:18px;line-height:1.6;}
 .cy-hero-cta{display:flex;gap:12px;justify-content:center;margin-top:30px;}

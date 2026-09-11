@@ -65,8 +65,8 @@ export function LandingPage() {
       </header>
 
       <section className="cy-hero">
+        <div className="cy-orb a" /><div className="cy-orb b" />
         <div className="cy-wrap">
-          <div className="cy-orb a" /><div className="cy-orb b" />
           <span className="cy-pill">◆ AI video editor · built in India</span>
           <h1>Raw footage in.<br /><span className="cy-gradtx">Finished reel out.</span></h1>
           <p className="cy-hero-sub">ceyonai captions, trims and polishes your video on its own — accurate in Tamil, Thanglish and every Indian language your audience actually speaks. No timeline wrangling, no plugins.</p>
