@@ -409,8 +409,12 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                     except Exception: cimg = None
                 ctmp = out_path + ".canvas.mp4"
                 try:
+                    _bmap = {"light": 12, "medium": 24, "heavy": 44}
+                    _br = _bmap.get(str(canvas.get("blur_amount", "medium")), 24)
+                    _sp = int(canvas.get("scale_pct", 100) or 100)
                     ffmpeg_utils.compose_canvas(out_path, ctmp, cw, ch,
-                        canvas.get("bg_type", "color"), canvas.get("color", "#000000"), cimg)
+                        canvas.get("bg_type", "color"), canvas.get("color", "#000000"), cimg,
+                        blur_radius=_br, scale_pct=_sp)
                     os.replace(ctmp, out_path)
                 except Exception:
                     if os.path.exists(ctmp): os.remove(ctmp)

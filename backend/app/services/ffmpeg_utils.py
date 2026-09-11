@@ -386,9 +386,15 @@ def render_mp4(video_src: str, ass_path: str, out_path: str, width: int,
 
 
 def compose_canvas(src: str, out_path: str, w: int, h: int, bg_type: str = "color",
-                   color: str = "#000000", image_path: str | None = None) -> str:
+                   color: str = "#000000", image_path: str | None = None,
+                   blur_radius: int = 24, scale_pct: int = 100) -> str:
     """Place `src` (contain-fit, centred) onto a w×h canvas with a background:
-    color | blur (blurred cover of the video) | image. Audio is copied."""
+    color | blur (blurred cover of the video) | image. `scale_pct` shrinks the
+    foreground video (padding around it); `blur_radius` sets the blur strength.
+    Audio is copied."""
+    sp = max(30, min(int(scale_pct), 100))
+    fw, fh = max(2, round(w * sp / 100)), max(2, round(h * sp / 100))
+    br = max(2, min(int(blur_radius), 60))
     hexc = (color or "#000000").lstrip("#")
     if len(hexc) == 3:
         hexc = "".join(c * 2 for c in hexc)
@@ -398,9 +404,9 @@ def compose_canvas(src: str, out_path: str, w: int, h: int, bg_type: str = "colo
     if bg_type == "image" and image_path:
         inputs += ["-i", image_path]
 
-    fg = f"[0:v]scale={w}:{h}:force_original_aspect_ratio=decrease[fg]"
+    fg = f"[0:v]scale={fw}:{fh}:force_original_aspect_ratio=decrease[fg]"
     if bg_type == "blur":
-        bg = f"[0:v]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},boxblur=luma_radius=24:luma_power=1[bg]"
+        bg = f"[0:v]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},boxblur=luma_radius={br}:luma_power=1[bg]"
     elif bg_type == "image" and image_path:
         bg = f"[1:v]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h}[bg]"
     else:

@@ -715,6 +715,8 @@ class CanvasIn(BaseModel):
     aspect: str | None = None       # original | 9:16 | 4:5 | 1:1 | 16:9
     bg_type: str | None = None      # color | blur | image
     color: str | None = None
+    blur_amount: str | None = None  # light | medium | heavy
+    scale_pct: int | None = None    # foreground video size, 30..100
 
 
 @router.get("/{project_id}/canvas")

@@ -2143,42 +2143,73 @@ export function EditorPage({ projectId }: { projectId: string }) {
           {rail === "canvas" && (
             <>
               <div className="ed-left-head"><h3>Canvas</h3></div>
-              <div className="ed-hint-box">Set the output shape and a background behind your video. Applied on MP4 export.</div>
+              <div className="ed-hint-box">Reframe your video for any platform and fill the space behind it. Applied on MP4 export.</div>
               <div className="ed-anim-lbl">ASPECT RATIO</div>
-              <div className="ed-canvas-aspects">
-                {([["original", "Original"], ["9:16", "9:16"], ["4:5", "4:5"], ["1:1", "1:1"], ["16:9", "16:9"]] as [string, string][]).map(([v, l]) => (
-                  <div key={v} className={"ed-canvas-ar" + ((canvas.aspect || "original") === v ? " active" : "")} onClick={() => saveCanvas({ aspect: v })}>
+              <div className="ed-canvas-arlist">
+                {([["original", "Original", "Keep the source shape", ""],
+                   ["9:16", "9:16 Vertical", "Reels · TikTok · Shorts", "1080×1920"],
+                   ["4:5", "4:5 Portrait", "Instagram feed", "1080×1350"],
+                   ["1:1", "1:1 Square", "Square post", "1080×1080"],
+                   ["16:9", "16:9 Landscape", "YouTube · widescreen", "1920×1080"]] as [string, string, string, string][]).map(([v, l, sub, dim]) => (
+                  <div key={v} className={"ed-canvas-arrow" + ((canvas.aspect || "original") === v ? " active" : "")} onClick={() => saveCanvas({ aspect: v })}>
                     <div className={"ed-ar-box ar-" + v.replace(":", "-")} />
-                    <span>{l}</span>
+                    <div className="ed-canvas-arlbl"><b>{l}</b><span>{sub}</span></div>
+                    {dim && <span className="ed-canvas-ardim">{dim}</span>}
                   </div>
                 ))}
               </div>
               {canvas.aspect && canvas.aspect !== "original" && (
                 <>
-                  <div className="ed-anim-lbl" style={{ marginTop: 16 }}>BACKGROUND</div>
+                  <div className="ed-anim-lbl" style={{ marginTop: 18 }}>BACKGROUND</div>
                   <div className="ed-seg-row">
-                    {([["color", "Color"], ["blur", "Blur"], ["image", "Image"]] as [string, string][]).map(([v, l]) => (
+                    {([["color", "Colour"], ["blur", "Blur"], ["image", "Image"]] as [string, string][]).map(([v, l]) => (
                       <div key={v} className={"ed-seg-btn" + ((canvas.bg_type || "color") === v ? " active" : "")} onClick={() => saveCanvas({ bg_type: v })}>{l}</div>
                     ))}
                   </div>
                   {(canvas.bg_type || "color") === "color" && (
-                    <div className="ed-swatches" style={{ marginTop: 12 }}>
-                      {["#000000", "#ffffff", "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#a855f7", "#ec4899"].map((c) => (
-                        <span key={c} className={"ed-swatch" + ((canvas.color || "#000000").toLowerCase() === c ? " active" : "")}
-                          style={{ background: c }} onClick={() => saveCanvas({ color: c })} />
-                      ))}
-                    </div>
+                    <>
+                      <div className="ed-swatches" style={{ marginTop: 12 }}>
+                        {["#000000", "#ffffff", "#0a0c13", "#ef4444", "#f59e0b", "#22c55e", "#3b82f6", "#a855f7", "#ec4899", "#14b8a6"].map((c) => (
+                          <span key={c} className={"ed-swatch" + ((canvas.color || "#000000").toLowerCase() === c ? " active" : "")}
+                            style={{ background: c }} onClick={() => saveCanvas({ color: c })} />
+                        ))}
+                      </div>
+                      <label className="ed-canvas-custom">
+                        <span>Custom colour</span>
+                        <input type="color" value={canvas.color || "#000000"} onChange={(e) => saveCanvas({ color: e.target.value })} />
+                      </label>
+                    </>
+                  )}
+                  {canvas.bg_type === "blur" && (
+                    <>
+                      <div className="np-sub" style={{ margin: "10px 0 8px" }}>A blurred, zoomed copy of your video fills the space behind it.</div>
+                      <div className="ed-seg-row">
+                        {([["light", "Light"], ["medium", "Medium"], ["heavy", "Heavy"]] as [string, string][]).map(([v, l]) => (
+                          <div key={v} className={"ed-seg-btn" + ((canvas.blur_amount || "medium") === v ? " active" : "")} onClick={() => saveCanvas({ blur_amount: v })}>{l}</div>
+                        ))}
+                      </div>
+                    </>
                   )}
                   {canvas.bg_type === "image" && (
                     <>
                       <input ref={canvasImgRef} type="file" accept="image/*" hidden
                         onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadCanvasImage(f); e.currentTarget.value = ""; }} />
-                      <button className="secondary" style={{ width: "100%", marginTop: 12 }} onClick={() => canvasImgRef.current?.click()}>{IcPlus} Upload background image</button>
-                      {canvas.image_url && <img src={canvas.image_url} style={{ width: "100%", borderRadius: 8, marginTop: 10, maxHeight: 120, objectFit: "cover" }} />}
+                      <button className="secondary" style={{ width: "100%", marginTop: 12 }} onClick={() => canvasImgRef.current?.click()}>{IcPlus} {canvas.image_url ? "Replace image" : "Upload background image"}</button>
+                      {canvas.image_url && (
+                        <>
+                          <img src={canvas.image_url} style={{ width: "100%", borderRadius: 8, marginTop: 10, maxHeight: 120, objectFit: "cover" }} />
+                          <button className="secondary" style={{ width: "100%", marginTop: 8 }} onClick={() => saveCanvas({ bg_type: "color" })}>Remove image</button>
+                        </>
+                      )}
                     </>
                   )}
-                  {canvas.bg_type === "blur" && <div className="np-sub" style={{ marginTop: 10 }}>A blurred, zoomed copy of your video fills the background.</div>}
-                  <button className="secondary" style={{ width: "100%", marginTop: 14 }} onClick={() => saveCanvas({ aspect: "original" })}>Reset to original</button>
+
+                  <div className="ed-cs-slabel" style={{ marginTop: 18 }}><span>Video size</span><span>{canvas.scale_pct ?? 100}%</span></div>
+                  <input type="range" min={40} max={100} step={5} value={canvas.scale_pct ?? 100} style={{ width: "100%" }}
+                    onChange={(e) => saveCanvas({ scale_pct: +e.target.value })} />
+                  <div className="np-sub" style={{ marginTop: 4 }}>Shrink the video to show more of the background around it.</div>
+
+                  <button className="secondary" style={{ width: "100%", marginTop: 16 }} onClick={() => saveCanvas({ aspect: "original" })}>Reset to original</button>
                 </>
               )}
             </>
@@ -2193,6 +2224,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
             <div className={"ed-canvas-frame" + (canvas.aspect && canvas.aspect !== "original" ? " on" : "")}
               style={canvas.aspect && canvas.aspect !== "original" ? {
                 aspectRatio: canvas.aspect.replace(":", "/"),
+                padding: `${(100 - (canvas.scale_pct ?? 100)) / 2}%`,
+                boxSizing: "border-box",
                 background: canvas.bg_type === "image" && canvas.image_url ? `center/cover no-repeat url("${canvas.image_url}")`
                   : canvas.bg_type === "blur" ? "#0a0c13" : (canvas.color || "#000000"),
               } : undefined}>
