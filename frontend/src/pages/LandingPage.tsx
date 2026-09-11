@@ -1,257 +1,196 @@
-import { useState } from "react";
-import { ISliders, ISparkle, ICloud, IPlayFill, IPlayFillLg } from "../components/icons";
+const LANGS = ["Tamil", "Thanglish", "Telugu", "Malayalam", "Kannada", "Hindi", "Bengali", "Marathi", "Punjabi", "Gujarati", "Odia", "English"];
 
-const CAPTION_LANGS = ["Tamil", "Hindi", "Telugu", "Kannada", "Malayalam", "Bengali", "Marathi", "Thanglish", "English"];
-
-const STYLES = ["Neon", "Karaoke", "Bold Pop", "Minimal", "Highlight", "Wave"];
-
-const CREATOR_FEATURES = [
-  { ic: ISliders, title: "Studio-clean audio", sub: "One tap to denoise and level your voice. Phone-mic recordings that sound pro." },
-  { ic: ISparkle, title: "Captions that pop", sub: "Word-by-word reveals, karaoke fills, bounce — the styles that stop the scroll." },
-  { ic: ICloud, title: "Nothing to install", sub: "Runs fully in your browser. Any laptop, any place — just upload and go." },
-  { ic: "🚫", title: "Zero watermark", sub: "Clean exports on every plan, free included. Your video carries your name, not ours." },
+const FEATURES: { big?: boolean; icon: JSX.Element; title: string; body: string; demo?: JSX.Element }[] = [
+  {
+    big: true,
+    icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M4 6h16M4 12h10M4 18h13" /></svg>,
+    title: "Captions that get your language right",
+    body: "Tamil, Thanglish and 10 more — correct spellings, the natural English-mix, and a style that matches your channel. Animated word-by-word, burned clean into the export.",
+    demo: <div className="cy-demo"><b className="cy-strike">vanakam</b> <b className="cy-gradtx">→ வணக்கம்</b></div>,
+  },
+  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M3 12h3l2-7 4 14 2-7h4" /></svg>, title: "Silence remover", body: "Finds every pause and dead-air gap and tightens the cut — so the edit never drags." },
+  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg>, title: "Retake remover", body: "Flubbed a line and said it again? It keeps your last clean take and drops the rest." },
+  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4M11 8v6M8 11h6" /></svg>, title: "Auto-zoom", body: "Punch-ins land on the beat automatically, aimed right at you." },
+  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 15l5-4 4 3 4-5 5 6" /></svg>, title: "Grades & filters", body: "Cinematic looks on your own frame — one tap, timed to any clip." },
+  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 3v12M8 11l4 4 4-4M5 21h14" /></svg>, title: "Export anywhere", body: "9:16, 1:1 or 16:9, MP4 or SRT — sized for Reels, Shorts and YouTube." },
 ];
 
-const EDITORS = ["Premiere Pro", "DaVinci Resolve", "After Effects", "Final Cut Pro"];
+const STEPS = [
+  { n: "1", title: "Drop your clip", body: "Upload straight from the browser — phone footage, screen recording, anything. Nothing to install." },
+  { n: "2", title: "Let ceyonai edit", body: "Captions, silence cuts, retakes and zooms happen automatically. Tweak anything you like." },
+  { n: "3", title: "Export & post", body: "Pick your shape, hit export, and your finished reel is ready to upload minutes later." },
+];
 
-const PLANS = [
-  { name: "FREE", price: "₹0", per: "/mo", feats: ["5 min / month", "720p export", "No watermark"], cta: "Start free" },
-  { name: "STARTER", price: "₹399", per: "/mo", feats: ["25 min / month", "1080p export", "10 GB storage"], cta: "Get Starter" },
-  { name: "CREATOR", price: "₹799", per: "/mo", feats: ["80 min / month", "4K export", "All caption styles"], cta: "Get Creator", popular: true },
-  { name: "PRO", price: "₹2,499", per: "/mo", feats: ["250 min / month", "5 team seats", "Priority AI"], cta: "Get Pro" },
+const STATS = [
+  ["12", "Indian languages"], ["~10×", "faster than manual"], ["0", "plugins to install"], ["100%", "in your browser"],
 ];
 
 const REVIEWS = [
-  { n: "Sneha Reddy", r: "Cut my editing time from 3 hours to 20 minutes. And the Thanglish captions are spot on — no fixing spellings by hand anymore.", h: "YouTuber" },
-  { n: "Arjun Menon", r: "The retake remover alone is worth it. It finds every 'wait, let me say that again' and quietly cleans it up.", h: "Course creator" },
-  { n: "Kavya Nair", r: "Finally a tool that gets Tamil right instead of turning it into English mush. Exports straight to Premiere too.", h: "Reels creator" },
-  { n: "Vishal Kumar", r: "It turned my rambly 12-minute video into a tight 8. Retention jumped the same week.", h: "Tech reviewer" },
+  { av: "M", who: "Meera S.", role: "food creator · Chennai", quote: "My Thanglish captions used to take an hour to fix by hand. Now they're just… right. I post two reels a day instead of two a week." },
+  { av: "A", who: "Aravind K.", role: "tech explainer · Bengaluru", quote: "The retake remover reads my mind. I ramble, redo the line, and it quietly keeps the good one. Editing stopped being a chore." },
+  { av: "P", who: "Priya R.", role: "educator · Coimbatore", quote: "Uploaded a 14-minute raw talk, got back a tight 6-minute cut with captions. Retention on that video was my best ever." },
 ];
 
-const FAQS = [
-  { q: "Do I need to install anything?", a: "Nope. ceyonai runs entirely in your browser. Upload a video, get captions, export — no downloads, no plugins, works on any laptop." },
-  { q: "Which languages does it caption?", a: "Tamil, Thanglish, Telugu, Malayalam, Hindi and English — with transliteration and translation built in. Code-switching (Tamil + English in one line) is handled properly." },
-  { q: "How accurate are the Tamil captions really?", a: "That's the whole point of ceyonai. It uses an Indic speech engine tuned for Indian languages and accents, so your words come out written right — not Anglicised guesses you have to retype." },
-  { q: "What's the difference between silence and retake remover?", a: "Silence remover cuts dead air and long pauses. Retake remover spots repeated takes ('let me say that again') and keeps only your best one — then trims the rest automatically." },
-  { q: "Can I take it into my editor?", a: "Yes. Export straight to Premiere Pro, DaVinci Resolve, After Effects and Final Cut, plus SRT / VTT / TXT if you just want the text." },
-  { q: "Is there a watermark?", a: "Never. No watermark on any plan, including the free tier." },
-];
+const CHECK = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path d="M5 12l5 5L20 7" /></svg>;
 
-function VideoBox({ portrait, label }: { portrait?: boolean; label?: string }) {
-  return (
-    <div className={"lp-video" + (portrait ? " portrait" : "")}>
-      <div className="lp-video-inner">
-        <span className="lp-play">{IPlayFillLg}</span>
-        <span className="lp-video-label">{label || "Video preview"}</span>
-      </div>
-    </div>
-  );
-}
+const PLANS = [
+  { name: "Free", price: "₹0", per: "/forever", desc: "Everything you need to try a full edit.", feats: ["15 min of video / month", "All captions & auto-edits", "No watermark"], cta: "Start free", hot: false },
+  { name: "Creator", price: "₹499", per: "/month", desc: "For creators posting every week.", feats: ["5 hours of video / month", "1080p exports, all styles", "Priority AI & 50 GB storage"], cta: "Get Creator", hot: true },
+  { name: "Studio", price: "₹1,299", per: "/month", desc: "For teams and daily publishers.", feats: ["Unlimited video", "4K exports + brand kits", "Team seats & support"], cta: "Get Studio", hot: false },
+];
 
 export function LandingPage() {
-  const [lang, setLang] = useState("Tamil");
-  const [open, setOpen] = useState<number | null>(0);
-
   const start = () => { window.location.hash = "#/app"; };
   const login = () => { window.location.hash = "#/login"; };
   const go = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
   return (
-    <div className="lp">
-      <header className="lp-nav">
-        <div className="lp-nav-in">
-          <a className="lp-logo" href="#/">
-            <span className="lp-logo-mark">{IPlayFill}</span>
-            <span className="lp-logo-name">ceyon<span>ai</span></span>
+    <div className="cy">
+      <header className="cy-nav">
+        <div className="cy-wrap cy-nav-in">
+          <a className="cy-logo" href="#/">
+            <span className="cy-logo-mark"><svg viewBox="0 0 24 24" fill="#08101a"><path d="M8 5v14l11-7z" /></svg></span>
+            <span>ceyon<i>ai</i></span>
           </a>
-          <nav className="lp-links">
-            <button onClick={() => go("features")}>Features</button>
+          <nav className="cy-nav-links">
+            <button onClick={() => go("product")}>Product</button>
             <button onClick={() => go("pricing")}>Pricing</button>
-            <button onClick={() => go("reviews")}>Reviews</button>
-            <button onClick={() => go("contact")}>Contact</button>
+            <button onClick={() => go("stories")}>Stories</button>
           </nav>
-          <div className="lp-nav-cta">
-            <button className="lp-ghost" onClick={login}>Login</button>
-            <button className="lp-btn" onClick={start}>Start creating</button>
+          <div className="cy-nav-cta">
+            <button className="cy-btn ghost" onClick={login}>Log in</button>
+            <button className="cy-btn grad" onClick={start}>Start free</button>
           </div>
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="lp-hero">
-        <div className="lp-eyebrow">✦ MADE FOR INDIAN CREATORS</div>
-        <h1 className="lp-hero-title">Edit your video in<br /><span className="grad">minutes, not hours.</span></h1>
-        <p className="lp-hero-sub">
-          Upload once and ceyonai does the boring part — auto-captions in your language,
-          cuts the dead air and retakes, and hands you a finished cut in minutes.
-          Tamil, Hindi, Telugu &amp; every Indian language, right in your browser.
-        </p>
-        <div className="lp-hero-cta">
-          <button className="lp-btn lg" onClick={start}>Start editing free</button>
-          <button className="lp-ghost lg" onClick={() => go("pricing")}>See plans</button>
+      <section className="cy-hero">
+        <div className="cy-wrap">
+          <div className="cy-orb a" /><div className="cy-orb b" />
+          <span className="cy-pill">◆ AI video editor · built in India</span>
+          <h1>Raw footage in.<br /><span className="cy-gradtx">Finished reel out.</span></h1>
+          <p className="cy-hero-sub">ceyonai captions, trims and polishes your video on its own — accurate in Tamil, Thanglish and every Indian language your audience actually speaks. No timeline wrangling, no plugins.</p>
+          <div className="cy-hero-cta">
+            <button className="cy-btn grad lg" onClick={start}>Start free →</button>
+            <button className="cy-btn ghost lg" onClick={() => go("product")}>▶ Watch 60-sec demo</button>
+          </div>
+          <div className="cy-hero-trust">
+            <span><span className="cy-dot" /> <b>12</b> Indian languages</span>
+            <span><span className="cy-dot" /> Runs in your browser</span>
+            <span><span className="cy-dot" /> No watermark on free</span>
+          </div>
+
+          <div className="cy-win">
+            <div className="cy-win-bar"><i /><i /><i /><span>ceyonai · my-reel.mp4</span></div>
+            <div className="cy-win-body">
+              <div className="cy-win-preview">
+                <div className="cy-win-play"><svg viewBox="0 0 24 24" fill="#eef1fb"><path d="M8 5v14l11-7z" /></svg></div>
+                <div className="cy-win-cap"><b>naan <span className="cy-hl">ready</span> pannitten</b></div>
+              </div>
+              <div className="cy-win-side">
+                <div className="cy-win-tool"><div className="cy-wt-t">Auto captions <em>Tamil · Thanglish</em></div><div className="cy-wt-s">Word-perfect, styled, animated.</div><div className="cy-chipline"><b>Neon</b><b>Karaoke</b><b>Bold pop</b></div></div>
+                <div className="cy-win-tool"><div className="cy-wt-t">Silence remover <em>−0:47</em></div><div className="cy-wt-s">Dead air detected and cut.</div>
+                  <div className="cy-wave">{[40, 70, 90, 55, 80, 35, 65, 95, 50, 75, 45, 85].map((h, i) => <i key={i} style={{ height: h + "%" }} />)}</div>
+                </div>
+                <div className="cy-win-tool"><div className="cy-wt-t">Retake remover <em>kept take 3</em></div><div className="cy-wt-s">Only your best line stays.</div></div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="lp-stars">★★★★★ <span>Made in India, for Indian creators</span></div>
-        <div className="lp-hero-video"><VideoBox label="See a raw clip become a reel" /></div>
       </section>
 
-      {/* Feature spotlight 1 — captions */}
-      <section className="lp-feat" id="features">
-        <div className="lp-feat-text">
-          <div className="lp-tag">REGIONAL CAPTIONS</div>
-          <h2>It speaks <span className="grad">your language.</span></h2>
-          <p>Tamil, Thanglish, Telugu, Malayalam, Hindi — ceyonai gets the words, the spellings and the English-Tamil mix right the first time. No more fixing "vanakkam" into something that isn't a word.</p>
-          <div className="lp-lang">
-            {CAPTION_LANGS.map((l) => (
-              <button key={l} className={"lp-chip" + (lang === l ? " on" : "")} onClick={() => setLang(l)}>{l}</button>
+      <section className="cy-trust">
+        <div className="cy-wrap">
+          <p>Captions your audience reads in their own language</p>
+          <div className="cy-marq">{LANGS.map((l, i) => <b key={l} className={i === 0 ? "on" : ""}>{l}</b>)}</div>
+        </div>
+      </section>
+
+      <section className="cy-sec" id="product">
+        <div className="cy-wrap">
+          <div className="cy-sec-head"><span className="cy-pill">the toolkit</span><h2>Everything after you<br />stop recording.</h2><p>One upload. ceyonai handles the parts that used to eat your evening.</p></div>
+          <div className="cy-bento">
+            {FEATURES.map((f) => (
+              <div key={f.title} className={"cy-card" + (f.big ? " big" : "")}>
+                {f.big && <div className="cy-cardglow" />}
+                <div className="cy-ic">{f.icon}</div>
+                <h3>{f.title}</h3>
+                <p>{f.body}</p>
+                {f.demo}
+              </div>
             ))}
           </div>
         </div>
-        <VideoBox portrait label={`${lang} captions`} />
       </section>
 
-      {/* Feature spotlight 2 — retake remover */}
-      <section className="lp-feat reverse">
-        <div className="lp-feat-text">
-          <div className="lp-tag">RETAKE REMOVER</div>
-          <h2>Keep only your <span className="grad">best take.</span></h2>
-          <p>Fumbled a line and said it again? ceyonai catches the repeated takes and quietly keeps the clean one — so you never scrub the timeline hunting for "the good one."</p>
-          <div className="lp-takes">
-            <div className="lp-take bad"><span>TAKE 01</span> so guys, welcome back to my chann—</div>
-            <div className="lp-take bad"><span>TAKE 02</span> so guys, welcome back to the sh— wait</div>
-            <div className="lp-take good"><span>TAKE 03</span> so guys, welcome back — today we're talking about… ✓</div>
+      <section className="cy-sec cy-tight">
+        <div className="cy-wrap">
+          <div className="cy-sec-head"><span className="cy-pill">how it works</span><h2>Three steps. One coffee.</h2></div>
+          <div className="cy-steps">
+            {STEPS.map((s) => (
+              <div key={s.n} className="cy-step"><div className="cy-stepn">{s.n}</div><h3>{s.title}</h3><p>{s.body}</p></div>
+            ))}
           </div>
         </div>
-        <VideoBox portrait label="Best take kept" />
       </section>
 
-      {/* Feature spotlight 3 — silence remover */}
-      <section className="lp-feat">
-        <div className="lp-feat-text">
-          <div className="lp-tag">SILENCE REMOVER</div>
-          <h2>Dead air, <span className="grad">deleted.</span></h2>
-          <p>Every "ummm", every long pause that kills your pacing — trimmed automatically. Your video stays tight, so your viewers stay too.</p>
-          <div className="lp-wave">
-            <div className="lp-wave-bars">{Array.from({ length: 40 }).map((_, i) => (
-              <span key={i} style={{ height: `${20 + Math.abs(Math.sin(i * 0.7)) * 60}%` }} />
-            ))}</div>
-            <div className="lp-wave-time"><span>5:14</span><span className="cut">− 0:47 cut</span></div>
+      <section className="cy-sec cy-tight">
+        <div className="cy-wrap">
+          <div className="cy-stats">
+            {STATS.map(([n, l]) => <div key={l} className="cy-stat"><b className="cy-gradtx">{n}</b><span>{l}</span></div>)}
           </div>
         </div>
-        <VideoBox portrait label="Silences trimmed" />
       </section>
 
-      {/* Caption styles strip */}
-      <section className="lp-styles">
-        <div className="lp-tag center">CAPTION STYLES</div>
-        <h2 className="lp-center-h">Styles that <span className="grad">stop the scroll.</span></h2>
-        <p className="lp-center-p">Neon, karaoke, bold pop and more — one tap and your captions match your channel, animated word-by-word like the big creators.</p>
-        <div className="lp-style-row">
-          {STYLES.map((s) => (
-            <div className="lp-style-card" key={s}><span className="lp-play sm">{IPlayFill}</span><div>{s}</div></div>
-          ))}
-        </div>
-      </section>
-
-      {/* Feature grid */}
-      <section className="lp-grid-sec">
-        <div className="lp-tag center">MORE FEATURES</div>
-        <h2 className="lp-center-h">Everything else you <span className="grad">need.</span></h2>
-        <div className="lp-export">
-          <div className="lp-export-l">
-            <div className="lp-export-title">Export to your editor</div>
-            <div className="lp-export-sub">Send captions and cuts straight into your NLE — no retyping, no re-work.</div>
-          </div>
-          <div className="lp-export-chips">
-            {EDITORS.map((e) => <span key={e} className="lp-echip">{e}</span>)}
+      <section className="cy-sec cy-tight" id="stories">
+        <div className="cy-wrap">
+          <div className="cy-sec-head"><span className="cy-pill">stories</span><h2>Made for creators<br />who ship fast.</h2></div>
+          <div className="cy-revs">
+            {REVIEWS.map((r) => (
+              <div key={r.who} className="cy-rev">
+                <div className="cy-rev-st">★★★★★</div>
+                <p>“{r.quote}”</p>
+                <div className="cy-rev-who"><div className="cy-rev-av">{r.av}</div><div><b>{r.who}</b><span>{r.role}</span></div></div>
+              </div>
+            ))}
           </div>
         </div>
-        <div className="lp-fgrid">
-          {CREATOR_FEATURES.map((f) => (
-            <div className="lp-fcard" key={f.title}>
-              <span className="lp-fic">{f.ic}</span>
-              <div className="lp-fc-title">{f.title}</div>
-              <div className="lp-fc-sub">{f.sub}</div>
-            </div>
-          ))}
+      </section>
+
+      <section className="cy-sec cy-tight" id="pricing">
+        <div className="cy-wrap">
+          <div className="cy-sec-head"><span className="cy-pill">pricing</span><h2>Start free.<br />Upgrade when you scale.</h2></div>
+          <div className="cy-price">
+            {PLANS.map((p) => (
+              <div key={p.name} className={"cy-plan" + (p.hot ? " hot" : "")}>
+                {p.hot && <div className="cy-tagpop">Most popular</div>}
+                <h3>{p.name}</h3>
+                <div className="cy-amt">{p.price}<span>{p.per}</span></div>
+                <div className="cy-plan-desc">{p.desc}</div>
+                <ul>{p.feats.map((ft) => <li key={ft}>{CHECK} {ft}</li>)}</ul>
+                <button className={"cy-btn " + (p.hot ? "grad" : "ghost")} onClick={start}>{p.cta}</button>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Pricing */}
-      <section className="lp-pricing" id="pricing">
-        <div className="lp-tag center">PRICING</div>
-        <h2 className="lp-center-h">Simple pricing, <span className="grad">no surprises.</span></h2>
-        <p className="lp-center-p">Start free. Upgrade only when your channel grows.</p>
-        <div className="lp-price-grid">
-          {PLANS.map((p) => (
-            <div className={"lp-price-card" + (p.popular ? " popular" : "")} key={p.name}>
-              {p.popular && <div className="lp-pop">MOST POPULAR</div>}
-              <div className="lp-price-name">{p.name}</div>
-              <div className="lp-price-amt">{p.price}<span>{p.per}</span></div>
-              <ul>{p.feats.map((f) => <li key={f}>{f}</li>)}</ul>
-              <button className={"lp-btn full" + (p.popular ? "" : " ghost")} onClick={start}>{p.cta}</button>
-            </div>
-          ))}
-        </div>
-        <p className="lp-price-foot">Daily Pass and top-ups available inside the app.</p>
-      </section>
-
-      {/* Reviews */}
-      <section className="lp-reviews" id="reviews">
-        <div className="lp-tag center">REVIEWS</div>
-        <h2 className="lp-center-h">Creators are <span className="grad">into it.</span></h2>
-        <div className="lp-review-grid">
-          {REVIEWS.map((r) => (
-            <div className="lp-review" key={r.n}>
-              <div className="lp-review-stars">★★★★★</div>
-              <p>"{r.r}"</p>
-              <div className="lp-review-who"><strong>{r.n}</strong><span>{r.h}</span></div>
-            </div>
-          ))}
+      <section className="cy-sec cy-tight">
+        <div className="cy-wrap">
+          <div className="cy-ctaband">
+            <div className="cy-orb a" style={{ left: "auto", right: "-120px", top: "-120px" }} />
+            <h2>Your next reel is<br />a coffee away.</h2>
+            <p>Upload a clip and watch ceyonai turn it into something ready to post — free, no card, no install.</p>
+            <button className="cy-btn grad lg" onClick={start}>Start creating free →</button>
+          </div>
         </div>
       </section>
 
-      {/* FAQ */}
-      <section className="lp-faq">
-        <div className="lp-tag center">FAQ</div>
-        <h2 className="lp-center-h">Probably <span className="grad">answered here.</span></h2>
-        <div className="lp-faq-list">
-          {FAQS.map((f, i) => (
-            <div className={"lp-faq-item" + (open === i ? " open" : "")} key={f.q}>
-              <button className="lp-faq-q" onClick={() => setOpen(open === i ? null : i)}>
-                {f.q}<span className="lp-faq-ic">{open === i ? "−" : "+"}</span>
-              </button>
-              {open === i && <div className="lp-faq-a">{f.a}</div>}
-            </div>
-          ))}
+      <footer className="cy-foot">
+        <div className="cy-wrap cy-foot-in">
+          <span>© 2026 ceyonai · Made in India for Indian creators</span>
+          <span><a href="#/">Privacy</a><a href="#/">Terms</a><a href="#/">Contact</a></span>
         </div>
-      </section>
-
-      {/* Contact */}
-      <section className="lp-contact" id="contact">
-        <div className="lp-tag center">CONTACT</div>
-        <h2 className="lp-center-h">Talk to us, <span className="grad">we're human.</span></h2>
-        <p className="lp-center-p">Questions, feedback, or a partnership? Reach out any time — we actually reply.</p>
-        <a className="lp-btn lg" href="mailto:support@ceyonai.com">Email support@ceyonai.com</a>
-      </section>
-
-      {/* Final CTA */}
-      <section className="lp-final">
-        <h2>Your next video, <span className="grad">captioned in minutes.</span></h2>
-        <button className="lp-btn lg" onClick={start}>Start for free</button>
-      </section>
-
-      <footer className="lp-footer">
-        <div className="lp-logo">
-          <span className="lp-logo-mark">{IPlayFill}</span>
-          <span className="lp-logo-name">ceyon<span>ai</span></span>
-        </div>
-        <div className="lp-foot-links">
-          <button onClick={() => go("features")}>Features</button>
-          <button onClick={() => go("pricing")}>Pricing</button>
-          <button onClick={() => go("reviews")}>Reviews</button>
-          <a href="mailto:support@ceyonai.com">Contact</a>
-        </div>
-        <div className="lp-foot-copy">© 2026 ceyonai — AI captions &amp; editing for Indian creators.</div>
       </footer>
     </div>
   );
