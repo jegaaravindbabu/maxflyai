@@ -13,7 +13,7 @@ interface Props {
 
 function secs(ms: number) { return `${(ms / 1000).toFixed(1)}s`; }
 
-// HyproAI-style Retake Remover: AI flags retake / filler words red on a transcript;
+// polished-style Retake Remover: AI flags retake / filler words red on a transcript;
 // click a word to keep/remove it, or drag-select a range and Mark Remove / Mark Keep.
 export function RetakeModal({ projectId, onSeek, onClose, onApplied }: Props) {
   const [phase, setPhase] = useState<"idle" | "detecting" | "results">("idle");

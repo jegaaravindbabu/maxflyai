@@ -432,7 +432,7 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
 .ed-center-top { width: 100%; display: flex; justify-content: center; }
 .ed-replace { padding: 7px 16px; font-size: 13px; }
 .ed-stage { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; width: 100%; }
-/* ===== Custom preview monitor (HyproAI-style) ===== */
+/* ===== Custom preview monitor (polished-style) ===== */
 /* selection frame + corner handles on the video */
 .ed-stage.sel .preview-wrap { box-shadow: 0 0 0 1.5px rgba(140,170,255,.55); }
 .ed-mon-h, .ed-mon-grip, .ed-mon-replace { display: none; }
@@ -834,7 +834,7 @@ video.ed-imgovl { object-fit: cover; }
 .ed-sub2-icon.on { background: var(--grad); color: var(--on-accent); border-color: transparent; }
 .ed-style-search { width: 100%; background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
   border-radius: 8px; padding: 9px 12px; font: inherit; margin-bottom: 12px; }
-/* Caption-settings cards (HyproAI-style grouping) */
+/* Caption-settings cards (polished-style grouping) */
 .ed-cs-card { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-top: 6px; }
 .ed-cs-card-h { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
 .ed-cs-toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; font-size: 13px; color: var(--text); }
@@ -1508,7 +1508,7 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .ed-exp-acc:hover { opacity: .85; }
 .ed-exp-chev { opacity: .55; font-size: 14px; }
 
-/* ===== Right-side export panel (HyproAI-style overlay) ===== */
+/* ===== Right-side export panel (polished-style overlay) ===== */
 .ed-right { position: relative; }
 .ed-rt-export { position: absolute; inset: 0; z-index: 20; background: var(--panel); overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
 .ed-rt-exp-head { display: flex; align-items: center; justify-content: space-between; font-size: 15px; font-weight: 700; }
@@ -1553,7 +1553,7 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .lp { background-image: radial-gradient(rgba(255,255,255,.04) 1px, transparent 1px); background-size: 22px 22px; }
 .lp-nav { background: rgba(14,15,18,.85); }
 
-/* ===== Export process modal (HyproAI-style: rendering -> ready) ===== */
+/* ===== Export process modal (polished-style: rendering -> ready) ===== */
 .ex-modal-bg { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.62); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; padding: 20px; }
 .ex-modal { width: 100%; max-width: 420px; background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 26px 24px; text-align: center; box-shadow: 0 30px 80px -20px rgba(0,0,0,.7); }
 .ex-title { font-size: 20px; font-weight: 800; }
@@ -1629,7 +1629,7 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .cap-word_comic  .capword-on { color: #fff; }
 .cap-word_hlbox  .capword-on { background: #b15cff; color: #fff; padding: 0 6px; border-radius: 4px; }
 
-/* ---- Header (HyproAI-style top bar) ---- */
+/* ---- Header (polished-style top bar) ---- */
 .ed-top-r { display: flex; align-items: center; gap: 10px; }
 .ed-top-r svg { flex: none; }
 .ed-hdr-ic { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--border); color: var(--muted); cursor: pointer; }
@@ -1668,7 +1668,7 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .ed-crop-e.eb { bottom: -5px; left: 14px; right: 14px; height: 10px; cursor: ns-resize; }
 .ed-crop-e.el { left: -5px; top: 14px; bottom: 14px; width: 10px; cursor: ew-resize; }
 .ed-crop-e.er { right: -5px; top: 14px; bottom: 14px; width: 10px; cursor: ew-resize; }
-/* ===== Animation properties — detached floating box (HyproAI-style) ===== */
+/* ===== Animation properties — detached floating box (polished-style) ===== */
 .ed-animprops-rail{
   display:flex;flex-direction:column;align-items:flex-start;gap:2px;
   padding:16px;border:1px dashed var(--line,#2a2f3a);border-radius:14px;
@@ -1859,7 +1859,7 @@ button > svg, a > svg, .pm-item > svg, .rtk-removed > svg, .del > svg, .np-label
 .ed-ovl.sel { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px;
   box-shadow: 0 0 0 4px rgba(198,255,58,.15); }
 
-/* ===== Text overlay — right-rail editor (HyproAI-style) ===== */
+/* ===== Text overlay — right-rail editor (polished-style) ===== */
 .ed-rt-textovl { position: absolute; inset: 0; z-index: 22; background: var(--panel);
   overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
 .ed-txtovl-tabs { display: flex; gap: 4px; background: var(--panel-2); border: 1px solid var(--border);
@@ -1970,7 +1970,7 @@ button > svg, a > svg, .pm-item > svg, .rtk-removed > svg, .del > svg, .np-label
   z-index: 2; cursor: pointer; }
 .ed-broll-fill.sel { outline: 2px solid var(--accent); outline-offset: -2px; }
 
-/* ===== Filters: live thumbnails on the user's own frame (HyproAI-style) ===== */
+/* ===== Filters: live thumbnails on the user's own frame (polished-style) ===== */
 .ed-filt-prev { overflow: hidden; position: relative; background: #0b0d15; }
 .ed-filt-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .ed-style-card.ed-filt-card2 { padding: 0; overflow: hidden; }
@@ -2031,7 +2031,7 @@ button > svg, a > svg, .pm-item > svg, .rtk-removed > svg, .del > svg, .np-label
 .ed-ls-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
 .ed-ls-foot { font-size: 11px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 8px; }
 
-/* ===== Auto Zoom panel (HyproAI-style) ===== */
+/* ===== Auto Zoom panel (polished-style) ===== */
 .ed-az-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .ed-az-head h3 { margin: 0; font-size: 18px; display: flex; align-items: center; gap: 8px; }
 .ed-az-beta { font-size: 10px; font-weight: 700; letter-spacing: .5px; color: var(--accent);
@@ -2098,7 +2098,7 @@ button > svg, a > svg, .pm-item > svg, .rtk-removed > svg, .del > svg, .np-label
   cursor: grab; pointer-events: auto; padding: 0; }
 .ed-zoomaim-dot:active { cursor: grabbing; }
 
-/* ===== Auto Remove Silence modal (HyproAI-style) ===== */
+/* ===== Auto Remove Silence modal (polished-style) ===== */
 .ed-modal-scrim { position: fixed; inset: 0; background: rgba(4,6,10,.66); backdrop-filter: blur(3px);
   display: flex; align-items: center; justify-content: center; z-index: 200; padding: 20px; }
 .ed-silmodal { width: 560px; max-width: 100%; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;
@@ -2158,7 +2158,7 @@ button > svg, a > svg, .pm-item > svg, .rtk-removed > svg, .del > svg, .np-label
   font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 7px; }
 .ed-sil-apply:disabled { opacity: .45; cursor: default; }
 
-/* ===== Retake Remover modal (HyproAI-style transcript editor) ===== */
+/* ===== Retake Remover modal (polished-style transcript editor) ===== */
 .ed-rtkmodal { width: 620px; max-width: 100%; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;
   background: var(--panel); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 30px 80px rgba(0,0,0,.6); }
 .ed-silmodal-sub b.rm { color: #ff5a5a; } .ed-silmodal-sub b.keep { color: var(--accent); }

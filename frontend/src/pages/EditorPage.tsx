@@ -139,7 +139,7 @@ const IcVol = (muted: boolean) => muted
   ? svg(<><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M22 9l-6 6M16 9l6 6" /></>)
   : svg(<><path d="M4 9v6h4l5 4V5L8 9H4z" /><path d="M16 8.5a5 5 0 0 1 0 7" /></>);
 
-// crisp line icons for the timeline toolbar (HyproAI-style)
+// crisp line icons for the timeline toolbar (polished-style)
 const tsvg = (children: React.ReactNode) => (
   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
     strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
@@ -235,7 +235,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [customiseOpen, setCustomiseOpen] = useState(true);
   const [stylesTab, setStylesTab] = useState<"lines" | "words" | "saved">("lines");
   const [styleScope, setStyleScope] = useState<"all" | "caption">("all");
-  // Looping clock so the word-style preview cards animate on their own (like HyproAI).
+  // Looping clock so the word-style preview cards animate on their own (like the reference).
   const [cardTick, setCardTick] = useState(0);
   useEffect(() => {
     if (stylesTab !== "words") return;
@@ -343,7 +343,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [exports, setExports] = useState<{ fmt: string; url?: string; status: string; error?: string }[]>([]);
   const [expRes, setExpRes] = useState("auto");   // export resolution: auto|1080|720|480
   const [nleOpen, setNleOpen] = useState(false);  // "Export for Editor" section collapsed by default
-  const [expOpen, setExpOpen] = useState(false);  // right-side export panel (HyproAI-style)
+  const [expOpen, setExpOpen] = useState(false);  // right-side export panel (polished-style)
   const [expJob, setExpJob] = useState<{ fmt: string; status: "rendering" | "ready" | "error"; pct: number; url?: string; downloadUrl?: string; error?: string; open: boolean } | null>(null);
   const progRef = useRef<number | undefined>(undefined);
   const [rail, setRail] = useState<"uploads" | "captions" | "texts" | "images" | "broll" | "tools" | "retake" | "zoom" | "filters" | "canvas" | "export">("captions");
@@ -478,7 +478,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
       api.listExports(projectId).then((l) => setUpExports(l as any)).catch(() => {});
     }
   }, [rail, upTab, projectId]);
-  // --- timeline clip segmentation (HyproAI-style split/delete on the video track) ---
+  // --- timeline clip segmentation (polished-style split/delete on the video track) ---
   const [videoCuts, setVideoCuts] = useState<number[]>(() => {
     try { return JSON.parse(localStorage.getItem("ceyonai:vcuts:" + projectId) || "[]"); } catch { return []; }
   });
@@ -1204,7 +1204,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   function patchLayerLocal(id: string, patch: Partial<FilterLayer>) {
     setFilterLayers((prev) => prev.map((l) => l.id === id ? { ...l, ...patch } : l));
   }
-  // Tap a grade card -> drop a filter clip on the timeline (HyproAI-style).
+  // Tap a grade card -> drop a filter clip on the timeline (polished-style).
   async function addFilterClip(name: string) {
     let start = Math.round(curMs);
     let end = start + 3000;

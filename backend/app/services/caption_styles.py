@@ -268,7 +268,7 @@ def _karaoke_text(text: str, dur_ms: int, emph: str = "", accent: str = "", prim
         used += share
         if _wmatch(w, emph):
             # Big word: the emphasised word scales up and pops as it is spoken,
-            # matching HyproAI's animated "big word". Scale + colour for its span,
+            # matching the reference's animated "big word". Scale + colour for its span,
             # then reset scale/colour for the trailing space.
             o_open = "{\\kf" + str(share) + "\\fscx118\\fscy118" + ("\\blur3" if big_glow else "") + o_extra + "}"
             close = "{\\fscx100\\fscy100" + ("\\blur0" if big_glow else "") + c_extra + "} "
@@ -610,7 +610,7 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
     base_alpha = _alpha_hex(op) or "00"
     alpha_tag = ("{\\alpha&H%s&}" % base_alpha) if (op is not None and base_alpha != "00") else ""
     layer = 1 if (st.get("layer") == "front") else 0
-    # HyproAI-parity extras: alignment / italic / underline / background box / emphasized word
+    # feature-parity extras: alignment / italic / underline / background box / emphasized word
     italic = 1 if st.get("italic") else 0
     underline = 1 if st.get("underline") else 0
     alignment = {"left": 1, "center": 2, "right": 3}.get(st.get("align") or "center", 2)
@@ -646,7 +646,7 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
         _word_ov = _word_ovs.get(_cidx) or {}
         # Per-caption preset override: a caption may carry its own "style" preset,
         # swapping font / size / colours / outline / shadow / animation for just
-        # that line (HyproAI's "preset for this caption"); absent -> the video preset.
+        # that line (the reference's "preset for this caption"); absent -> the video preset.
         _ov_style = _cap_ov.get("style")
         _use_pre = bool(_ov_style) and _ov_style in PRESETS and _ov_style != style
         if _use_pre:

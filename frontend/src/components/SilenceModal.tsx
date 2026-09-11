@@ -16,7 +16,7 @@ function secs(ms: number) {
   return s < 60 ? `${s.toFixed(1)}s` : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 }
 
-// HyproAI-style "Auto Remove Silence" modal: detect by AI (caption timings) or by a
+// polished-style "Auto Remove Silence" modal: detect by AI (caption timings) or by a
 // manual dB threshold, preview the cuts on a waveform, keep/remove each, then apply.
 export function SilenceModal({ projectId, durationMs, onSeek, onClose, onApplied }: Props) {
   const [phase, setPhase] = useState<"idle" | "detecting" | "results">("idle");

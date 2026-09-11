@@ -1,4 +1,4 @@
-"""Auto Zoom: HyproAI-style punch-in zooms.
+"""Auto Zoom: polished-style punch-in zooms.
 
 Each zoom is stored as an Edit row (type="zoom") with payload:
     start_ms, end_ms      window on the ORIGINAL timeline
