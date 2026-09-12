@@ -2411,7 +2411,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                       <div className="np-label" style={{ marginTop: 16 }}>Background box</div>
                       <div className="ed-swatches">
                         <span className={"ed-swatch ed-swatch-none" + (!o.bg ? " active" : "")} onClick={() => saveOverlay(o.id, { bg: "" })} title="None">/</span>
-                        {["#000000", "#ffffff", "#c6ff3a", "#ef4444"].map((c) => (
+                        {["#000000", "#ffffff", "#22d3ee", "#ef4444"].map((c) => (
                           <span key={c} className={"ed-swatch" + ((o.bg || "").toLowerCase() === c ? " active" : "")}
                             style={{ background: c }} onClick={() => saveOverlay(o.id, { bg: c })} />
                         ))}

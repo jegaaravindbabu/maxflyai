@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { IPlayFillLg, IEdit, IType, ICopy, IDownload, ICaption, ITrash, IGridLg } from "../components/icons";
+import { IPlayFillLg, IEdit, IType, ICopy, IDownload, ICaption, ITrash, IGridLg, IFilm } from "../components/icons";
 import { api } from "../api/client";
 import type { Project } from "../types";
 import { useAuth } from "../auth/AuthContext";
@@ -128,13 +128,25 @@ export function HomePage({ onNewProject }: { onNewProject: () => void }) {
 
   return (
     <div className="main-inner">
-      <div className="hero">
-        <div>
-          <div className="plan-tag">{plan.toUpperCase()} PLAN</div>
-          <h1>{greeting()}, <em>{name}</em></h1>
-          <p>Create AI-powered captions & subtitles for your videos in seconds</p>
-        </div>
-        <button className="big-btn" onClick={onNewProject}>+ New Project</button>
+      <div className="dash-head">
+        <span className="dash-pill">◆ {plan.toUpperCase()} PLAN</span>
+        <h1 className="dash-greet">{greeting()}, <em>{name}</em></h1>
+        <p className="dash-sub">Turn raw footage into a finished, captioned reel — pick up where you left off, or start something new.</p>
+      </div>
+
+      <div className="quick-row">
+        <button className="quick-card primary" onClick={onNewProject}>
+          <span className="qc-ic">{IPlayFillLg}</span>
+          <span className="qc-txt"><b>New project</b><small>Upload a clip &amp; auto-edit</small></span>
+        </button>
+        <a className="quick-card" href="#/media">
+          <span className="qc-ic">{IFilm}</span>
+          <span className="qc-txt"><b>Media library</b><small>Your uploaded footage</small></span>
+        </a>
+        <a className="quick-card" href="#/projects">
+          <span className="qc-ic">{IGridLg}</span>
+          <span className="qc-txt"><b>All projects</b><small>Everything you’ve made</small></span>
+        </a>
       </div>
 
       <div className="section-head">

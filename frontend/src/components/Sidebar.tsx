@@ -33,6 +33,7 @@ export function Sidebar({ route, onNewProject }: Props) {
       <button className="sb-new" onClick={onNewProject}><span>+ New Project</span></button>
       <div className="sb-promo">🎁 Have an influencer code?</div>
 
+      <div className="sb-navlbl">Menu</div>
       <nav className="sb-nav">
         {NAV.map((n) => (
           <a key={n.id} href={n.id}
