@@ -3,9 +3,9 @@ import { IPlayFill } from "../components/icons";
 import { supabase } from "./supabase";
 
 const FEATURES = [
-  { ic: "⚡", title: "Lightning Fast", sub: "Generate subtitles in seconds with AI" },
-  { ic: "🌐", title: "Multi-Language", sub: "Support for Tamil, Thanglish & English" },
-  { ic: "🎨", title: "Custom Styling", sub: "Beautiful presets & animations" },
+  { ic: "💬", title: "Captions in your language", sub: "Tamil, Thanglish & 10 more — spelled right and animated" },
+  { ic: "⚡", title: "Edits itself", sub: "Silence cuts, retakes & auto-zoom, all automatic" },
+  { ic: "📤", title: "Post-ready exports", sub: "9:16, 1:1 or 16:9 — sized for Reels, Shorts & YouTube" },
 ];
 
 export function LoginPage() {
@@ -65,9 +65,11 @@ export function LoginPage() {
           <span className="auth-logo-mark">{IPlayFill}{IPlayFill}</span>
           <span className="auth-wordmark">ceyon<span>ai</span></span>
         </div>
+        <span className="auth-pill">◆ AI video editor · built in India</span>
         <p className="auth-tagline">
-          Transform your videos with AI-powered subtitle generation.
-          Fast, accurate, and beautifully styled.
+          Raw footage in, finished reel out — captions, silence cuts, retakes
+          and zooms handled for you, in Tamil, Thanglish and every Indian
+          language your audience actually speaks.
         </p>
         <div className="auth-feats">
           {FEATURES.map((f) => (
