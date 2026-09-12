@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 
 # ffmpeg for all media ops + fontconfig for caption fonts
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg fontconfig curl fonts-dejavu-core \
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg fontconfig curl fonts-dejavu-core fonts-noto-core \
     && rm -rf /var/lib/apt/lists/*
 
 # Display fonts for caption styles (burned into exports via libass).

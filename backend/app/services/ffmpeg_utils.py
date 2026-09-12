@@ -381,7 +381,7 @@ def render_mp4(video_src: str, ass_path: str, out_path: str, width: int,
     cmd += [*_VENC, "-movflags", "+faststart", out_path]
     cp = _run(cmd)
     if cp.returncode != 0:
-        raise RuntimeError(f"render_mp4 failed: {cp.stderr[-400:]}")
+        raise RuntimeError(f"render_mp4 failed (rc={cp.returncode}): {cp.stderr[-1500:]}")
     return out_path
 
 
