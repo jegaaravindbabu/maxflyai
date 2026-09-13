@@ -207,6 +207,12 @@ export const api = {
   async deleteBroll(id: string, brollId: string) {
     return j<any>(await afetch(`${BASE}/api/hub/${id}/brolls/${brollId}`, { method: "DELETE" }));
   },
+  async duplicateClip(id: string, start_ms: number, end_ms: number, at_ms: number) {
+    return j<BrollClip>(await afetch(`${BASE}/api/hub/${id}/duplicate-clip`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ start_ms, end_ms, at_ms }),
+    }));
+  },
 
   async stockSearch(q: string) {
     return j<{ results: { id: string; thumb: string; url: string; alt: string }[] }>(

@@ -237,6 +237,24 @@ def _atempo_chain(speed: float) -> str:
     return ",".join(parts)
 
 
+def trim_clip(media_path: str, out_path: str, start_ms: int, end_ms: int) -> str:
+    """Cut [start_ms, end_ms] from media into a clean standalone clip (re-encoded,
+    frame-accurate). Used by Duplicate to copy a segment that is then overlaid on
+    its own video track."""
+    a = max(0, int(start_ms)) / 1000.0
+    b = max(int(start_ms) + 200, int(end_ms)) / 1000.0
+    cp = _run([
+        "ffmpeg", "-y", "-loglevel", "error", "-i", media_path,
+        "-ss", f"{a:.3f}", "-to", f"{b:.3f}",
+        "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p",
+        *_VENC, "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart",
+        out_path,
+    ])
+    if cp.returncode != 0:
+        raise RuntimeError(f"trim_clip failed: {cp.stderr[-800:]}")
+    return out_path
+
+
 def speed_video(src: str, out_path: str, speed: float) -> str:
     """Re-time the whole clip by `speed` (video setpts + audio atempo)."""
     sp = max(0.1, float(speed))

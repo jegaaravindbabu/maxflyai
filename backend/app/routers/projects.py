@@ -8,6 +8,7 @@ from app.models import Project, Segment, Transcript, CaptionCue, Job, TextOverla
 from app.schemas import ProjectOut, ProjectDetail, SegmentOut, CueOut, OverlayOut, OverlayIn, OverlayPatch, ImageOut, ImagePatch, BrollOut, BrollPatch
 from app.services.auth import current_user, is_admin
 from app.services.storage import storage
+from app.services import ffmpeg_utils
 import os, tempfile, subprocess, base64
 import httpx
 
@@ -392,6 +393,45 @@ def delete_broll(project_id: str, broll_id: str, db: Session = Depends(get_db),
     db.delete(b)
     db.commit()
     return {"ok": True}
+
+
+class DuplicateClipIn(BaseModel):
+    start_ms: int = 0
+    end_ms: int = 0
+    at_ms: int | None = None
+
+
+@router.post("/{project_id}/duplicate-clip", response_model=BrollOut)
+def duplicate_clip(project_id: str, body: DuplicateClipIn, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    """Duplicate a slice of the main video as a standalone clip placed on its own
+    video (B-roll) track, so it overlays the main video for its span and can be
+    dragged along the timeline. Mirrors HyproAI's 'duplicate to a new track'."""
+    proj = db.get(Project, project_id)
+    if proj is None or not proj.source_media_url:
+        raise HTTPException(404, "project media not found")
+    s0 = max(0, int(body.start_ms)); e0 = int(body.end_ms)
+    if e0 <= s0 + 100:
+        raise HTTPException(400, "invalid clip range")
+    try:
+        src = storage.path(proj.source_media_url)
+    except Exception:
+        raise HTTPException(404, "source media unavailable")
+    fd, tmp = tempfile.mkstemp(suffix=".mp4")
+    os.close(fd)
+    try:
+        ffmpeg_utils.trim_clip(src, tmp, s0, e0)
+        key = storage.save_upload(tmp, "duplicate.mp4")
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+    at = int(body.at_ms) if body.at_ms is not None else s0
+    length = e0 - s0
+    n = db.query(BrollClip).filter(BrollClip.project_id == project_id).count()
+    b = BrollClip(project_id=project_id, idx=n, video_url=key,
+                  start_ms=at, end_ms=at + length, x_pct=0.0, y_pct=0.0, size_pct=100.0)
+    db.add(b); db.commit(); db.refresh(b)
+    return _broll_out(b)
 
 
 class ImageFromUrlIn(BaseModel):

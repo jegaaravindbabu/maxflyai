@@ -852,23 +852,21 @@ export function EditorPage({ projectId }: { projectId: string }) {
     setSelSeg(null);
     toast("Clip split at " + fmtT(at));
   }
-  function dupSeg(seg: number) {
+  async function dupSeg(seg: number) {
     const s0 = Math.round(segBounds[seg]), e0 = Math.round(segBounds[seg + 1]);
     if (!(e0 > s0)) return;
     if (cutEdits.some((c) => c.start_ms <= s0 + 60 && c.end_ms >= e0 - 60)) {
       toast("Restore this clip before duplicating it"); return;
     }
-    api.addEdit(projectId, "dup_span", { start_ms: s0, end_ms: e0, source: "timeline" })
-      .then((r) => {
-        setSelSeg(seg);
-        setDupEdits((p) => {
-          const next = [...p, { id: r.id, start_ms: s0, end_ms: e0 }];
-          const n = 1 + next.filter((d) => d.start_ms >= s0 - 60 && d.end_ms <= e0 + 60).length;
-          toast("Clip duplicated — copy \u00d7" + n + " added; it plays in the preview and export");
-          return next;
-        });
-      })
-      .catch(() => toast("Couldn't duplicate the clip — try again"));
+    toast("Duplicating clip\u2026");
+    try {
+      const b = await api.duplicateClip(projectId, s0, e0, s0);
+      setBrolls((prev) => [...prev, b]);
+      setSelSeg(null); setSelBroll(b.id); setSelOv(null); setSelImg(null); setRail("broll");
+      toast("Clip duplicated onto the Videos track \u2014 drag it along the timeline to place the copy");
+    } catch {
+      toast("Couldn't duplicate the clip \u2014 try again");
+    }
   }
   function duplicateAction() {
     if (selSeg != null) { dupSeg(selSeg); return; }
