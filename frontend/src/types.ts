@@ -70,6 +70,12 @@ export interface BrollClip {
   y_pct: number;
   size_pct: number;
   track?: number;
+  opacity?: number;
+  round_pct?: number;
+  crop_t?: number;
+  crop_r?: number;
+  crop_b?: number;
+  crop_l?: number;
 }
 
 export interface ProjectDetail extends Project {

@@ -299,6 +299,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [selBroll, setSelBroll] = useState<string | null>(null);
   const [brollBusy, setBrollBusy] = useState(false);
   const brollInputRef = useRef<HTMLInputElement>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+  const [clipCropOpen, setClipCropOpen] = useState(false);
   const brollsRef = useRef<BrollClip[]>([]);
   brollsRef.current = brolls;
   const filterLayersRef = useRef<FilterLayer[]>([]);
@@ -884,7 +886,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
     try {
       const b = await api.duplicateClip(projectId, s0, e0, s0);
       setBrolls((prev) => [...prev, b]);
-      setSelSeg(null); setSelBroll(b.id); setSelOv(null); setSelImg(null); setRail("broll");
+      setSelSeg(null); setSelBroll(b.id); setSelOv(null); setSelImg(null); setRail("broll"); setTopTab("video");
       toast("Clip duplicated onto a new video track \u2014 drag it along the timeline or to another track");
     } catch {
       toast("Couldn't duplicate the clip \u2014 try again");
@@ -1479,6 +1481,18 @@ export function EditorPage({ projectId }: { projectId: string }) {
   function patchBrollLocal(id: string, patch: Partial<BrollClip>) {
     setBrolls((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
   }
+  function saveBrollFx(patch: Partial<BrollClip>) {
+    if (!selBroll) return;
+    patchBrollLocal(selBroll, patch);
+    api.updateBroll(projectId, selBroll, patch).catch(() => {});
+  }
+  async function onReplaceFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]; (e.target as HTMLInputElement).value = "";
+    if (!f || !selBroll) return;
+    toast("Replacing clip\u2026");
+    try { const nb = await api.replaceBroll(projectId, selBroll, f); setBrolls((prev) => prev.map((x) => (x.id === nb.id ? nb : x))); toast("Clip replaced"); }
+    catch { toast("Couldn't replace the clip"); }
+  }
   async function saveBroll(id: string, patch: Partial<BrollClip>) {
     patchBrollLocal(id, patch);
     try { await api.updateBroll(projectId, id, patch); } catch {}
@@ -1962,6 +1976,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   ))}
                 </div>
               )}
+              <input ref={replaceInputRef} type="file" accept="video/*" hidden onChange={onReplaceFile} />
               <input ref={brollInputRef} type="file" accept="video/*" hidden
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadBroll(f); e.currentTarget.value = ""; }} />
               <button style={{ width: "100%" }} onClick={pickBroll} disabled={brollBusy}>
@@ -2394,7 +2409,10 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   (b.size_pct ?? 100) >= 90 ? (
                     <video key={b.id} src={b.video_url} muted autoPlay loop playsInline draggable={false}
                       className={"ed-broll-fill" + (selBroll === b.id ? " sel" : "")}
-                      onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setSelOv(null); setRail("broll"); }} />
+                      style={{ opacity: (b.opacity ?? 100) / 100,
+                        borderRadius: b.round_pct ? (b.round_pct / 2) + "%" : undefined,
+                        clipPath: (b.crop_t || b.crop_r || b.crop_b || b.crop_l) ? `inset(${b.crop_t || 0}% ${b.crop_r || 0}% ${b.crop_b || 0}% ${b.crop_l || 0}%)` : undefined }}
+                      onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setSelOv(null); setRail("broll"); setTopTab("video"); }} />
                   ) : (
                     <video key={b.id} src={b.video_url} muted autoPlay loop playsInline draggable={false}
                       className={"ed-imgovl" + (selBroll === b.id ? " sel" : "")}
@@ -2639,7 +2657,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             </>
           )}
 
-          {(topTab === "video" || topTab === "audio") && !clipSelected && (
+          {(topTab === "video" || topTab === "audio") && !clipSelected && !selBroll && (
             <div className="ed-rt-body ed-noitem">
               <div className="ed-noitem-ic" aria-hidden>
                 <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="14" rx="2" /><path d="m10 9 5 3-5 3z" /></svg>
@@ -2650,7 +2668,42 @@ export function EditorPage({ projectId }: { projectId: string }) {
               </div>
             </div>
           )}
-          {topTab === "video" && clipSelected && (
+          {topTab === "video" && selBroll && (() => {
+            const bc = brolls.find((b) => b.id === selBroll);
+            if (!bc) return null;
+            return (
+            <div className="ed-rt-body ed-vfx">
+              <div className="ed-anim-lbl">CLIP</div>
+              <button className="ed-vfx-crop" onClick={() => replaceInputRef.current?.click()}>{IcFilm2} Replace clip\u2026</button>
+              <div className="ed-anim-lbl" style={{ marginTop: 18 }}>LOOK</div>
+              <div className="ed-cs-slider">
+                <div className="ed-cs-slabel"><span>Opacity</span><span>{bc.opacity ?? 100}</span></div>
+                <input type="range" min={0} max={100} step={1} value={bc.opacity ?? 100}
+                  onChange={(e) => saveBrollFx({ opacity: +e.target.value })} />
+              </div>
+              <div className="ed-cs-slider">
+                <div className="ed-cs-slabel"><span>Rounded corners</span><span>{bc.round_pct ?? 0}</span></div>
+                <input type="range" min={0} max={100} step={1} value={bc.round_pct ?? 0}
+                  onChange={(e) => saveBrollFx({ round_pct: +e.target.value })} />
+                <div className="ed-cs-slabel" style={{ color: "var(--muted)" }}><span>% of the clip's shorter side</span></div>
+              </div>
+              <button className="ed-vfx-crop" onClick={() => setClipCropOpen((v) => !v)}>{IcCrop} Crop this clip\u2026</button>
+              {clipCropOpen && (
+                <div className="ed-vfx-cropbox">
+                  {([["crop_t", "Top"], ["crop_r", "Right"], ["crop_b", "Bottom"], ["crop_l", "Left"]] as [keyof BrollClip, string][]).map(([k, l]) => (
+                    <div className="ed-cs-slider" key={k as string}>
+                      <div className="ed-cs-slabel"><span>{l}</span><span>{(bc[k] as number) ?? 0}%</span></div>
+                      <input type="range" min={0} max={45} step={1} value={(bc[k] as number) ?? 0}
+                        onChange={(e) => saveBrollFx({ [k]: +e.target.value } as Partial<BrollClip>)} />
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button className="secondary" style={{ width: "100%", marginTop: 16 }} onClick={() => delBroll(selBroll)}>{IcTrash} Delete clip</button>
+            </div>
+            );
+          })()}
+          {topTab === "video" && clipSelected && !selBroll && (
             <div className="ed-rt-body ed-vfx">
               <div className="ed-anim-lbl">PLAYBACK</div>
               <div className="ed-cs-slider">
@@ -3518,7 +3571,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                     style={{ left: `${(sToP(b.start_ms) / projDur) * 100}%`, width: `${Math.max(((sToP(b.end_ms) - sToP(b.start_ms)) / projDur) * 100, 2)}%` }}
                     title="Drag to move \u00b7 drag the edges to trim \u00b7 drag up/down to change track"
                     onMouseDown={(e) => startBrollClip(e, b, "move")}
-                    onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setSelOv(null); setSelImg(null); setRail("broll"); }}>
+                    onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setSelOv(null); setSelImg(null); setRail("broll"); setTopTab("video"); }}>
                     <Filmstrip src={b.video_url} count={4} />
                     <span className="ed-clip-h l" onMouseDown={(e) => startBrollClip(e, b, "left")} />
                     <span className="ed-vthumb-lb">{IcFilm2} {fmtT(b.end_ms - b.start_ms)}</span>

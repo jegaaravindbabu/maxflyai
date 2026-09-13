@@ -133,6 +133,12 @@ class BrollOut(BaseModel):
     y_pct: float = 0.0
     size_pct: float = 100.0
     track: int = 1
+    opacity: int = 100
+    round_pct: int = 0
+    crop_t: int = 0
+    crop_r: int = 0
+    crop_b: int = 0
+    crop_l: int = 0
 
     class Config:
         from_attributes = True
@@ -145,6 +151,12 @@ class BrollPatch(BaseModel):
     y_pct: float | None = None
     size_pct: float | None = None
     track: int | None = None
+    opacity: int | None = None
+    round_pct: int | None = None
+    crop_t: int | None = None
+    crop_r: int | None = None
+    crop_b: int | None = None
+    crop_l: int | None = None
 
 
 class ProjectDetail(ProjectOut):

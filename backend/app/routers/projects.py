@@ -66,9 +66,7 @@ def _build_project_detail(project_id: str, db: Session) -> ProjectDetail:
                               y_pct=i.y_pct, size_pct=i.size_pct) for i in imgs]
     brolls = (db.query(BrollClip).filter(BrollClip.project_id == project_id)
                 .order_by(BrollClip.idx).all())
-    detail.brolls = [BrollOut(id=b.id, idx=b.idx, track=getattr(b, "track", 1) or 1, video_url=storage.url(b.video_url),
-                              start_ms=b.start_ms, end_ms=b.end_ms, x_pct=b.x_pct,
-                              y_pct=b.y_pct, size_pct=b.size_pct) for b in brolls]
+    detail.brolls = [_broll_out(b) for b in brolls]
     if transcript:
         detail.language_code = transcript.language_code
         detail.mode = transcript.mode
@@ -334,7 +332,10 @@ def delete_image(project_id: str, image_id: str, db: Session = Depends(get_db),
 def _broll_out(b: BrollClip) -> BrollOut:
     return BrollOut(id=b.id, idx=b.idx, video_url=storage.url(b.video_url),
                     start_ms=b.start_ms, end_ms=b.end_ms, x_pct=b.x_pct,
-                    y_pct=b.y_pct, size_pct=b.size_pct, track=getattr(b, "track", 1) or 1)
+                    y_pct=b.y_pct, size_pct=b.size_pct, track=getattr(b, "track", 1) or 1,
+                    opacity=getattr(b, "opacity", 100), round_pct=getattr(b, "round_pct", 0),
+                    crop_t=getattr(b, "crop_t", 0), crop_r=getattr(b, "crop_r", 0),
+                    crop_b=getattr(b, "crop_b", 0), crop_l=getattr(b, "crop_l", 0))
 
 
 @router.get("/{project_id}/brolls", response_model=list[BrollOut])
@@ -381,6 +382,29 @@ def update_broll(project_id: str, broll_id: str, body: BrollPatch,
         setattr(b, field, val)
     db.commit()
     db.refresh(b)
+    return _broll_out(b)
+
+
+@router.post("/{project_id}/brolls/{broll_id}/replace", response_model=BrollOut)
+async def replace_broll(project_id: str, broll_id: str, file: UploadFile = File(...),
+    db: Session = Depends(get_db), _owner: Project = Depends(owned_project)):
+    """Swap a video clip's source footage, keeping its timeline position/effects."""
+    b = (db.query(BrollClip)
+           .filter(BrollClip.project_id == project_id, BrollClip.id == broll_id).first())
+    if b is None:
+        raise HTTPException(404, "clip not found")
+    suffix = os.path.splitext(file.filename or "")[1] or ".mp4"
+    fd, tmp = tempfile.mkstemp(suffix=suffix)
+    with os.fdopen(fd, "wb") as f:
+        while chunk := await file.read(1024 * 1024):
+            f.write(chunk)
+    try:
+        key = storage.save_upload(tmp, file.filename or "clip" + suffix)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+    b.video_url = key
+    db.commit(); db.refresh(b)
     return _broll_out(b)
 
 

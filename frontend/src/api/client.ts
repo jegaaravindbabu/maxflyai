@@ -204,6 +204,11 @@ export const api = {
       body: JSON.stringify(body),
     }));
   },
+  async replaceBroll(id: string, brollId: string, file: File) {
+    const fd = new FormData();
+    fd.append("file", file);
+    return j<BrollClip>(await afetch(`${BASE}/api/hub/${id}/brolls/${brollId}/replace`, { method: "POST", body: fd }));
+  },
   async deleteBroll(id: string, brollId: string) {
     return j<any>(await afetch(`${BASE}/api/hub/${id}/brolls/${brollId}`, { method: "DELETE" }));
   },

@@ -309,6 +309,16 @@ def audio_enhance_filter(arnndn_model: str | None = None, strength: int = 50) ->
     return ",".join(stages)
 
 
+def _rounded_alpha(W: int, H: int, r: int) -> str:
+    """geq filter that sets a rounded-rectangle alpha mask on a WxH yuva frame."""
+    cx, cy = f"{W}/2", f"{H}/2"
+    inx, iny = f"{W}/2-{r}", f"{H}/2-{r}"
+    corner = (f"gt(abs(X-{cx}),{inx})*gt(abs(Y-{cy}),{iny})")
+    dist = f"hypot(abs(X-{cx})-({inx}),abs(Y-{cy})-({iny}))"
+    a = f"if({corner}, if(lte({dist},{r}),255,0), 255)"
+    return f"geq=lum='lum(X,Y)':cb='cb(X,Y)':cr='cr(X,Y)':a='{a}'"
+
+
 def render_mp4(video_src: str, ass_path: str, out_path: str, width: int,
                height: int | None = None,
                vfilters: list[str] | None = None,
@@ -369,12 +379,27 @@ def render_mp4(video_src: str, ass_path: str, out_path: str, width: int,
         s = max(0, int(br.get("start_ms", 0))) / 1000.0
         e = max(0, int(br.get("end_ms", 3000))) / 1000.0
         if size >= 90 and height:
-            # full-frame B-roll: scale to cover the frame, crop, overlay for its span
+            # full-frame B-roll / duplicate: crop (inset) -> cover -> rounded -> opacity
             W, H = int(width), int(height)
-            parts.append(
-                f"[{in_idx}:v]setpts=PTS-STARTPTS+{s:.3f}/TB,"
-                f"scale={W}:{H}:force_original_aspect_ratio=increase,"
-                f"crop={W}:{H}[bv{j}]")
+            L = max(0.0, float(br.get("crop_l", 0))) / 100.0
+            R = max(0.0, float(br.get("crop_r", 0))) / 100.0
+            T = max(0.0, float(br.get("crop_t", 0))) / 100.0
+            Bt = max(0.0, float(br.get("crop_b", 0))) / 100.0
+            op = max(0, min(100, int(br.get("opacity", 100) or 100)))
+            rp = max(0, min(100, int(br.get("round_pct", 0) or 0)))
+            ch = [f"setpts=PTS-STARTPTS+{s:.3f}/TB"]
+            if (L + R) < 0.95 and (T + Bt) < 0.95 and (L or R or T or Bt):
+                ch.append(f"crop=iw*{1 - L - R:.4f}:ih*{1 - T - Bt:.4f}:iw*{L:.4f}:ih*{T:.4f}")
+            ch.append(f"scale={W}:{H}:force_original_aspect_ratio=increase")
+            ch.append(f"crop={W}:{H}")
+            if rp > 0 or op < 100:
+                ch.append("format=yuva420p")
+                if rp > 0:
+                    rr = max(1, int(round(rp / 100.0 * min(W, H) / 2)))
+                    ch.append(_rounded_alpha(W, H, rr))
+                if op < 100:
+                    ch.append(f"colorchannelmixer=aa={op / 100.0:.3f}")
+            parts.append(f"[{in_idx}:v]" + ",".join(ch) + f"[bv{j}]")
             parts.append(
                 f"[{cur}][bv{j}]overlay=0:0:"
                 f"enable='between(t,{s:.3f},{e:.3f})'[ovb{j}]")
