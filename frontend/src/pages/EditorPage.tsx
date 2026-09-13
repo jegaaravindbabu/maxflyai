@@ -1519,17 +1519,24 @@ export function EditorPage({ projectId }: { projectId: string }) {
     const startX = e.clientX;
     const s0 = b.start_ms, e0 = b.end_ms;
     const MIN = 300;
+    // snap to 0 / end / playhead / other clip edges for a precise, smooth feel
+    const snapPts = [0, dur, curMs, ...brollsRef.current.filter((v) => v.id !== b.id).flatMap((v) => [v.start_ms, v.end_ms])];
+    const snapTol = (10 / rect.width) * projDur;
+    const snap = (v: number) => { for (const p of snapPts) if (Math.abs(v - p) < snapTol) return p; return v; };
     const move = (ev: MouseEvent) => {
       const dMs = ((ev.clientX - startX) / rect.width) * projDur;
       let ns = s0, ne = e0;
       if (mode === "move") {
         ns = s0 + dMs; ne = e0 + dMs;
+        const sn = snap(ns);
+        if (sn !== ns) { ne += (sn - ns); ns = sn; }
+        else { const se = snap(ne); if (se !== ne) { ns += (se - ne); ne = se; } }
         if (ns < 0) { ne -= ns; ns = 0; }
         if (ne > dur) { ns -= (ne - dur); ne = dur; }
       } else if (mode === "left") {
-        ns = Math.min(e0 - MIN, Math.max(0, s0 + dMs));
+        ns = snap(Math.min(e0 - MIN, Math.max(0, s0 + dMs)));
       } else {
-        ne = Math.max(s0 + MIN, Math.min(dur, e0 + dMs));
+        ne = snap(Math.max(s0 + MIN, Math.min(dur, e0 + dMs)));
       }
       patchBrollLocal(b.id, { start_ms: Math.round(ns), end_ms: Math.round(ne) });
     };
@@ -3507,7 +3514,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
               <div key={"vlane" + t} data-vtrack={t}
                 className={"ed-lane ed-lane-vtrack" + (isHidden("broll") ? " lane-off" : "") + (isLocked("broll") ? " lane-lock" : "") + (tlFilter === "captions" ? " tl-dim" : "")} onClick={scrub}>
                 {brolls.filter((b) => (b.track || 1) === t).map((b) => (
-                  <div key={b.id} className={"ed-tl-clip ed-vthumb" + (selBroll === b.id ? " sel" : "")}
+                  <div key={b.id} className={"ed-tl-clip ed-vthumb" + (selBroll === b.id ? " sel" : "") + (tlFilter === "videos" ? " tl-pick" : "")}
                     style={{ left: `${(sToP(b.start_ms) / projDur) * 100}%`, width: `${Math.max(((sToP(b.end_ms) - sToP(b.start_ms)) / projDur) * 100, 2)}%` }}
                     title="Drag to move \u00b7 drag the edges to trim \u00b7 drag up/down to change track"
                     onMouseDown={(e) => startBrollClip(e, b, "move")}

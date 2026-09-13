@@ -2427,3 +2427,6 @@ button > svg, a > svg, .pm-item > svg, .rtk-removed > svg, .del > svg, .np-label
 .ed-ph-knob:active { cursor: grabbing; }
 .ed-tl2-ruler { cursor: pointer; }
 body.ed-scrubbing, body.ed-scrubbing * { cursor: ew-resize !important; user-select: none !important; }
+
+/* 'Videos' select highlights all video clips */
+.ed-vthumb.tl-pick { border-color: var(--accent-2); box-shadow: 0 0 0 1px var(--accent-2); }
