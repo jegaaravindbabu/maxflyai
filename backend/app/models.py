@@ -220,6 +220,7 @@ class BrollClip(Base):
     y_pct = Column(Float, nullable=False, default=0.0)
     size_pct = Column(Float, nullable=False, default=100.0)  # width as % of frame width
     track = Column(Integer, nullable=False, default=1)   # video track lane (1..N; higher overlays lower)
+    keep_audio = Column(Boolean, nullable=False, default=False)  # duplicates keep their own audio
     created_at = Column(DateTime(timezone=True), default=_now)
 
     project = relationship("Project", back_populates="brolls")

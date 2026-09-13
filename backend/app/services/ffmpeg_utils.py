@@ -388,15 +388,40 @@ def render_mp4(video_src: str, ass_path: str, out_path: str, width: int,
                 f"enable='between(t,{s:.3f},{e:.3f})'[ovb{j}]")
         cur = f"ovb{j}"
     parts.append(f"[{cur}]subtitles='{safe}'[vout]")
-    filter_complex = ";".join(parts)
 
-    cmd = ["ffmpeg", "-y", *inputs, "-filter_complex", filter_complex,
-           "-map", "[vout]", "-map", "0:a?"]
-    if audio_filter:
-        cmd += ["-af", audio_filter, "-c:a", "aac", "-b:a", "192k"]
+    # ---- audio ----
+    # Clips flagged keep_audio (duplicates) replace the main audio for their span:
+    # mute the base under each such clip, then mix in the clip's own (delayed) audio.
+    audio_clips = [(j, br) for j, br in enumerate(brolls) if br.get("keep_audio")]
+    if audio_clips:
+        chain = []
+        if audio_filter:
+            chain.append(audio_filter)
+        for (_j, br) in audio_clips:
+            s = max(0, int(br.get("start_ms", 0))) / 1000.0
+            e = max(0, int(br.get("end_ms", 3000))) / 1000.0
+            chain.append(f"volume=enable='between(t,{s:.3f},{e:.3f})':volume=0")
+        parts.append("[0:a]" + (",".join(chain) if chain else "anull") + "[abase]")
+        mix = ["[abase]"]
+        for (j, br) in audio_clips:
+            in_idx = base_idx + j
+            s_ms = max(0, int(br.get("start_ms", 0)))
+            parts.append(f"[{in_idx}:a]adelay={s_ms}|{s_ms}[ac{j}]")
+            mix.append(f"[ac{j}]")
+        parts.append("".join(mix) + f"amix=inputs={len(mix)}:duration=first:normalize=0[aout]")
+        filter_complex = ";".join(parts)
+        cmd = ["ffmpeg", "-y", *inputs, "-filter_complex", filter_complex,
+               "-map", "[vout]", "-map", "[aout]", "-c:a", "aac", "-b:a", "192k",
+               *_VENC, "-movflags", "+faststart", out_path]
     else:
-        cmd += ["-c:a", "aac", "-b:a", "192k"]
-    cmd += [*_VENC, "-movflags", "+faststart", out_path]
+        filter_complex = ";".join(parts)
+        cmd = ["ffmpeg", "-y", *inputs, "-filter_complex", filter_complex,
+               "-map", "[vout]", "-map", "0:a?"]
+        if audio_filter:
+            cmd += ["-af", audio_filter, "-c:a", "aac", "-b:a", "192k"]
+        else:
+            cmd += ["-c:a", "aac", "-b:a", "192k"]
+        cmd += [*_VENC, "-movflags", "+faststart", out_path]
     cp = _run(cmd)
     if cp.returncode != 0:
         raise RuntimeError(f"render_mp4 failed (rc={cp.returncode}): {cp.stderr[-1500:]}")

@@ -431,7 +431,7 @@ def duplicate_clip(project_id: str, body: DuplicateClipIn, db: Session = Depends
     n = db.query(BrollClip).filter(BrollClip.project_id == project_id).count()
     maxtrack = db.query(func.max(BrollClip.track)).filter(BrollClip.project_id == project_id).scalar() or 0
     b = BrollClip(project_id=project_id, idx=n, video_url=key, track=int(maxtrack) + 1,
-                  start_ms=at, end_ms=at + length, x_pct=0.0, y_pct=0.0, size_pct=100.0)
+                  start_ms=at, end_ms=at + length, x_pct=0.0, y_pct=0.0, size_pct=100.0, keep_audio=True)
     db.add(b); db.commit(); db.refresh(b)
     return _broll_out(b)
 
