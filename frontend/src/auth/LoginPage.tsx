@@ -2,10 +2,14 @@ import { useState } from "react";
 import { IPlayFill } from "../components/icons";
 import { supabase } from "./supabase";
 
-const FEATURES = [
-  { ic: "💬", title: "Captions in your language", sub: "Tamil, Thanglish & 10 more — spelled right and animated" },
-  { ic: "⚡", title: "Edits itself", sub: "Silence cuts, retakes & auto-zoom, all automatic" },
-  { ic: "📤", title: "Post-ready exports", sub: "9:16, 1:1 or 16:9 — sized for Reels, Shorts & YouTube" },
+// decorative, on-brand: the languages ceyonai captions, drifting in the bg
+const CHIPS = [
+  { t: "தமிழ்", x: "8%", y: "18%", d: "0s" },
+  { t: "Thanglish", x: "78%", y: "12%", d: "1.6s" },
+  { t: "हिंदी", x: "14%", y: "72%", d: "3.1s" },
+  { t: "తెలుగు", x: "84%", y: "66%", d: "2.2s" },
+  { t: "മലയാളം", x: "70%", y: "84%", d: "4.2s" },
+  { t: "ಕನ್ನಡ", x: "22%", y: "40%", d: "5s" },
 ];
 
 export function LoginPage() {
@@ -57,81 +61,77 @@ export function LoginPage() {
   }
 
   const isIn = mode === "in";
+  function switchMode(m: "in" | "up") { setMode(m); setErr(null); setMsg(null); }
 
   return (
-    <div className="auth-split">
-      <div className="auth-left">
-        <div className="auth-logo">
-          <span className="auth-logo-mark">{IPlayFill}{IPlayFill}</span>
-          <span className="auth-wordmark">ceyon<span>ai</span></span>
-        </div>
-        <span className="auth-pill">◆ AI video editor · built in India</span>
-        <p className="auth-tagline">
-          Raw footage in, finished reel out — captions, silence cuts, retakes
-          and zooms handled for you, in Tamil, Thanglish and every Indian
-          language your audience actually speaks.
-        </p>
-        <div className="auth-feats">
-          {FEATURES.map((f) => (
-            <div className="auth-feat" key={f.title}>
-              <span className="auth-feat-ic">{f.ic}</span>
-              <div>
-                <div className="auth-feat-title">{f.title}</div>
-                <div className="auth-feat-sub">{f.sub}</div>
-              </div>
-            </div>
-          ))}
-        </div>
+    <div className="lg-wrap">
+      <div className="lg-bg" aria-hidden="true">
+        <span className="lg-orb lg-o1" />
+        <span className="lg-orb lg-o2" />
+        <span className="lg-orb lg-o3" />
+        <div className="lg-grid" />
+        {CHIPS.map((c) => (
+          <span key={c.t} className="lg-chip" style={{ left: c.x, top: c.y, animationDelay: c.d }}>
+            <i className="lg-chip-dot" />{c.t}
+          </span>
+        ))}
       </div>
 
-      <div className="auth-right">
-        <div className="auth-formcard">
-          <h1 className="auth-welcome">{isIn ? "Welcome Back" : "Create Account"}</h1>
-          <p className="auth-welcome-sub">
-            {isIn ? "Sign in to continue to " : "Sign up to get started with "}
-            <span className="brand-inline">ceyon<span>ai</span></span>
-          </p>
+      <div className="lg-card">
+        <div className="lg-brand">
+          <span className="lg-mark">{IPlayFill}</span>
+          <span className="lg-word">ceyon<span>ai</span></span>
+        </div>
 
-          <button className="auth-google-btn" onClick={google} type="button">
-            <span className="g-ic">G</span> Continue with Google
-          </button>
+        <div className="lg-tabs" data-mode={mode}>
+          <span className="lg-tab-ind" style={{ transform: isIn ? "translateX(0)" : "translateX(100%)" }} />
+          <button type="button" className={"lg-tab" + (isIn ? " on" : "")} onClick={() => switchMode("in")}>Sign in</button>
+          <button type="button" className={"lg-tab" + (!isIn ? " on" : "")} onClick={() => switchMode("up")}>Sign up</button>
+        </div>
 
-          <div className="auth-divider"><span>OR CONTINUE WITH EMAIL</span></div>
+        <h1 className="lg-title">{isIn ? "Welcome back" : "Create your account"}</h1>
+        <p className="lg-sub">
+          {isIn ? "Pick up where you left off." : "Start captioning in minutes —"}{" "}
+          {isIn ? "" : "no card needed."}
+        </p>
 
-          <form onSubmit={submit} className="auth-form2">
-            <label className="auth-label">Email Address</label>
+        <button className="lg-google" onClick={google} type="button">
+          <span className="lg-g">G</span> Continue with Google
+        </button>
+
+        <div className="lg-or"><span>or use your email</span></div>
+
+        <form onSubmit={submit} className="lg-form">
+          <div className="lg-field">
+            <label>Email</label>
             <input type="email" placeholder="you@example.com" value={email} required
               onChange={(e) => setEmail(e.target.value)} />
+          </div>
 
-            <label className="auth-label">Password</label>
-            <input type="password" placeholder="Enter your password" value={password} required
-              minLength={6} onChange={(e) => setPassword(e.target.value)} />
+          <div className="lg-field">
+            <div className="lg-field-top">
+              <label>Password</label>
+              {isIn && (
+                <button type="button" className="lg-forgot" onClick={forgot} disabled={busy}>
+                  Forgot?
+                </button>
+              )}
+            </div>
+            <input type="password" placeholder={isIn ? "Your password" : "At least 6 characters"} value={password}
+              required minLength={6} onChange={(e) => setPassword(e.target.value)} />
+          </div>
 
-            {isIn && (
-              <button type="button" className="auth-forgot linkbtn" onClick={forgot} disabled={busy}>
-                Forgot password?
-              </button>
-            )}
+          <button type="submit" className="lg-submit" disabled={busy}>
+            {busy ? "Please wait…" : isIn ? "Sign in" : "Create account"}
+          </button>
+        </form>
 
-            <button type="submit" className="auth-submit" disabled={busy}>
-              {busy ? "…" : isIn ? "Sign In" : "Sign Up"}
-            </button>
-          </form>
+        {err && <p className="lg-err">{err}</p>}
+        {msg && <p className="lg-msg">{msg}</p>}
 
-          {err && <p className="auth-err">{err}</p>}
-          {msg && <p className="auth-msg">{msg}</p>}
-
-          <p className="auth-switch2">
-            {isIn ? "Don't have an account? " : "Already have an account? "}
-            <button className="linkbtn" onClick={() => { setMode(isIn ? "up" : "in"); setErr(null); setMsg(null); }}>
-              {isIn ? "Sign up" : "Sign in"}
-            </button>
-          </p>
-
-          <p className="auth-terms">
-            By continuing, you agree to our Terms of Service and Privacy Policy
-          </p>
-        </div>
+        <p className="lg-terms">
+          By continuing you agree to our Terms &amp; Privacy Policy.
+        </p>
       </div>
     </div>
   );
