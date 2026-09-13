@@ -219,6 +219,7 @@ class BrollClip(Base):
     x_pct = Column(Float, nullable=False, default=0.0)   # top-left anchor fraction (0-100)
     y_pct = Column(Float, nullable=False, default=0.0)
     size_pct = Column(Float, nullable=False, default=100.0)  # width as % of frame width
+    track = Column(Integer, nullable=False, default=1)   # video track lane (1..N; higher overlays lower)
     created_at = Column(DateTime(timezone=True), default=_now)
 
     project = relationship("Project", back_populates="brolls")

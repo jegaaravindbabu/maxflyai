@@ -811,6 +811,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
   );
   const wordMode = WORD_STYLES.includes(capStyle);
   const mediaSrc = proj.media_url ? (proj.media_url.startsWith("http") ? proj.media_url : api.mediaUrl(proj.media_url)) : "";
+  // Video overlay tracks (highest track number first = top lane), from B-roll/duplicate clips.
+  const videoTracks = brolls.length ? Array.from(new Set(brolls.map((b) => b.track || 1))).sort((a, b2) => b2 - a) : [];
 
   const TLW = Math.max(320, tlBoxW - 2) * tlZoom * (projDur / dur);   // zoom 1 = whole clip fits; grows when clips are duplicated
   const tlStep = projDur <= 20000 ? 2000 : projDur <= 60000 ? 5000 : projDur <= 180000 ? 15000 : 30000;
@@ -852,19 +854,21 @@ export function EditorPage({ projectId }: { projectId: string }) {
     setSelSeg(null);
     toast("Clip split at " + fmtT(at));
   }
-  function dupSeg(seg: number) {
+  async function dupSeg(seg: number) {
     const s0 = Math.round(segBounds[seg]), e0 = Math.round(segBounds[seg + 1]);
     if (!(e0 > s0)) return;
     if (cutEdits.some((c) => c.start_ms <= s0 + 60 && c.end_ms >= e0 - 60)) {
       toast("Restore this clip before duplicating it"); return;
     }
-    api.addEdit(projectId, "dup_span", { start_ms: s0, end_ms: e0, source: "timeline" })
-      .then((r) => {
-        setSelSeg(seg);
-        setDupEdits((p) => [...p, { id: r.id, start_ms: s0, end_ms: e0 }]);
-        toast("Clip duplicated \u2014 the copy is added right after it and the video gets longer");
-      })
-      .catch(() => toast("Couldn't duplicate the clip \u2014 try again"));
+    toast("Duplicating clip\u2026");
+    try {
+      const b = await api.duplicateClip(projectId, s0, e0, s0);
+      setBrolls((prev) => [...prev, b]);
+      setSelSeg(null); setSelBroll(b.id); setSelOv(null); setSelImg(null); setRail("broll");
+      toast("Clip duplicated onto a new video track \u2014 drag it along the timeline or to another track");
+    } catch {
+      toast("Couldn't duplicate the clip \u2014 try again");
+    }
   }
   function duplicateAction() {
     if (selSeg != null) { dupSeg(selSeg); return; }
@@ -1509,11 +1513,20 @@ export function EditorPage({ projectId }: { projectId: string }) {
       }
       patchBrollLocal(b.id, { start_ms: Math.round(ns), end_ms: Math.round(ne) });
     };
-    const up = () => {
+    const up = (ev: MouseEvent) => {
       document.removeEventListener("mousemove", move);
       document.removeEventListener("mouseup", up);
+      let track = b.track || 1;
+      if (mode === "move") {
+        const el = document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null;
+        const laneEl = el && el.closest("[data-vtrack]") as HTMLElement | null;
+        if (laneEl) { const tt = parseInt(laneEl.getAttribute("data-vtrack") || "", 10); if (!isNaN(tt)) track = tt; }
+      }
       const cur = brollsRef.current.find((v) => v.id === b.id);
-      if (cur) api.updateBroll(projectId, b.id, { start_ms: cur.start_ms, end_ms: cur.end_ms }).catch(() => {});
+      if (cur) {
+        if (track !== (cur.track || 1)) patchBrollLocal(b.id, { track });
+        api.updateBroll(projectId, b.id, { start_ms: cur.start_ms, end_ms: cur.end_ms, track }).catch(() => {});
+      }
     };
     document.addEventListener("mousemove", move);
     document.addEventListener("mouseup", up);
@@ -2350,7 +2363,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                       onClick={(e) => { e.stopPropagation(); setSelImg(im.id); setRail("images"); }} />
                   )
                 ))}
-                {!isHidden("broll") && brolls.filter((b) => curMs >= b.start_ms && curMs < b.end_ms).map((b) => (
+                {!isHidden("broll") && [...brolls].sort((a, b) => (a.track || 1) - (b.track || 1)).filter((b) => curMs >= b.start_ms && curMs < b.end_ms).map((b) => (
                   (b.size_pct ?? 100) >= 90 ? (
                     <video key={b.id} src={b.video_url} muted autoPlay loop playsInline draggable={false}
                       className={"ed-broll-fill" + (selBroll === b.id ? " sel" : "")}
@@ -3413,7 +3426,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             {trackHead("captions")}
             {overlays.length > 0 && trackHead("text")}
             {images.length > 0 && trackHead("images")}
-            {brolls.length > 0 && trackHead("broll")}
+            {videoTracks.map((t) => <div key={"vth" + t} style={{ display: "contents" }}>{trackHead("broll")}</div>)}
             {filterLayers.length > 0 && trackHead("filters")}
             {trackHead("media", true)}
           </div>
@@ -3469,21 +3482,23 @@ export function EditorPage({ projectId }: { projectId: string }) {
               </div>
             )}
 
-            {brolls.length > 0 && (
-              <div className={"ed-lane" + (isHidden("broll") ? " lane-off" : "") + (isLocked("broll") ? " lane-lock" : "") + (tlFilter === "captions" ? " tl-dim" : "")} onClick={scrub}>
-                {brolls.map((b) => (
-                  <div key={b.id} className={"ed-tl-block ed-tl-broll ed-tl-clip" + (selBroll === b.id ? " sel" : "")}
-                    style={{ left: `${(sToP(b.start_ms) / projDur) * 100}%`, width: `${Math.max(((sToP(b.end_ms) - sToP(b.start_ms)) / projDur) * 100, 1.2)}%` }}
-                    title="Drag to move · drag the edges to trim"
+            {videoTracks.map((t) => (
+              <div key={"vlane" + t} data-vtrack={t}
+                className={"ed-lane ed-lane-vtrack" + (isHidden("broll") ? " lane-off" : "") + (isLocked("broll") ? " lane-lock" : "") + (tlFilter === "captions" ? " tl-dim" : "")} onClick={scrub}>
+                {brolls.filter((b) => (b.track || 1) === t).map((b) => (
+                  <div key={b.id} className={"ed-tl-clip ed-vthumb" + (selBroll === b.id ? " sel" : "")}
+                    style={{ left: `${(sToP(b.start_ms) / projDur) * 100}%`, width: `${Math.max(((sToP(b.end_ms) - sToP(b.start_ms)) / projDur) * 100, 2)}%` }}
+                    title="Drag to move \u00b7 drag the edges to trim \u00b7 drag up/down to change track"
                     onMouseDown={(e) => startBrollClip(e, b, "move")}
-                    onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setRail("broll"); }}>
+                    onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setSelOv(null); setSelImg(null); setRail("broll"); }}>
+                    <Filmstrip src={b.video_url} count={4} />
                     <span className="ed-clip-h l" onMouseDown={(e) => startBrollClip(e, b, "left")} />
-                    <span className="ed-clip-lb">{IcFilm2} {fmtT(b.end_ms - b.start_ms)}</span>
+                    <span className="ed-vthumb-lb">{IcFilm2} {fmtT(b.end_ms - b.start_ms)}</span>
                     <span className="ed-clip-h r" onMouseDown={(e) => startBrollClip(e, b, "right")} />
                   </div>
                 ))}
               </div>
-            )}
+            ))}
 
             {filterLayers.length > 0 && (
               <div className={"ed-lane" + (isHidden("filters") ? " lane-off" : "") + (isLocked("filters") ? " lane-lock" : "") + (tlFilter === "captions" ? " tl-dim" : "")} onClick={scrub}>

@@ -133,9 +133,9 @@ def _load_images(db, project_id: str) -> list[dict]:
 def _load_brolls(db, project_id: str) -> list[dict]:
     rows = (db.query(BrollClip)
               .filter(BrollClip.project_id == project_id)
-              .order_by(BrollClip.idx).all())
+              .order_by(BrollClip.track, BrollClip.idx).all())
     return [{"video_url": r.video_url, "start_ms": r.start_ms, "end_ms": r.end_ms,
-             "x_pct": r.x_pct, "y_pct": r.y_pct, "size_pct": r.size_pct} for r in rows]
+             "x_pct": r.x_pct, "y_pct": r.y_pct, "size_pct": r.size_pct, "track": r.track} for r in rows]
 
 
 def _load_overlays(db, project_id: str) -> list[dict]:

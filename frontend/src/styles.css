@@ -2408,3 +2408,16 @@ button > svg, a > svg, .pm-item > svg, .rtk-removed > svg, .del > svg, .np-label
 .qc-txt b { font-size: 15px; font-weight: 700; }
 .qc-txt small { color: var(--muted); font-size: 12.5px; }
 @media (max-width: 760px) { .quick-row { grid-template-columns: 1fr; } }
+
+/* multi video-track: duplicate/b-roll clips as filmstrip thumbnails on stacked tracks */
+.ed-lane-vtrack { position: relative; }
+.ed-vthumb { position: absolute; top: 3px; bottom: 3px; box-sizing: border-box; border: 2px solid #2b3550;
+  border-radius: 8px; overflow: hidden; background: #0b1120; cursor: grab; }
+.ed-vthumb:active { cursor: grabbing; }
+.ed-vthumb.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 12px rgba(34,211,238,.3); }
+.ed-vthumb .ed-filmstrip { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ed-vthumb .ed-clip-h { z-index: 3; }
+.ed-vthumb-lb { position: absolute; left: 6px; bottom: 4px; z-index: 2; font-size: 10px; font-weight: 700;
+  color: #fff; background: rgba(0,0,0,.62); border-radius: 5px; padding: 1px 6px; pointer-events: none;
+  display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.ed-vthumb-lb svg { width: 12px; height: 12px; }

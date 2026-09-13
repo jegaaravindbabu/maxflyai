@@ -69,6 +69,7 @@ export interface BrollClip {
   x_pct: number;
   y_pct: number;
   size_pct: number;
+  track?: number;
 }
 
 export interface ProjectDetail extends Project {

@@ -132,6 +132,7 @@ class BrollOut(BaseModel):
     x_pct: float = 0.0
     y_pct: float = 0.0
     size_pct: float = 100.0
+    track: int = 1
 
     class Config:
         from_attributes = True
@@ -143,6 +144,7 @@ class BrollPatch(BaseModel):
     x_pct: float | None = None
     y_pct: float | None = None
     size_pct: float | None = None
+    track: int | None = None
 
 
 class ProjectDetail(ProjectOut):

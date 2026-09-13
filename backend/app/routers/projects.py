@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.database import get_db
 from app.deps import owned_project
@@ -65,7 +66,7 @@ def _build_project_detail(project_id: str, db: Session) -> ProjectDetail:
                               y_pct=i.y_pct, size_pct=i.size_pct) for i in imgs]
     brolls = (db.query(BrollClip).filter(BrollClip.project_id == project_id)
                 .order_by(BrollClip.idx).all())
-    detail.brolls = [BrollOut(id=b.id, idx=b.idx, video_url=storage.url(b.video_url),
+    detail.brolls = [BrollOut(id=b.id, idx=b.idx, track=getattr(b, "track", 1) or 1, video_url=storage.url(b.video_url),
                               start_ms=b.start_ms, end_ms=b.end_ms, x_pct=b.x_pct,
                               y_pct=b.y_pct, size_pct=b.size_pct) for b in brolls]
     if transcript:
@@ -333,7 +334,7 @@ def delete_image(project_id: str, image_id: str, db: Session = Depends(get_db),
 def _broll_out(b: BrollClip) -> BrollOut:
     return BrollOut(id=b.id, idx=b.idx, video_url=storage.url(b.video_url),
                     start_ms=b.start_ms, end_ms=b.end_ms, x_pct=b.x_pct,
-                    y_pct=b.y_pct, size_pct=b.size_pct)
+                    y_pct=b.y_pct, size_pct=b.size_pct, track=getattr(b, "track", 1) or 1)
 
 
 @router.get("/{project_id}/brolls", response_model=list[BrollOut])
@@ -428,7 +429,8 @@ def duplicate_clip(project_id: str, body: DuplicateClipIn, db: Session = Depends
     at = int(body.at_ms) if body.at_ms is not None else s0
     length = e0 - s0
     n = db.query(BrollClip).filter(BrollClip.project_id == project_id).count()
-    b = BrollClip(project_id=project_id, idx=n, video_url=key,
+    maxtrack = db.query(func.max(BrollClip.track)).filter(BrollClip.project_id == project_id).scalar() or 0
+    b = BrollClip(project_id=project_id, idx=n, video_url=key, track=int(maxtrack) + 1,
                   start_ms=at, end_ms=at + length, x_pct=0.0, y_pct=0.0, size_pct=100.0)
     db.add(b); db.commit(); db.refresh(b)
     return _broll_out(b)
