@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { IHome, IGrid, IFilm, ITag, IGear, IPlayFill } from "./icons";
 import { api } from "../api/client";
 import { useAuth, authEnabled } from "../auth/AuthContext";
+import { ReportProblemModal } from "./ReportProblemModal";
 
 interface Props { route: string; onNewProject: () => void; }
 
@@ -15,6 +16,7 @@ const NAV = [
 
 export function Sidebar({ route, onNewProject }: Props) {
   const { email, signOut } = useAuth();
+  const [reportOpen, setReportOpen] = useState(false);
   const [use_, setUse] = useState<{ plan: string; label: string; minutes_used: number;
     minutes_cap: number; storage_gb: number } | null>(null);
 
@@ -45,7 +47,7 @@ export function Sidebar({ route, onNewProject }: Props) {
       <div className="sb-spacer" />
 
       <div className="sb-sub">
-        <a className="sb-item" href="mailto:support@ceyonai.com"><span className="ic">⚑</span><span>Report a Problem</span></a>
+        <a className="sb-item" role="button" style={{ cursor: "pointer" }} onClick={() => setReportOpen(true)}><span className="ic">⚑</span><span>Report a Problem</span></a>
       </div>
 
       <div className="sb-usage">
@@ -68,6 +70,7 @@ export function Sidebar({ route, onNewProject }: Props) {
           <span className="ic">⏏</span><span>Sign out</span>
         </button>
       )}
+      {reportOpen && <ReportProblemModal onClose={() => setReportOpen(false)} />}
     </aside>
   );
 }
