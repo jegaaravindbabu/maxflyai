@@ -852,27 +852,31 @@ export function EditorPage({ projectId }: { projectId: string }) {
     setSelSeg(null);
     toast("Clip split at " + fmtT(at));
   }
-  function duplicateAction() {
-    if (selSeg != null) {
-      const s0 = Math.round(segBounds[selSeg]), e0 = Math.round(segBounds[selSeg + 1]);
-      if (cutEdits.some((c) => c.start_ms <= s0 + 60 && c.end_ms >= e0 - 60)) {
-        toast("Restore this segment before duplicating it"); return;
-      }
-      api.addEdit(projectId, "dup_span", { start_ms: s0, end_ms: e0, source: "timeline" })
-        .then((r) => {
-          setDupEdits((p) => {
-            const next = [...p, { id: r.id, start_ms: s0, end_ms: e0 }];
-            const n = 1 + next.filter((d) => d.start_ms >= s0 - 60 && d.end_ms <= e0 + 60).length;
-            toast("Clip duplicated — copy \u00d7" + n + " added; it plays in the preview and export");
-            return next;
-          });
-        })
-        .catch(() => toast("Couldn't duplicate the segment — try again"));
-      return;
+  function dupSeg(seg: number) {
+    const s0 = Math.round(segBounds[seg]), e0 = Math.round(segBounds[seg + 1]);
+    if (!(e0 > s0)) return;
+    if (cutEdits.some((c) => c.start_ms <= s0 + 60 && c.end_ms >= e0 - 60)) {
+      toast("Restore this clip before duplicating it"); return;
     }
-    const t = targetCueIdx();
-    if (t >= 0) { duplicateCap(t); toast("Caption duplicated"); }
-    else toast("Select a caption or a clip segment to duplicate");
+    api.addEdit(projectId, "dup_span", { start_ms: s0, end_ms: e0, source: "timeline" })
+      .then((r) => {
+        setSelSeg(seg);
+        setDupEdits((p) => {
+          const next = [...p, { id: r.id, start_ms: s0, end_ms: e0 }];
+          const n = 1 + next.filter((d) => d.start_ms >= s0 - 60 && d.end_ms <= e0 + 60).length;
+          toast("Clip duplicated — copy \u00d7" + n + " added; it plays in the preview and export");
+          return next;
+        });
+      })
+      .catch(() => toast("Couldn't duplicate the clip — try again"));
+  }
+  function duplicateAction() {
+    if (selSeg != null) { dupSeg(selSeg); return; }
+    if (selected.size > 0) { duplicateCap([...selected][0]); toast("Caption duplicated"); return; }
+    // nothing explicitly selected -> duplicate the video clip under the playhead (like HyproAI)
+    let seg = segBounds.findIndex((b, i) => i < segBounds.length - 1 && curMs + 1 >= b && curMs < segBounds[i + 1]);
+    if (seg < 0 || seg >= segBounds.length - 1) seg = 0;
+    dupSeg(seg);
   }
   async function removeDup(d: { id: string; start_ms: number; end_ms: number }) {
     try { await api.deleteEdit(projectId, d.id); setDupEdits((p) => p.filter((x) => x.id !== d.id)); toast("Removed one copy"); } catch {}
@@ -3502,41 +3506,61 @@ export function EditorPage({ projectId }: { projectId: string }) {
             )}
 
             <div className={"ed-lane ed-lane-media" + (isHidden("media") ? " lane-off" : "") + (isLocked("media") ? " lane-lock" : "") + (tlFilter === "captions" ? " tl-dim" : "")} onClick={scrub}>
-              <div className="ed-media-clip">
-                <div className="ed-media-name">{proj.source_filename || "video"} · {fmtT(dur)}</div>
-                <Filmstrip src={mediaSrc} count={14} />
-                <div className="ed-media-wave"><Waveform mediaEl={mediaEl} /></div>
-                <div className="ed-seg-layer">
+              {plSpans.length <= 1 ? (
+                <div className="ed-media-clip">
+                  <div className="ed-media-name">{proj.source_filename || "video"} · {fmtT(dur)}</div>
+                  <Filmstrip src={mediaSrc} count={14} />
+                  <div className="ed-media-wave"><Waveform mediaEl={mediaEl} /></div>
+                  <div className="ed-seg-layer">
+                    {plSpans.map((sp, i) => {
+                      const s0 = sp.src0, e0 = sp.src1;
+                      const removed = cutEdits.find((c) => c.start_ms <= s0 + 60 && c.end_ms >= e0 - 60);
+                      return (
+                        <div key={i} className={"ed-seg" + (selSeg === sp.segIdx ? " sel" : "") + (removed ? " removed" : "")}
+                          style={{ left: `${(sp.proj0 / projDur) * 100}%`, width: `${((sp.proj1 - sp.proj0) / projDur) * 100}%` }}
+                          title={removed ? "Removed — cut from the export" : "Click to select this clip, then Duplicate / Split / Delete"}
+                          onClick={(ev) => { ev.stopPropagation(); setSelSeg(selSeg === sp.segIdx ? null : sp.segIdx); setSelected(new Set()); seekProj(sp.proj0 + 40); }}>
+                          {removed && (
+                            <button className="ed-seg-restore" title="Restore this clip"
+                              onClick={(ev) => { ev.stopPropagation(); restoreCut(removed.id); }}>{IcReset} Restore</button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="ed-vclips">
                   {plSpans.map((sp, i) => {
                     const s0 = sp.src0, e0 = sp.src1;
                     const removed = cutEdits.find((c) => c.start_ms <= s0 + 60 && c.end_ms >= e0 - 60);
                     const wpct = ((sp.proj1 - sp.proj0) / projDur) * 100;
                     return (
-                      <div key={i} className={"ed-seg" + (selSeg === sp.segIdx ? " sel" : "") + (removed ? " removed" : "") + (sp.copy ? " ed-seg-copy" : "")}
+                      <div key={i}
+                        className={"ed-vclip" + (selSeg === sp.segIdx ? " sel" : "") + (removed ? " removed" : "") + (sp.copy ? " copy" : "")}
                         style={{ left: `${(sp.proj0 / projDur) * 100}%`, width: `${wpct}%` }}
-                        title={sp.copy ? "Duplicated clip — plays here in the preview and the export" : (removed ? "Removed segment — will be cut from the export" : "Click to select this clip")}
+                        title={sp.copy ? "Duplicated clip — plays in the preview & export" : (removed ? "Removed — cut from the export" : "Click to select; Duplicate copies it, Delete removes it")}
                         onClick={(ev) => { ev.stopPropagation(); setSelSeg(selSeg === sp.segIdx ? null : sp.segIdx); setSelected(new Set()); seekProj(sp.proj0 + 40); }}>
-                        {wpct > 7 && <span className="ed-seg-lb">{sp.copy ? "copy · " : ""}{fmtT(e0 - s0)}</span>}
+                        <Filmstrip src={mediaSrc} count={5} />
+                        {wpct > 6 && <span className="ed-vclip-lb">{sp.copy ? "copy · " : ""}{fmtT(e0 - s0)}</span>}
                         {sp.copy && !removed && (
-                          <button className="ed-seg-dup" title="Remove this duplicate copy"
-                            onClick={(ev) => { ev.stopPropagation(); const mine = dupEdits.filter((d) => d.start_ms >= s0 - 60 && d.end_ms <= e0 + 60); if (mine.length) removeDup(mine[mine.length - 1]); }}>
-                            {"\u00d7"}
-                          </button>
+                          <button className="ed-vclip-x" title="Remove this copy"
+                            onClick={(ev) => { ev.stopPropagation(); const mine = dupEdits.filter((d) => d.start_ms >= s0 - 60 && d.end_ms <= e0 + 60); if (mine.length) removeDup(mine[mine.length - 1]); }}>{"×"}</button>
                         )}
                         {removed && (
-                          <button className="ed-seg-restore" title="Restore this segment"
+                          <button className="ed-seg-restore" title="Restore this clip"
                             onClick={(ev) => { ev.stopPropagation(); restoreCut(removed.id); }}>{IcReset} Restore</button>
                         )}
                       </div>
                     );
                   })}
-                  {videoCuts.map((c2, i) => (
-                    <span key={"cut" + i} className="ed-seg-cutmark" style={{ left: `${(sToP(c2) / projDur) * 100}%` }}
-                      title="Split point — double-click to remove"
-                      onDoubleClick={(ev) => { ev.stopPropagation(); saveVideoCuts(videoCuts.filter((x) => x !== c2)); toast("Split point removed"); }} />
-                  ))}
                 </div>
-              </div>
+              )}
+              {videoCuts.map((c2, i) => (
+                <span key={"cut" + i} className="ed-seg-cutmark" style={{ left: `${(sToP(c2) / projDur) * 100}%` }}
+                  title="Split point — double-click to remove"
+                  onDoubleClick={(ev) => { ev.stopPropagation(); saveVideoCuts(videoCuts.filter((x) => x !== c2)); toast("Split point removed"); }} />
+              ))}
             </div>
           </div>
         </div>

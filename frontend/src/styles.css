@@ -1787,6 +1787,15 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .ed-seg.removed { background: repeating-linear-gradient(45deg, rgba(6,7,10,.62) 0 8px, rgba(40,12,12,.62) 8px 16px); }
 .ed-seg.removed::after { content: "removed"; position: absolute; left: 50%; top: 34%; transform: translate(-50%,-50%);
   font-size: 10px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: #ff9d9d; pointer-events: none; }
+.ed-vclips { position: absolute; inset: 0; }
+.ed-vclip { position: absolute; top: 3px; bottom: 3px; box-sizing: border-box; border: 2px solid #2b3550; border-radius: 8px; overflow: hidden; cursor: pointer; background: #0b1120; }
+.ed-vclip .ed-filmstrip { position: absolute; inset: 0; height: 100%; width: 100%; }
+.ed-vclip.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 12px rgba(34,211,238,.3); }
+.ed-vclip.copy { border-style: dashed; border-color: rgba(124,92,255,.8); }
+.ed-vclip.removed { opacity: .5; }
+.ed-vclip-lb { position: absolute; left: 6px; top: 4px; z-index: 2; font-size: 10px; font-weight: 700; color: #fff; background: rgba(0,0,0,.6); border-radius: 5px; padding: 1px 6px; pointer-events: none; white-space: nowrap; }
+.ed-vclip-x { position: absolute; right: 5px; top: 5px; z-index: 3; width: 20px; height: 20px; border-radius: 6px; border: none; cursor: pointer; background: var(--grad); color: var(--on-accent); font-weight: 800; font-size: 12px; line-height: 1; }
+.ed-vclip-x:hover { filter: brightness(1.08); }
 .ed-seg-copy { background: linear-gradient(100deg, rgba(139,107,255,.22), rgba(34,211,238,.14)); border: 1.5px dashed rgba(124,92,255,.7); border-radius: 8px; }
 .ed-seg-copy:hover { border-color: rgba(34,211,238,.85); }
 .ed-seg-copy .ed-seg-lb { left: 6px; right: auto; color: var(--accent-2); background: rgba(8,16,26,.7); }
