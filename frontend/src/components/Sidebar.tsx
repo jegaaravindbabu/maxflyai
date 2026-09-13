@@ -31,7 +31,6 @@ export function Sidebar({ route, onNewProject }: Props) {
       </div>
 
       <button className="sb-new" onClick={onNewProject}><span>+ New Project</span></button>
-      <div className="sb-promo">🎁 Have an influencer code?</div>
 
       <div className="sb-navlbl">Menu</div>
       <nav className="sb-nav">
@@ -46,7 +45,6 @@ export function Sidebar({ route, onNewProject }: Props) {
       <div className="sb-spacer" />
 
       <div className="sb-sub">
-        <a className="sb-item"><span className="ic">💬</span><span>Assistants</span></a>
         <a className="sb-item" href="mailto:support@ceyonai.com"><span className="ic">⚑</span><span>Report a Problem</span></a>
       </div>
 
