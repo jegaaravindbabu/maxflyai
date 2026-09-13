@@ -127,53 +127,57 @@ export function HomePage({ onNewProject }: { onNewProject: () => void }) {
   const name = email ? email.split("@")[0] : "creator";
 
   return (
-    <div className="main-inner">
-      <div className="dash-head">
-        <span className="dash-pill">◆ {plan.toUpperCase()} PLAN</span>
-        <h1 className="dash-greet">{greeting()}, <em>{name}</em></h1>
-        <p className="dash-sub">Turn raw footage into a finished, captioned reel — pick up where you left off, or start something new.</p>
-      </div>
+    <div className="main-inner hm">
+      <section className="hm-hero">
+        <div className="hm-hero-glow" aria-hidden="true" />
+        <span className="hm-pill">◆ {plan.toUpperCase()} PLAN</span>
+        <h1 className="hm-greet">{greeting()}, <em>{name}</em></h1>
+        <p className="hm-sub">Turn raw footage into a finished, captioned reel — pick up where you left off, or start something new.</p>
+      </section>
 
-      <div className="quick-row">
-        <button className="quick-card primary" onClick={onNewProject}>
-          <span className="qc-ic">{IPlayFillLg}</span>
-          <span className="qc-txt"><b>New project</b><small>Upload a clip &amp; auto-edit</small></span>
+      <section className="hm-bento">
+        <button className="hm-tile hm-tile-lead" onClick={onNewProject}>
+          <span className="hm-tile-ic">{IPlayFillLg}</span>
+          <span className="hm-tile-txt"><b>New project</b><small>Upload a clip &amp; auto-edit</small></span>
+          <span className="hm-tile-go" aria-hidden="true">→</span>
         </button>
-        <a className="quick-card" href="#/media">
-          <span className="qc-ic">{IFilm}</span>
-          <span className="qc-txt"><b>Media library</b><small>Your uploaded footage</small></span>
+        <a className="hm-tile" href="#/media">
+          <span className="hm-tile-ic">{IFilm}</span>
+          <span className="hm-tile-txt"><b>Media library</b><small>Your uploaded footage</small></span>
         </a>
-        <a className="quick-card" href="#/projects">
-          <span className="qc-ic">{IGridLg}</span>
-          <span className="qc-txt"><b>All projects</b><small>Everything you’ve made</small></span>
+        <a className="hm-tile" href="#/projects">
+          <span className="hm-tile-ic">{IGridLg}</span>
+          <span className="hm-tile-txt"><b>All projects</b><small>Everything you’ve made</small></span>
         </a>
-      </div>
+      </section>
 
-      <div className="section-head">
-        <h2 className="section-title">
-          Recent Projects
-          {projects.length > 0 && <span className="section-count">{projects.length}</span>}
-        </h2>
-        <a className="view-all" href="#/projects">View All ›</a>
-      </div>
-      <div className="tabs">
-        {(["Projects", "Media", "Exports"] as const).map((t) => (
-          <div key={t} className={"tab" + (tab === t ? " active" : "")} onClick={() => setTab(t)}>{t}</div>
-        ))}
-      </div>
+      <section className="hm-recent">
+        <div className="hm-recent-head">
+          <h2 className="hm-recent-title">
+            Recent Projects
+            {projects.length > 0 && <span className="hm-count">{projects.length}</span>}
+          </h2>
+          <a className="hm-viewall" href="#/projects">View All ›</a>
+        </div>
+        <div className="hm-tabs">
+          {(["Projects", "Media", "Exports"] as const).map((t) => (
+            <button key={t} className={"hm-tab" + (tab === t ? " on" : "")} onClick={() => setTab(t)}>{t}</button>
+          ))}
+        </div>
 
-      {projects.length === 0 ? (
-        <div className="empty">
-          <div className="ic">{IGridLg}</div>
-          <h3>No projects yet</h3>
-          <p>Upload a video to generate AI-powered subtitles in seconds.</p>
-          <button onClick={onNewProject}>+ Create First Project</button>
-        </div>
-      ) : (
-        <div className="proj-grid">
-          {projects.map((p) => <ProjectCard key={p.id} p={p} onChanged={load} />)}
-        </div>
-      )}
+        {projects.length === 0 ? (
+          <div className="empty">
+            <div className="ic">{IGridLg}</div>
+            <h3>No projects yet</h3>
+            <p>Upload a video to generate AI-powered subtitles in seconds.</p>
+            <button onClick={onNewProject}>+ Create First Project</button>
+          </div>
+        ) : (
+          <div className="proj-grid">
+            {projects.map((p) => <ProjectCard key={p.id} p={p} onChanged={load} />)}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

@@ -2539,3 +2539,65 @@ body.ed-scrubbing, body.ed-scrubbing * { cursor: ew-resize !important; user-sele
   .lg-orb,.lg-chip{ animation:none; }
   .lg-submit,.lg-tab-ind{ transition:none; }
 }
+
+/* ============================================================
+   Home / dashboard — v2 (hero band + asymmetric bento actions)
+   Namespaced hm-*; same content & actions, new layout.
+   Reuses .proj-grid / .proj-card / .empty unchanged.
+   ============================================================ */
+.hm-hero{ position:relative; overflow:hidden; border:1px solid var(--border);
+  border-radius:20px; padding:30px 32px; margin-bottom:22px;
+  background:linear-gradient(135deg,rgba(124,92,255,.12),rgba(34,211,238,.05)),var(--panel); }
+.hm-hero-glow{ position:absolute; right:-70px; top:-80px; width:300px; height:300px;
+  border-radius:50%; background:radial-gradient(circle,#22d3ee,transparent 70%);
+  opacity:.28; filter:blur(30px); pointer-events:none; }
+.hm-pill{ position:relative; display:inline-flex; align-items:center; gap:6px;
+  padding:5px 12px; border-radius:999px; font-size:11.5px; font-weight:700; letter-spacing:.04em;
+  color:var(--accent-2); background:rgba(124,92,255,.12); border:1px solid rgba(124,92,255,.3); }
+.hm-greet{ position:relative; font-family:'Space Grotesk',Inter,sans-serif; font-weight:700;
+  font-size:clamp(26px,4vw,34px); letter-spacing:-.02em; margin:14px 0 6px; color:var(--text); }
+.hm-greet em{ font-style:normal; background:var(--grad); -webkit-background-clip:text;
+  background-clip:text; color:transparent; }
+.hm-sub{ position:relative; color:var(--muted); font-size:15px; line-height:1.55; max-width:600px; margin:0; }
+
+.hm-bento{ display:grid; grid-template-columns:1.5fr 1fr; grid-auto-rows:minmax(72px,1fr);
+  gap:14px; margin-bottom:32px; }
+.hm-tile{ display:flex; align-items:center; gap:14px; padding:18px 20px; border-radius:16px;
+  border:1px solid var(--border); background:var(--panel); color:var(--text);
+  text-decoration:none; cursor:pointer; text-align:left; font-family:inherit;
+  transition:transform .16s, border-color .16s, box-shadow .2s; }
+.hm-tile:hover{ transform:translateY(-2px); border-color:var(--accent);
+  box-shadow:0 14px 30px -18px rgba(124,92,255,.6); }
+.hm-tile-lead{ grid-row:span 2; flex-direction:column; align-items:flex-start; justify-content:space-between;
+  position:relative; min-height:158px; border-color:rgba(124,92,255,.35);
+  background:linear-gradient(150deg,rgba(124,92,255,.18),rgba(34,211,238,.08)),var(--panel); }
+.hm-tile-ic{ width:44px; height:44px; border-radius:12px; display:grid; place-items:center;
+  background:rgba(124,92,255,.16); color:var(--accent-2); flex:none; }
+.hm-tile-ic svg{ width:20px; height:20px; }
+.hm-tile-lead .hm-tile-ic{ background:var(--grad); color:#fff;
+  box-shadow:0 8px 20px -8px rgba(124,92,255,.8); }
+.hm-tile-txt b{ display:block; font-family:'Space Grotesk',Inter,sans-serif; font-size:15px;
+  font-weight:700; color:var(--text); }
+.hm-tile-txt small{ display:block; color:var(--muted); font-size:12.5px; margin-top:3px; }
+.hm-tile-lead .hm-tile-txt b{ font-size:18px; }
+.hm-tile-go{ position:absolute; right:20px; bottom:18px; color:var(--accent-2); font-size:20px; font-weight:700; }
+
+.hm-recent-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.hm-recent-title{ display:flex; align-items:center; gap:10px; margin:0;
+  font-family:'Space Grotesk',Inter,sans-serif; font-weight:700; font-size:19px; color:var(--text); }
+.hm-count{ font-size:12px; font-weight:700; color:var(--accent-2);
+  background:rgba(124,92,255,.15); border-radius:999px; padding:2px 9px; }
+.hm-viewall{ color:var(--accent-2); font-size:13.5px; font-weight:600; text-decoration:none; }
+.hm-viewall:hover{ text-decoration:underline; }
+.hm-tabs{ display:inline-flex; gap:4px; background:rgba(8,10,18,.5); border:1px solid var(--border);
+  border-radius:12px; padding:4px; margin-bottom:18px; }
+.hm-tab{ background:none; border:none; cursor:pointer; padding:7px 16px; border-radius:8px;
+  font:600 13.5px Inter,sans-serif; color:var(--muted); transition:color .18s, background .18s; }
+.hm-tab.on{ background:var(--grad); color:#fff; }
+
+@media (max-width:760px){
+  .hm-bento{ grid-template-columns:1fr; grid-auto-rows:auto; }
+  .hm-tile-lead{ grid-row:auto; min-height:0; }
+  .hm-hero{ padding:24px 20px; }
+}
+@media (prefers-reduced-motion:reduce){ .hm-tile{ transition:none; } }
