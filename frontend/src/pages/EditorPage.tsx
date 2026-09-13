@@ -446,9 +446,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
       if (netFail) {
         try {
           await api.captionStyles();
-          setLoadDiag("The ceyonai server IS reachable from this browser, but the project request is being blocked on this computer — usually an antivirus \u2018web protection\u2019 feature or an ad-blocker. ceyonai now retries via an alternate route automatically; if you still see this, open your antivirus\u2019s web-protection settings and allow maxfly-api.onrender.com.");
+          setLoadDiag("We reached the server, but could not load this project just now. Please reload the page - if it keeps happening, let us know and we will take a look.");
         } catch {
-          setLoadDiag("This browser can't reach the ceyonai server at all. That's usually an ad-blocker / antivirus extension or a network filter blocking maxfly-api.onrender.com. Try an Incognito window (extensions are off there) — if it loads, allow the site in your extension.");
+          setLoadDiag("We cannot reach the ceyonai server right now. Please check your internet connection and reload; if the problem continues, try again in a minute.");
         }
       }
     }

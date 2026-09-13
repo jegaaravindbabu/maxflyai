@@ -13,7 +13,36 @@ from app.database import init_db
 from app.routers import uploads, projects, transcripts, exports, edits, billing
 from app.celery_app import celery_app  # noqa: F401  (configures eager mode + registers tasks)
 
+# ---- Optional error monitoring (Sentry) — active only when SENTRY_DSN is set ----
+if settings.sentry_dsn:
+    try:
+        import sentry_sdk
+        sentry_sdk.init(dsn=settings.sentry_dsn, traces_sample_rate=0.1,
+                        send_default_pii=False)
+    except Exception:
+        pass
+
 app = FastAPI(title="ceyonai API", version="0.1.0")
+
+import logging
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+_log = logging.getLogger("ceyonai")
+
+
+@app.exception_handler(Exception)
+async def _unhandled_exception(request: Request, exc: Exception):
+    """Last-resort guard: log + report any unhandled error and return a clean
+    500 instead of leaking a stack trace. HTTPException (401/404/…) and request
+    validation errors keep their own handlers and are unaffected."""
+    _log.exception("Unhandled error: %s %s", request.method, request.url.path)
+    try:
+        import sentry_sdk
+        sentry_sdk.capture_exception(exc)
+    except Exception:
+        pass
+    return JSONResponse(status_code=500, content={"detail": "internal server error"})
 
 
 # Some client-side security software / ad-blockers filter requests whose URL

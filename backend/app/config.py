@@ -8,6 +8,7 @@ class Settings(BaseSettings):
 
     sarvam_api_key: str = ""
     pexels_api_key: str = ""   # optional; falls back to keyless Openverse
+    sentry_dsn: str = ""   # optional error monitoring (Sentry); blank = off
 
     database_url: str = "sqlite:///./maxfly.sqlite3"
     redis_url: str = ""
