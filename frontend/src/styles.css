@@ -1782,11 +1782,16 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
 .ed-seg-layer { position: absolute; inset: 0; z-index: 4; }
 .ed-seg { position: absolute; top: 0; bottom: 0; box-sizing: border-box; border: 1.5px solid transparent;
   border-radius: 8px; cursor: pointer; }
-.ed-seg:hover { border-color: rgba(198,255,58,.45); }
-.ed-seg.sel { border-color: var(--accent); box-shadow: inset 0 0 0 1px rgba(198,255,58,.35), 0 0 10px rgba(198,255,58,.25); }
+.ed-seg:hover { border-color: rgba(124,92,255,.55); }
+.ed-seg.sel { border-color: var(--accent); box-shadow: inset 0 0 0 1px rgba(124,92,255,.4), 0 0 10px rgba(34,211,238,.28); }
 .ed-seg.removed { background: repeating-linear-gradient(45deg, rgba(6,7,10,.62) 0 8px, rgba(40,12,12,.62) 8px 16px); }
 .ed-seg.removed::after { content: "removed"; position: absolute; left: 50%; top: 34%; transform: translate(-50%,-50%);
   font-size: 10px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: #ff9d9d; pointer-events: none; }
+.ed-seg-copy { background: linear-gradient(100deg, rgba(139,107,255,.22), rgba(34,211,238,.14)); border: 1.5px dashed rgba(124,92,255,.7); border-radius: 8px; }
+.ed-seg-copy:hover { border-color: rgba(34,211,238,.85); }
+.ed-seg-copy .ed-seg-lb { left: 6px; right: auto; color: var(--accent-2); background: rgba(8,16,26,.7); }
+.ed-seg-dup { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); z-index: 6; min-width: 20px; height: 20px; border-radius: 6px; border: none; cursor: pointer; background: var(--grad); color: var(--on-accent); font-weight: 800; font-size: 12px; line-height: 1; }
+.ed-seg-dup:hover { filter: brightness(1.08); }
 .ed-seg-lb { position: absolute; right: 6px; top: 4px; font-size: 10px; font-weight: 700; color: #fff;
   background: rgba(0,0,0,.55); border-radius: 5px; padding: 1px 6px; pointer-events: none; }
 .ed-seg-restore { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: 5;
@@ -1794,7 +1799,7 @@ button.secondary.danger { color: #ff6b6b; border-color: rgba(255,107,107,.4); }
   padding: 3px 10px; font-size: 11px; font-weight: 800; cursor: pointer; white-space: nowrap; }
 .ed-seg-restore:hover { filter: brightness(1.07); }
 .ed-seg-cutmark { position: absolute; top: -4px; bottom: -4px; width: 3px; transform: translateX(-1.5px);
-  background: var(--accent); border-radius: 2px; cursor: pointer; z-index: 6; box-shadow: 0 0 6px rgba(198,255,58,.55); }
+  background: var(--accent); border-radius: 2px; cursor: pointer; z-index: 6; box-shadow: 0 0 6px rgba(124,92,255,.6); }
 .ed-tl-toast { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 40;
   background: #10131a; border: 1px solid var(--accent); color: var(--text); font-size: 12.5px; font-weight: 600;
   padding: 8px 16px; border-radius: 10px; box-shadow: 0 10px 34px rgba(0,0,0,.55); pointer-events: none;

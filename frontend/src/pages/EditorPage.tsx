@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
+import { buildSpans, projToSrc, srcToProj, spanIndexAtProj } from "../lib/playlist";
 import { api, type Zoom } from "../api/client";
 import type { ProjectDetail, Overlay, ImageOverlay, BrollClip, Cue, Project } from "../types";
 import { VideoPreview } from "../components/VideoPreview";
@@ -330,6 +331,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [busy, setBusy] = useState(false);
   const [curMs, setCurMs] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [playIdx, setPlayIdx] = useState(0);
   const [previewZoom, setPreviewZoom] = useState(1);
   const [safeZone, setSafeZone] = useState(false);
   const [clipSelected, setClipSelected] = useState(false);
@@ -416,6 +418,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [draft, setDraft] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const videoRef = useRef<HTMLVideoElement>(null);
+  const plSpansRef = useRef<ReturnType<typeof buildSpans>["spans"]>([]);
+  const playIdxRef = useRef(0);
   const [mediaEl, setMediaEl] = useState<HTMLMediaElement | null>(null);
 
   const [loadTry, setLoadTry] = useState(0);
@@ -550,7 +554,25 @@ export function EditorPage({ projectId }: { projectId: string }) {
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
-    const onT = () => setCurMs(v.currentTime * 1000);
+    const onT = () => {
+      const src = v.currentTime * 1000;
+      setCurMs(src);
+      const sp = plSpansRef.current;
+      if (sp.length > 1 && !v.paused) {
+        const idx = Math.min(playIdxRef.current, sp.length - 1);
+        const cur = sp[idx];
+        if (cur && src >= cur.src1 - 40) {
+          const nextIdx = idx + 1;
+          if (nextIdx < sp.length) {
+            const nx = sp[nextIdx];
+            playIdxRef.current = nextIdx; setPlayIdx(nextIdx);
+            if (Math.abs(nx.src0 - src) > 60) v.currentTime = nx.src0 / 1000;
+          } else {
+            v.pause();
+          }
+        }
+      }
+    };
     const onP = () => setPlaying(true);
     const onPa = () => setPlaying(false);
     v.addEventListener("timeupdate", onT);
@@ -609,6 +631,12 @@ export function EditorPage({ projectId }: { projectId: string }) {
   }
 
   const dur = proj.duration_ms || 1;
+  const { spans: plSpans, projDur } = buildSpans(dur, videoCuts, dupEdits);
+  plSpansRef.current = plSpans;
+  playIdxRef.current = Math.min(Math.max(playIdx, 0), plSpans.length - 1);
+  const sToP = (src: number) => srcToProj(plSpans, src);
+  const _psp = plSpans[Math.min(Math.max(playIdx, 0), plSpans.length - 1)];
+  const projMs = _psp ? Math.max(_psp.proj0, Math.min(_psp.proj1, _psp.proj0 + (curMs - _psp.src0))) : curMs;
   const cues = proj.cues || [];
   const activeIdx = cues.find((c) => curMs >= c.start_ms && curMs < c.end_ms)?.idx ?? -1;
   const activeCue = cues.find((c) => c.idx === activeIdx);
@@ -784,16 +812,25 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const wordMode = WORD_STYLES.includes(capStyle);
   const mediaSrc = proj.media_url ? (proj.media_url.startsWith("http") ? proj.media_url : api.mediaUrl(proj.media_url)) : "";
 
-  const TLW = Math.max(320, tlBoxW - 2) * tlZoom;   // zoom 1 = whole video fits the visible timeline
-  const tlStep = dur <= 20000 ? 2000 : dur <= 60000 ? 5000 : dur <= 180000 ? 15000 : 30000;
+  const TLW = Math.max(320, tlBoxW - 2) * tlZoom * (projDur / dur);   // zoom 1 = whole clip fits; grows when clips are duplicated
+  const tlStep = projDur <= 20000 ? 2000 : projDur <= 60000 ? 5000 : projDur <= 180000 ? 15000 : 30000;
   const tlTicks: number[] = [];
-  for (let t = 0; t <= dur; t += tlStep) tlTicks.push(t);
+  for (let t = 0; t <= projDur; t += tlStep) tlTicks.push(t);
   function scrub(e: ReactMouseEvent) {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    seek(pct * dur);
+    seekProj(pct * projDur);
   }
-  function seek(ms: number) { if (videoRef.current) videoRef.current.currentTime = ms / 1000; }
+  function seek(ms: number) {
+    if (videoRef.current) videoRef.current.currentTime = ms / 1000;
+    const i = plSpans.findIndex((sp) => ms >= sp.src0 && ms < sp.src1);
+    if (i >= 0) { playIdxRef.current = i; setPlayIdx(i); }
+  }
+  function seekProj(pms: number) {
+    const i = spanIndexAtProj(plSpans, pms);
+    playIdxRef.current = i; setPlayIdx(i);
+    if (videoRef.current) videoRef.current.currentTime = projToSrc(plSpans, pms) / 1000;
+  }
   const segBounds = [0, ...videoCuts.filter((c) => c > 0 && c < dur).sort((a, b) => a - b), dur];
   function saveVideoCuts(next: number[]) {
     const arr = [...next].sort((a, b) => a - b).filter((v, i, a2) => v > 200 && v < dur - 200 && (i === 0 || v - a2[i - 1] > 200));
@@ -826,7 +863,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
           setDupEdits((p) => {
             const next = [...p, { id: r.id, start_ms: s0, end_ms: e0 }];
             const n = 1 + next.filter((d) => d.start_ms >= s0 - 60 && d.end_ms <= e0 + 60).length;
-            toast("Segment duplicated — plays \u00d7" + n + " in the export");
+            toast("Clip duplicated — copy \u00d7" + n + " added; it plays in the preview and export");
             return next;
           });
         })
@@ -1228,7 +1265,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
     const s0 = l.start_ms, e0 = l.end_ms;
     const MIN = 300;
     const move = (ev: MouseEvent) => {
-      const dMs = ((ev.clientX - startX) / rect.width) * dur;
+      const dMs = ((ev.clientX - startX) / rect.width) * projDur;
       let ns = s0, ne = e0;
       if (mode === "move") {
         ns = s0 + dMs; ne = e0 + dMs;
@@ -1459,7 +1496,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
     const s0 = b.start_ms, e0 = b.end_ms;
     const MIN = 300;
     const move = (ev: MouseEvent) => {
-      const dMs = ((ev.clientX - startX) / rect.width) * dur;
+      const dMs = ((ev.clientX - startX) / rect.width) * projDur;
       let ns = s0, ne = e0;
       if (mode === "move") {
         ns = s0 + dMs; ne = e0 + dMs;
@@ -1493,7 +1530,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
     const s0 = im.start_ms, e0 = im.end_ms;
     const MIN = 300;
     const move = (ev: MouseEvent) => {
-      const dMs = ((ev.clientX - startX) / rect.width) * dur;
+      const dMs = ((ev.clientX - startX) / rect.width) * projDur;
       let ns = s0, ne = e0;
       if (mode === "move") {
         ns = s0 + dMs; ne = e0 + dMs;
@@ -2359,7 +2396,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             <button className="ed-mon-tr" title="Next caption" onClick={nextCap}>
               <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M15 6h2v12h-2zM4 6l9 6-9 6z" /></svg>
             </button>
-            <span className="ed-mon-time">{fmtT(curMs)} / {fmtT(dur)}</span>
+            <span className="ed-mon-time">{fmtT(projMs)} / {fmtT(projDur)}</span>
           </div>
         </div>
 
@@ -3354,7 +3391,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             <button className="ed-tb-btn" title="Previous caption" onClick={prevCap}>{IcPrev}</button>
             <button className="ed-tl-play" onClick={togglePlay}>{playing ? IcPause : IcPlay}</button>
             <button className="ed-tb-btn" title="Next caption" onClick={nextCap}>{IcNext}</button>
-            <span className="muted ed-tb-time">{fmtT(curMs)} / {fmtT(dur)}</span>
+            <span className="muted ed-tb-time">{fmtT(projMs)} / {fmtT(projDur)}</span>
           </div>
 
           <div className="ed-tb-group">
@@ -3382,19 +3419,19 @@ export function EditorPage({ projectId }: { projectId: string }) {
           </div>
           <div className="ed-tl2" ref={tl2Ref}>
           <div className="ed-tl2-inner" style={{ width: TLW }}>
-            <div className="ed-ph" style={{ left: `${(curMs / dur) * 100}%` }}><span className="ed-ph-knob" /></div>
+            <div className="ed-ph" style={{ left: `${(projMs / projDur) * 100}%` }}><span className="ed-ph-knob" /></div>
             <div className="ed-tl2-ruler" onClick={scrub}>
               {tlTicks.map((t) => (
-                <span key={t} className="ed-tick" style={{ left: `${(t / dur) * 100}%` }}>{fmtT(t)}</span>
+                <span key={t} className="ed-tick" style={{ left: `${(t / projDur) * 100}%` }}>{fmtT(t)}</span>
               ))}
             </div>
 
             <div className={"ed-lane" + (isHidden("captions") ? " lane-off" : "") + (isLocked("captions") ? " lane-lock" : "") + (tlFilter === "videos" ? " tl-dim" : "")} onClick={scrub}>
               {cues.map((c) => {
-                const w = ((c.end_ms - c.start_ms) / dur) * 100;
+                const w = ((sToP(c.end_ms) - sToP(c.start_ms)) / projDur) * 100;
                 return (
                 <div key={c.idx} className={"ed-tl-pill" + (c.idx === activeIdx ? " active" : "") + (selected.has(c.idx) ? " sel" : "")}
-                  style={{ left: `${(c.start_ms / dur) * 100}%`, width: `${Math.max(w, 2.4)}%` }}
+                  style={{ left: `${(sToP(c.start_ms) / projDur) * 100}%`, width: `${Math.max(w, 2.4)}%` }}
                   title={c.text}
                   onClick={(e) => { e.stopPropagation(); setSelected(new Set([c.idx])); setSelSeg(null); setRail("captions"); seek(c.start_ms); }}>
                   <span className="ed-tl-pill-t">{(showTranslit && c.translit_text ? c.translit_text : c.text)}</span>
@@ -3407,7 +3444,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
               <div className={"ed-lane" + (isHidden("text") ? " lane-off" : "") + (isLocked("text") ? " lane-lock" : "") + (tlFilter === "videos" ? " tl-dim" : "")} onClick={scrub}>
                 {overlays.map((o) => (
                   <div key={o.id} className={"ed-tl-block ed-tl-text" + (selOv === o.id ? " sel" : "")}
-                    style={{ left: `${(o.start_ms / dur) * 100}%`, width: `${Math.max(((o.end_ms - o.start_ms) / dur) * 100, 1.2)}%` }}
+                    style={{ left: `${(sToP(o.start_ms) / projDur) * 100}%`, width: `${Math.max(((sToP(o.end_ms) - sToP(o.start_ms)) / projDur) * 100, 1.2)}%` }}
                     title={o.text}
                     onClick={(e) => { e.stopPropagation(); setSelOv(o.id); setRail("texts"); seek(o.start_ms); }}>
                     {o.text.slice(0, 14)}
@@ -3420,7 +3457,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
               <div className={"ed-lane" + (isHidden("images") ? " lane-off" : "") + (isLocked("images") ? " lane-lock" : "") + (tlFilter === "captions" ? " tl-dim" : "")} onClick={scrub}>
                 {images.map((im) => (
                   <div key={im.id} className={"ed-tl-block ed-tl-img ed-tl-clip" + (selImg === im.id ? " sel" : "")}
-                    style={{ left: `${(im.start_ms / dur) * 100}%`, width: `${Math.max(((im.end_ms - im.start_ms) / dur) * 100, 1.2)}%` }}
+                    style={{ left: `${(sToP(im.start_ms) / projDur) * 100}%`, width: `${Math.max(((sToP(im.end_ms) - sToP(im.start_ms)) / projDur) * 100, 1.2)}%` }}
                     title="Drag to move · drag the edges to trim"
                     onMouseDown={(e) => startImageClip(e, im, "move")}
                     onClick={(e) => { e.stopPropagation(); setSelImg(im.id); setRail("images"); }}>
@@ -3436,7 +3473,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
               <div className={"ed-lane" + (isHidden("broll") ? " lane-off" : "") + (isLocked("broll") ? " lane-lock" : "") + (tlFilter === "captions" ? " tl-dim" : "")} onClick={scrub}>
                 {brolls.map((b) => (
                   <div key={b.id} className={"ed-tl-block ed-tl-broll ed-tl-clip" + (selBroll === b.id ? " sel" : "")}
-                    style={{ left: `${(b.start_ms / dur) * 100}%`, width: `${Math.max(((b.end_ms - b.start_ms) / dur) * 100, 1.2)}%` }}
+                    style={{ left: `${(sToP(b.start_ms) / projDur) * 100}%`, width: `${Math.max(((sToP(b.end_ms) - sToP(b.start_ms)) / projDur) * 100, 1.2)}%` }}
                     title="Drag to move · drag the edges to trim"
                     onMouseDown={(e) => startBrollClip(e, b, "move")}
                     onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setRail("broll"); }}>
@@ -3452,7 +3489,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
               <div className={"ed-lane" + (isHidden("filters") ? " lane-off" : "") + (isLocked("filters") ? " lane-lock" : "") + (tlFilter === "captions" ? " tl-dim" : "")} onClick={scrub}>
                 {filterLayers.map((l) => (
                   <div key={l.id} className={"ed-tl-block ed-tl-filter ed-tl-clip" + (selLayer === l.id ? " sel" : "")}
-                    style={{ left: `${(l.start_ms / dur) * 100}%`, width: `${Math.max(((l.end_ms - l.start_ms) / dur) * 100, 1.2)}%` }}
+                    style={{ left: `${(sToP(l.start_ms) / projDur) * 100}%`, width: `${Math.max(((sToP(l.end_ms) - sToP(l.start_ms)) / projDur) * 100, 1.2)}%` }}
                     title="Drag to move \u00b7 drag the edges to stretch"
                     onMouseDown={(e) => startFilterClip(e, l, "move")}
                     onClick={(e) => { e.stopPropagation(); setRail("filters"); selectLayer(l.id); }}>
@@ -3470,24 +3507,22 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 <Filmstrip src={mediaSrc} count={14} />
                 <div className="ed-media-wave"><Waveform mediaEl={mediaEl} /></div>
                 <div className="ed-seg-layer">
-                  {segBounds.slice(0, -1).map((s0, i) => {
-                    const e0 = segBounds[i + 1];
+                  {plSpans.map((sp, i) => {
+                    const s0 = sp.src0, e0 = sp.src1;
                     const removed = cutEdits.find((c) => c.start_ms <= s0 + 60 && c.end_ms >= e0 - 60);
+                    const wpct = ((sp.proj1 - sp.proj0) / projDur) * 100;
                     return (
-                      <div key={i} className={"ed-seg" + (selSeg === i ? " sel" : "") + (removed ? " removed" : "")}
-                        style={{ left: `${(s0 / dur) * 100}%`, width: `${((e0 - s0) / dur) * 100}%` }}
-                        title={removed ? "Removed segment — will be cut from the export" : "Click to select this segment"}
-                        onClick={(ev) => { ev.stopPropagation(); setSelSeg(selSeg === i ? null : i); setSelected(new Set()); seek(s0 + 40); }}>
-                        {(e0 - s0) / dur > 0.07 && <span className="ed-seg-lb">{fmtT(e0 - s0)}</span>}
-                        {(() => {
-                          const mine = dupEdits.filter((d) => d.start_ms >= s0 - 60 && d.end_ms <= e0 + 60);
-                          return mine.length > 0 && !removed ? (
-                            <button className="ed-seg-dup" title={"Plays \u00d7" + (mine.length + 1) + " in the export — click to remove one copy"}
-                              onClick={(ev) => { ev.stopPropagation(); removeDup(mine[mine.length - 1]); }}>
-                              {"\u00d7" + (mine.length + 1)}
-                            </button>
-                          ) : null;
-                        })()}
+                      <div key={i} className={"ed-seg" + (selSeg === sp.segIdx ? " sel" : "") + (removed ? " removed" : "") + (sp.copy ? " ed-seg-copy" : "")}
+                        style={{ left: `${(sp.proj0 / projDur) * 100}%`, width: `${wpct}%` }}
+                        title={sp.copy ? "Duplicated clip — plays here in the preview and the export" : (removed ? "Removed segment — will be cut from the export" : "Click to select this clip")}
+                        onClick={(ev) => { ev.stopPropagation(); setSelSeg(selSeg === sp.segIdx ? null : sp.segIdx); setSelected(new Set()); seekProj(sp.proj0 + 40); }}>
+                        {wpct > 7 && <span className="ed-seg-lb">{sp.copy ? "copy · " : ""}{fmtT(e0 - s0)}</span>}
+                        {sp.copy && !removed && (
+                          <button className="ed-seg-dup" title="Remove this duplicate copy"
+                            onClick={(ev) => { ev.stopPropagation(); const mine = dupEdits.filter((d) => d.start_ms >= s0 - 60 && d.end_ms <= e0 + 60); if (mine.length) removeDup(mine[mine.length - 1]); }}>
+                            {"\u00d7"}
+                          </button>
+                        )}
                         {removed && (
                           <button className="ed-seg-restore" title="Restore this segment"
                             onClick={(ev) => { ev.stopPropagation(); restoreCut(removed.id); }}>{IcReset} Restore</button>
@@ -3496,7 +3531,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                     );
                   })}
                   {videoCuts.map((c2, i) => (
-                    <span key={"cut" + i} className="ed-seg-cutmark" style={{ left: `${(c2 / dur) * 100}%` }}
+                    <span key={"cut" + i} className="ed-seg-cutmark" style={{ left: `${(sToP(c2) / projDur) * 100}%` }}
                       title="Split point — double-click to remove"
                       onDoubleClick={(ev) => { ev.stopPropagation(); saveVideoCuts(videoCuts.filter((x) => x !== c2)); toast("Split point removed"); }} />
                   ))}
