@@ -863,9 +863,9 @@ video.ed-imgovl { object-fit: cover; }
 /* Default (Original / no canvas): give the frame a definite height so the video
    fits the stage instead of overflowing. Canvas-on mode keeps its own sizing. */
 .ed-canvas-frame:not(.on) { height: 100%; min-height: 0; align-self: stretch; }
-.ed-canvas-frame.on { border-radius: 8px; overflow: hidden; max-width: 100%;
+.ed-canvas-frame.on { border-radius: 8px; overflow: visible; max-width: 100%;
   height: 100%; max-height: 60vh; }
-.ed-canvas-frame.on .preview-wrap { max-width: 100%; max-height: 100%; width: auto; height: auto; }
+.ed-canvas-frame.on .preview-wrap { max-width: 100%; max-height: 100%; width: 100%; height: 100%; }
 .ed-canvas-aspects { display: flex; gap: 8px; flex-wrap: wrap; }
 .ed-canvas-ar { display: flex; flex-direction: column; align-items: center; gap: 5px;
   cursor: pointer; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-2); }
