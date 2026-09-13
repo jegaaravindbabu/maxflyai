@@ -490,6 +490,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [cutEdits, setCutEdits] = useState<{ id: string; start_ms: number; end_ms: number }[]>([]);
   const [dupEdits, setDupEdits] = useState<{ id: string; start_ms: number; end_ms: number }[]>([]);
   const tl2Ref = useRef<HTMLDivElement | null>(null);
+  const rulerRef = useRef<HTMLDivElement | null>(null);
   const [tlBoxW, setTlBoxW] = useState(1000);
   const [tlToast, setTlToast] = useState("");
   const tlToastRef = useRef<number | null>(null);
@@ -833,6 +834,25 @@ export function EditorPage({ projectId }: { projectId: string }) {
     playIdxRef.current = i; setPlayIdx(i);
     if (videoRef.current) videoRef.current.currentTime = projToSrc(plSpans, pms) / 1000;
   }
+  // Grab-and-drag the playhead / scrub smoothly along the ruler.
+  function startScrub(e: ReactMouseEvent) {
+    e.preventDefault(); e.stopPropagation();
+    const rect = rulerRef.current?.getBoundingClientRect();
+    if (!rect || rect.width <= 0) return;
+    const to = (cx: number) => { const pct = Math.max(0, Math.min(1, (cx - rect.left) / rect.width)); seekProj(pct * projDur); };
+    to(e.clientX);
+    const move = (ev: MouseEvent) => to(ev.clientX);
+    const up = () => {
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", up);
+      document.body.classList.remove("ed-scrubbing");
+    };
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", up);
+    document.body.classList.add("ed-scrubbing");
+  }
+  // Zoom the timeline so the whole video fits the visible area.
+  function fitTimeline() { setTlZoom(+Math.max(0.15, Math.min(1, dur / projDur)).toFixed(3)); }
   const segBounds = [0, ...videoCuts.filter((c) => c > 0 && c < dur).sort((a, b) => a - b), dur];
   function saveVideoCuts(next: number[]) {
     const arr = [...next].sort((a, b) => a - b).filter((v, i, a2) => v > 200 && v < dur - 200 && (i === 0 || v - a2[i - 1] > 200));
@@ -3408,10 +3428,11 @@ export function EditorPage({ projectId }: { projectId: string }) {
           </div>
 
           <div className="ed-tb-group">
-            <button className="ed-tb-btn" title="Zoom out timeline" onClick={() => setTlZoom((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))}>{IcZoomOut}</button>
-            <input type="range" min={0.5} max={4} step={0.25} value={tlZoom} className="ed-tb-zoom"
+            <button className="ed-tb-btn" title="Zoom out timeline" onClick={() => setTlZoom((z) => Math.max(0.25, +(z - 0.25).toFixed(2)))}>{IcZoomOut}</button>
+            <input type="range" min={0.25} max={4} step={0.05} value={tlZoom} className="ed-tb-zoom"
               onChange={(e) => setTlZoom(+e.target.value)} />
             <button className="ed-tb-btn" title="Zoom in timeline" onClick={() => setTlZoom((z) => Math.min(4, +(z + 0.25).toFixed(2)))}>{IcZoomIn}</button>
+            <button className="ed-tb-btn" title="Fit the whole video in view" onClick={fitTimeline} style={{ fontWeight: 800, fontSize: 11, letterSpacing: ".02em" }}>Fit</button>
             <button className="ed-tb-btn" title="Fullscreen preview" onClick={toggleFullscreen}>{IcFull}</button>
             <span className="ed-tb-sep" />
             <span className="ed-tb-sel">Select</span>
@@ -3432,8 +3453,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
           </div>
           <div className="ed-tl2" ref={tl2Ref}>
           <div className="ed-tl2-inner" style={{ width: TLW }}>
-            <div className="ed-ph" style={{ left: `${(projMs / projDur) * 100}%` }}><span className="ed-ph-knob" /></div>
-            <div className="ed-tl2-ruler" onClick={scrub}>
+            <div className="ed-ph" style={{ left: `${(projMs / projDur) * 100}%` }}><span className="ed-ph-knob" onMouseDown={startScrub} /></div>
+            <div className="ed-tl2-ruler" ref={rulerRef} onMouseDown={startScrub}>
               {tlTicks.map((t) => (
                 <span key={t} className="ed-tick" style={{ left: `${(t / projDur) * 100}%` }}>{fmtT(t)}</span>
               ))}

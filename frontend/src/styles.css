@@ -2421,3 +2421,9 @@ button > svg, a > svg, .pm-item > svg, .rtk-removed > svg, .del > svg, .np-label
   color: #fff; background: rgba(0,0,0,.62); border-radius: 5px; padding: 1px 6px; pointer-events: none;
   display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .ed-vthumb-lb svg { width: 12px; height: 12px; }
+
+/* smooth draggable playhead + scrubbing */
+.ed-ph-knob { cursor: grab; }
+.ed-ph-knob:active { cursor: grabbing; }
+.ed-tl2-ruler { cursor: pointer; }
+body.ed-scrubbing, body.ed-scrubbing * { cursor: ew-resize !important; user-select: none !important; }
