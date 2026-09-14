@@ -25,14 +25,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthToken(data.session?.access_token ?? null);
       setLoading(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       setAuthToken(s?.access_token ?? null);
+      // After a successful sign-in (incl. the Google OAuth redirect, which returns
+      // to the site root or with a token fragment), land the user inside the app.
+      if (event === "SIGNED_IN") {
+        const h = window.location.hash;
+        if (h === "" || h === "#" || h === "#/" || h === "#/login" ||
+            h.startsWith("#access_token") || h.startsWith("#error")) {
+          window.location.hash = "#/app";
+        }
+      }
     });
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const signOut = async () => { await supabase?.auth.signOut(); };
+  const signOut = async () => {
+    // Clear the local session first so logout is deterministic even if the
+    // network revoke call fails; then send the user to the public landing.
+    try { await supabase?.auth.signOut({ scope: "local" }); } catch { /* ignore */ }
+    setSession(null);
+    setAuthToken(null);
+    window.location.hash = "#/";
+  };
 
   return (
     <Ctx.Provider value={{ session, email: session?.user?.email ?? null, loading, signOut }}>
