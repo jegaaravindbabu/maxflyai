@@ -285,7 +285,7 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
             # 2. burn the (remapped) captions
             _af = []
             if enhance_audio:
-                _ef = ffmpeg_utils.audio_enhance_filter(settings.arnndn_model_path or None, enhance_strength)
+                _ef = ffmpeg_utils.audio_enhance_filter(ffmpeg_utils.default_denoise_model(), enhance_strength)
                 if _ef: _af.append(_ef)
             if abs(vol - 1.0) > 1e-3:
                 _af.append(f"volume={vol:.3f}")
@@ -473,7 +473,7 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
             work = tempfile.mkdtemp(prefix="maxfly_bundle_")
             try:
                 stems.render_video_only(src, keep, os.path.join(work, "video.mp4"))
-                af = (ffmpeg_utils.audio_enhance_filter(settings.arnndn_model_path or None, enhance_strength)
+                af = (ffmpeg_utils.audio_enhance_filter(ffmpeg_utils.default_denoise_model(), enhance_strength)
                       if enhance_audio else None)
                 stems.render_voice(src, keep, os.path.join(work, "voice.wav"), audio_filter=af)
                 music_out = stems.render_music(src, keep, os.path.join(work, "music.wav"))

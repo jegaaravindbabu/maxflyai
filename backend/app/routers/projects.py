@@ -584,7 +584,7 @@ def enhance_audio(project_id: str, body: EnhanceAudioIn,
     except Exception:
         raise HTTPException(400, "could not read the project's media")
 
-    af = ffmpeg_utils.audio_enhance_filter(settings.arnndn_model_path or None, strength)
+    af = ffmpeg_utils.audio_enhance_filter(ffmpeg_utils.default_denoise_model(), strength)
     fd, out_tmp = tempfile.mkstemp(suffix=".m4a")
     os.close(fd)
     try:

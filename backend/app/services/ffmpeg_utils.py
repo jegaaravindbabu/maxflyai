@@ -288,21 +288,39 @@ def video_info(media_path: str) -> dict:
 # "Mic -> studio" voice cleanup chain (no model needed): remove rumble, FFT
 # denoise, gentle compression, then EBU R128 broadcast loudness. If an arnndn
 # RNN model path is configured, prepend AI denoise for stronger results.
+# Bundled RNNoise voice model (used when no explicit ARNNDN_MODEL_PATH is set).
+_BUNDLED_RNNOISE = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "assets", "denoise", "sh.rnnn"))
+
+
+def default_denoise_model() -> str | None:
+    """Effective RNNoise model path: env override wins, else the bundled model if
+    present, else None (afftdn-only fallback)."""
+    try:
+        from app.config import settings
+        if settings.arnndn_model_path:
+            return settings.arnndn_model_path
+    except Exception:
+        pass
+    return _BUNDLED_RNNOISE if os.path.exists(_BUNDLED_RNNOISE) else None
+
+
 def audio_enhance_filter(arnndn_model: str | None = None, strength: int = 50) -> str:
     # strength 0..100 controls how aggressive the noise reduction is.
-    # noise floor: light (-15dB) at 0, ~-25dB at 50, aggressive (-35dB) at 100.
     try:
         st = max(0, min(100, int(strength)))
     except Exception:
         st = 50
-    nf = -15 - round(st / 100 * 20)          # -15 .. -35
-    stages = []
+    nf = -20 - round(st / 100 * 20)          # noise floor -20 .. -40 dB
+    nr = 12 + round(st / 100 * 21)           # afftdn reduction 12 .. 33 dB
+    stages = ["highpass=f=90"]               # kill low rumble/handling noise
+    # RNNoise first: separates voice from non-stationary background (fans,
+    # traffic, room tone) far better than a spectral gate alone.
     if arnndn_model:
         safe = arnndn_model.replace("\\", "/").replace(":", "\\:")
         stages.append(f"arnndn=m='{safe}'")
     stages += [
-        "highpass=f=80",
-        f"afftdn=nf={nf}:tn=1",
+        f"afftdn=nr={nr}:nf={nf}:tn=1",      # residual stationary hiss/hum
         "acompressor=threshold=-18dB:ratio=3:attack=20:release=250",
         "loudnorm=I=-16:TP=-1.5:LRA=11",
     ]
