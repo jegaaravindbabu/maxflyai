@@ -187,7 +187,7 @@ export function LandingPage() {
                 <h3>{p.name}</h3>
                 <div className="cy-amt">{p.price}<span>{p.per}</span></div>
                 <div className="cy-eff">{p.eff ? p.eff : "\u00a0"}</div>
-                <div className="cy-gst">{p.gst ? <>+ 18% GST {p.gst} · Total {p.total}</> : "No tax — it’s free"}</div>
+                <div className="cy-gst">{p.gst ? "+ 18% GST" : "No tax — it’s free"}</div>
                 <div className="cy-mins">{p.mins}</div>
                 <div className="cy-plan-desc">{p.desc}</div>
                 <ul>{p.feats.map((ft) => <li key={ft}>{CHECK} {ft}</li>)}</ul>
