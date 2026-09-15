@@ -39,7 +39,7 @@ const REVIEWS = [
 const CHECK = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path d="M5 12l5 5L20 7" /></svg>;
 
 const PLANS = [
-  { name: "Free", price: "₹0", per: "/forever", eff: "", mins: "15 min / month", gst: "", total: "", desc: "Try a full edit — watermarked, up to 720p.", feats: ["15 min of video / month", "All captions + translate preview", "720p export · watermark"], cta: "Start free", hot: false, save: "" },
+  { name: "Free", price: "₹0", per: "/forever", eff: "", mins: "15 min / month", gst: "", total: "", desc: "Try a full edit — watermarked, up to 720p.", feats: ["15 min of video / month", "All captions + translate preview", "2 exports · 720p · watermark"], cta: "Start free", hot: false, save: "" },
   { name: "Day Pass", price: "₹59", per: "/day", eff: "", mins: "45 min · 24-hour access", gst: "₹10.62", total: "₹69.62", desc: "Ship one reel at full quality.", feats: ["24-hour full access", "1080p · no watermark", "Every export format"], cta: "Buy day pass", hot: false, save: "" },
   { name: "Monthly", price: "₹499", per: "/month", eff: "", mins: "300 min / month", gst: "₹89.82", total: "₹588.82", desc: "For creators posting every week.", feats: ["Everything unlocked", "1080p / 4K · all styles", "Priority processing"], cta: "Go Monthly", hot: true, save: "" },
   { name: "3 Months", price: "₹1,199", per: "/3 mo", eff: "₹400/mo", mins: "900 min / 3 months", gst: "₹215.82", total: "₹1,414.82", desc: "Lock in a lower rate for a quarter.", feats: ["Everything in Monthly", "Priority processing", "Cancel renewal anytime"], cta: "Get 3 months", hot: false, save: "Save 20%" },
@@ -54,6 +54,7 @@ const CMP = [
   { f: "Export resolution", free: "720p", pro: "1080p / 4K" },
   { f: "Watermark", free: "Yes", pro: "Removed" },
   { f: "Export formats (SRT/VTT/ASS/MP4/bundle)", free: "MP4 only", pro: "All formats" },
+  { f: "Number of exports", free: "2 total", pro: "Unlimited" },
   { f: "Caption styles & animations", free: "Basic", pro: "All styles" },
   { f: "Processing speed", free: "Standard", pro: "Priority" },
 ]

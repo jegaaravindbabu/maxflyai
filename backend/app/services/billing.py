@@ -39,6 +39,7 @@ PLANS = {
         "label": "Free", "minutes": 15, "storage_gb": 1, "max_res": 720,
         "price_inr": 0, "duration_days": None, "retention_days": 7,
         "watermark": True, "formats": ["mp4"], "translate": "preview",
+        "export_limit": 2,
     },
     "day": {
         "label": "Day Pass", "minutes": 45, "storage_gb": 2, "max_res": 2160,
@@ -80,6 +81,7 @@ def entitlements(plan: str) -> dict:
         "max_res": int(cfg.get("max_res", 720)),
         "formats": list(cfg.get("formats", ALL_FORMATS)),
         "translate": cfg.get("translate", "full"),
+        "export_limit": cfg.get("export_limit"),
     }
 
 

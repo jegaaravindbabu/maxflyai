@@ -60,6 +60,19 @@ def export(project_id: str, body: ExportRequest, db: Session = Depends(get_db),
                 "error": "upgrade_required", "reason": "translate",
                 "message": "Exporting translated captions needs a paid plan. "
                            "Free previews translation in the editor."})
+        limit = ent.get("export_limit")
+        if limit is not None:
+            used = (db.query(Export)
+                      .join(Project, Export.project_id == Project.id)
+                      .filter(Project.user_id == user,
+                              Export.status.in_(["ready", "processing"]))
+                      .count())
+            if used >= limit:
+                raise HTTPException(402, detail={
+                    "error": "upgrade_required", "reason": "export_limit",
+                    "used": used, "limit": limit,
+                    "message": f"Free includes {limit} exports. Upgrade to any "
+                               "paid plan for unlimited exports."})
         watermark = ent["watermark"]
         resolution = _clamp_res(body.resolution, ent["max_res"])
     # create the export row as "processing", render in the background, return now
