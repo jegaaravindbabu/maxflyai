@@ -2730,3 +2730,9 @@ body.ed-scrubbing, body.ed-scrubbing * { cursor: ew-resize !important; user-sele
 .ed-ov-h.tr { right: -7px; top: -7px; cursor: nesw-resize; }
 .ed-ov-h.bl { left: -7px; bottom: -7px; cursor: nesw-resize; }
 .ed-ov-h.br { right: -7px; bottom: -7px; cursor: nwse-resize; }
+/* full-frame overlays: keep the handles INSIDE the frame so they're reachable
+   (at the outer corners they get clipped by the monitor and can't be grabbed) */
+.ed-ovwrap.full .ed-ov-h.tl { left: 12px; top: 12px; }
+.ed-ovwrap.full .ed-ov-h.tr { right: 12px; top: 12px; }
+.ed-ovwrap.full .ed-ov-h.bl { left: 12px; bottom: 12px; }
+.ed-ovwrap.full .ed-ov-h.br { right: 12px; bottom: 12px; }
