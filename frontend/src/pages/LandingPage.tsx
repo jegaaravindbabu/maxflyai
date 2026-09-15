@@ -8,11 +8,16 @@ const FEATURES: { big?: boolean; icon: JSX.Element; title: string; body: string;
     body: "Tamil, Thanglish and 10 more — correct spellings, the natural English-mix, and a style that matches your channel. Animated word-by-word, burned clean into the export.",
     demo: <div className="cy-demo"><b className="cy-strike">vanakam</b> <b className="cy-gradtx">→ வணக்கம்</b></div>,
   },
+  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M4 5h7M8 3v2M6 5c0 5-2 8-4 9M4 8c0 3 3 5 6 6" /><path d="M13 20l4-10 4 10M14.5 16.5h5" /></svg>, title: "Translate captions", body: "Turn your captions into English or any Indian language as a separate track — switch, preview and export each language in a click." },
+  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M4 17l4-10 4 10M5.5 13.5h5" /><path d="M15 8h3a2 2 0 0 1 0 4h-3zM15 12h3.2a2 2 0 0 1 0 4H15z" /></svg>, title: "Animated caption styles", body: "Twelve caption looks — pop, karaoke, highlight and more — styled and timed to your channel." },
   { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M3 12h3l2-7 4 14 2-7h4" /></svg>, title: "Silence remover", body: "Finds every pause and dead-air gap and tightens the cut — so the edit never drags." },
+  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="6" cy="6" r="2.5" /><circle cx="6" cy="18" r="2.5" /><path d="M8 7.5L20 18M20 6L8 16.5" /></svg>, title: "Filler-word remover", body: "Cuts the ums, aas and hmms automatically so every line lands sharp." },
   { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg>, title: "Retake remover", body: "Flubbed a line and said it again? It keeps your last clean take and drops the rest." },
   { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4M11 8v6M8 11h6" /></svg>, title: "Auto-zoom", body: "Punch-ins land on the beat automatically, aimed right at you." },
+  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M3 10v4M7 6v12M11 3v18M15 7v10M19 10v4" /></svg>, title: "Studio audio cleanup", body: "One tap strips hiss and background noise and evens out your voice." },
   { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 15l5-4 4 3 4-5 5 6" /></svg>, title: "Grades & filters", body: "Cinematic looks on your own frame — one tap, timed to any clip." },
-  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 3v12M8 11l4 4 4-4M5 21h14" /></svg>, title: "Export anywhere", body: "9:16, 1:1 or 16:9, MP4 or SRT — sized for Reels, Shorts and YouTube." },
+  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5M3 17l9 5 9-5" /></svg>, title: "B-roll, photos & titles", body: "Drop stock clips, images, on-screen text and picture-in-picture onto their own tracks." },
+  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M12 3v12M8 11l4 4 4-4M5 21h14" /></svg>, title: "Export anywhere", body: "9:16, 1:1 or 16:9 · MP4, SRT/VTT or a multi-track project bundle — sized for Reels, Shorts and YouTube." },
 ];
 
 const STEPS = [
