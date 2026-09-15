@@ -39,10 +39,24 @@ const REVIEWS = [
 const CHECK = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path d="M5 12l5 5L20 7" /></svg>;
 
 const PLANS = [
-  { name: "Free", price: "₹0", per: "/forever", desc: "Everything you need to try a full edit.", feats: ["15 min of video / month", "All captions & auto-edits", "No watermark"], cta: "Start free", hot: false },
-  { name: "Creator", price: "₹499", per: "/month", desc: "For creators posting every week.", feats: ["5 hours of video / month", "1080p exports, all styles", "Priority AI & 50 GB storage"], cta: "Get Creator", hot: true },
-  { name: "Studio", price: "₹1,299", per: "/month", desc: "For teams and daily publishers.", feats: ["Unlimited video", "4K exports + brand kits", "Team seats & support"], cta: "Get Studio", hot: false },
+  { name: "Free", price: "₹0", per: "/forever", eff: "", desc: "Try a full edit — watermarked, up to 720p.", feats: ["15 min of video / month", "All captions + translate preview", "720p export · watermark"], cta: "Start free", hot: false, save: "" },
+  { name: "Day Pass", price: "₹59", per: "/day", eff: "", desc: "Ship one reel at full quality.", feats: ["24-hour full access", "1080p · no watermark", "Every export format"], cta: "Buy day pass", hot: false, save: "" },
+  { name: "Monthly", price: "₹499", per: "/month", eff: "", desc: "For creators posting every week.", feats: ["Everything unlocked", "1080p / 4K · all styles", "Priority processing"], cta: "Go Monthly", hot: true, save: "" },
+  { name: "3 Months", price: "₹1,199", per: "/3 mo", eff: "₹400/mo", desc: "Lock in a lower rate for a quarter.", feats: ["Everything in Monthly", "Priority processing", "Cancel renewal anytime"], cta: "Get 3 months", hot: false, save: "Save 20%" },
+  { name: "6 Months", price: "₹2,199", per: "/6 mo", eff: "₹366/mo", desc: "Best for steady, regular creators.", feats: ["Everything in Monthly", "Priority support", "Cancel renewal anytime"], cta: "Get 6 months", hot: false, save: "Save 27%" },
+  { name: "1 Year", price: "₹3,999", per: "/year", eff: "₹333/mo", desc: "Lowest price per month — best value.", feats: ["Everything in Monthly", "Lowest effective price", "Priority support"], cta: "Get 1 year", hot: false, save: "Save 33%" },
 ];
+
+const CMP = [
+  { f: "Monthly processing", free: "15 min", pro: "Generous · fair-use" },
+  { f: "Captions + auto-edit", free: true, pro: true },
+  { f: "Translate captions", free: "Preview", pro: "Full + export" },
+  { f: "Export resolution", free: "720p", pro: "1080p / 4K" },
+  { f: "Watermark", free: "Yes", pro: "Removed" },
+  { f: "Export formats (SRT/VTT/ASS/MP4/bundle)", free: "MP4 only", pro: "All formats" },
+  { f: "Caption styles & animations", free: "Basic", pro: "All styles" },
+  { f: "Processing speed", free: "Standard", pro: "Priority" },
+]
 
 export function LandingPage() {
   const start = () => { window.location.hash = "#/app"; };
@@ -164,16 +178,33 @@ export function LandingPage() {
 
       <section className="cy-sec cy-tight" id="pricing">
         <div className="cy-wrap">
-          <div className="cy-sec-head"><span className="cy-pill">pricing</span><h2>Start free.<br />Upgrade when you scale.</h2></div>
-          <div className="cy-price">
+          <div className="cy-sec-head"><span className="cy-pill">pricing</span><h2>Start free.<br />Pay only when you scale.</h2><p>One free tier plus five ways to go full-access. Every paid plan unlocks the same complete toolkit — pick the length that fits.</p></div>
+          <div className="cy-price cy-price6">
             {PLANS.map((p) => (
               <div key={p.name} className={"cy-plan" + (p.hot ? " hot" : "")}>
                 {p.hot && <div className="cy-tagpop">Most popular</div>}
+                {p.save && <div className="cy-savepop">{p.save}</div>}
                 <h3>{p.name}</h3>
                 <div className="cy-amt">{p.price}<span>{p.per}</span></div>
+                <div className="cy-eff">{p.eff ? p.eff : "\u00a0"}</div>
                 <div className="cy-plan-desc">{p.desc}</div>
                 <ul>{p.feats.map((ft) => <li key={ft}>{CHECK} {ft}</li>)}</ul>
                 <button className={"cy-btn " + (p.hot ? "grad" : "ghost")} onClick={start}>{p.cta}</button>
+              </div>
+            ))}
+          </div>
+
+          <div className="cy-cmp">
+            <div className="cy-cmp-head">
+              <span className="cy-cmp-f">What&rsquo;s included</span>
+              <span className="cy-cmp-c">Free</span>
+              <span className="cy-cmp-c pro">Any paid plan</span>
+            </div>
+            {CMP.map((row) => (
+              <div key={row.f} className="cy-cmp-row">
+                <span className="cy-cmp-f">{row.f}</span>
+                <span className="cy-cmp-c">{row.free === true ? CHECK : row.free === false ? "—" : row.free}</span>
+                <span className="cy-cmp-c pro">{row.pro === true ? CHECK : row.pro === false ? "—" : row.pro}</span>
               </div>
             ))}
           </div>
