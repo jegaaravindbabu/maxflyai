@@ -1423,13 +1423,21 @@ export function EditorPage({ projectId }: { projectId: string }) {
   function startDragImg(e: ReactMouseEvent, im: ImageOverlay) {
     e.preventDefault(); e.stopPropagation();
     setSelImg(im.id);
-    const parent = (e.currentTarget as HTMLElement).offsetParent as HTMLElement | null;
-    if (!parent) return;
-    const rect = parent.getBoundingClientRect();
+    const wrap = (e.currentTarget as HTMLElement).closest(".preview-wrap") as HTMLElement | null;
+    const box = (e.currentTarget as HTMLElement).closest(".ed-ovwrap") as HTMLElement | null;
+    if (!wrap) return;
+    const rect = wrap.getBoundingClientRect();
+    const br = box ? box.getBoundingClientRect() : null;
+    const wPct = br ? (br.width / rect.width) * 100 : 0;
+    const hPct = br ? (br.height / rect.height) * 100 : 0;
+    const grabX = br ? e.clientX - br.left : 0;
+    const grabY = br ? e.clientY - br.top : 0;
     const move = (ev: MouseEvent) => {
-      const x = Math.max(0, Math.min(100, ((ev.clientX - rect.left) / rect.width) * 100));
-      const y = Math.max(0, Math.min(100, ((ev.clientY - rect.top) / rect.height) * 100));
-      patchImgLocal(im.id, { x_pct: x, y_pct: y });
+      const x = ((ev.clientX - grabX - rect.left) / rect.width) * 100;
+      const y = ((ev.clientY - grabY - rect.top) / rect.height) * 100;
+      patchImgLocal(im.id, {
+        x_pct: Math.max(0, Math.min(Math.max(0, 100 - wPct), x)),
+        y_pct: Math.max(0, Math.min(Math.max(0, 100 - hPct), y)) });
     };
     const up = () => {
       document.removeEventListener("mousemove", move);
@@ -1556,13 +1564,24 @@ export function EditorPage({ projectId }: { projectId: string }) {
   function startDragBroll(e: ReactMouseEvent, b: BrollClip) {
     e.preventDefault(); e.stopPropagation();
     setSelBroll(b.id);
-    const parent = (e.currentTarget as HTMLElement).offsetParent as HTMLElement | null;
-    if (!parent) return;
-    const rect = parent.getBoundingClientRect();
+    // reference the monitor frame (not offsetParent, which can resolve to the
+    // page) and keep the exact point you grabbed under the cursor, clamped so
+    // the picture stays fully inside the frame -> free drag anywhere, like HyPro.
+    const wrap = (e.currentTarget as HTMLElement).closest(".preview-wrap") as HTMLElement | null;
+    const box = (e.currentTarget as HTMLElement).closest(".ed-ovwrap") as HTMLElement | null;
+    if (!wrap) return;
+    const rect = wrap.getBoundingClientRect();
+    const br = box ? box.getBoundingClientRect() : null;
+    const wPct = br ? (br.width / rect.width) * 100 : 0;
+    const hPct = br ? (br.height / rect.height) * 100 : 0;
+    const grabX = br ? e.clientX - br.left : 0;   // cursor offset inside the box (px)
+    const grabY = br ? e.clientY - br.top : 0;
     const move = (ev: MouseEvent) => {
-      const x = Math.max(0, Math.min(100, ((ev.clientX - rect.left) / rect.width) * 100));
-      const y = Math.max(0, Math.min(100, ((ev.clientY - rect.top) / rect.height) * 100));
-      patchBrollLocal(b.id, { x_pct: x, y_pct: y });
+      const x = ((ev.clientX - grabX - rect.left) / rect.width) * 100;
+      const y = ((ev.clientY - grabY - rect.top) / rect.height) * 100;
+      patchBrollLocal(b.id, {
+        x_pct: Math.max(0, Math.min(Math.max(0, 100 - wPct), x)),
+        y_pct: Math.max(0, Math.min(Math.max(0, 100 - hPct), y)) });
     };
     const up = () => {
       document.removeEventListener("mousemove", move);
