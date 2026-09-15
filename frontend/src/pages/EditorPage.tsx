@@ -364,6 +364,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [expJob, setExpJob] = useState<{ fmt: string; status: "rendering" | "ready" | "error"; pct: number; url?: string; downloadUrl?: string; error?: string; open: boolean } | null>(null);
   const progRef = useRef<number | undefined>(undefined);
   const [expUsage, setExpUsage] = useState<{ export_limit: number | null; exports_used: number } | null>(null);
+  const [mobileAck, setMobileAck] = useState(false);
   const refreshExpUsage = () => api.billingMe()
     .then((m: any) => setExpUsage({ export_limit: m?.export_limit ?? null, exports_used: m?.exports_used ?? 0 }))
     .catch(() => {});
@@ -1645,6 +1646,17 @@ export function EditorPage({ projectId }: { projectId: string }) {
 
   return (
     <div className="ed">
+      {!mobileAck && (
+        <div className="ed-mobguard">
+          <div className="ed-mobguard-card">
+            <div className="ed-mobguard-ic">🖥️</div>
+            <h3>Best on a bigger screen</h3>
+            <p>The ceyonai editor — captions, timeline and preview — is built for a laptop or desktop. On a phone it gets cramped. For the smoothest edit, open this project on a larger screen.</p>
+            <button className="ed-mobguard-go" onClick={() => setMobileAck(true)}>Continue anyway</button>
+            <a className="ed-mobguard-back" href="#/app">Back to projects</a>
+          </div>
+        </div>
+      )}
       {/* ===== top bar ===== */}
       <div className="ed-top">
         <div className="ed-top-l">

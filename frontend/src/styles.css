@@ -2672,3 +2672,46 @@ body.ed-scrubbing, body.ed-scrubbing * { cursor: ew-resize !important; user-sele
 
 .cy-rev-tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ccyan);margin-bottom:12px;}
 .cy-rev-title{font-family:'Space Grotesk',Inter,sans-serif;font-weight:700;font-size:18px;margin:0 0 8px;line-height:1.25;}
+
+/* ============================================================
+   Mobile responsiveness — account/marketing polish + editor guard
+   ============================================================ */
+
+/* Editor: "best on a bigger screen" guard (dismissible) */
+.ed-mobguard { display: none; }
+@media (max-width: 820px) {
+  .ed-mobguard { display: flex; position: fixed; inset: 0; z-index: 200;
+    background: rgba(6,8,14,.94); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+    align-items: center; justify-content: center; padding: 24px; }
+}
+.ed-mobguard-card { max-width: 360px; width: 100%; text-align: center; background: var(--panel);
+  border: 1px solid var(--border); border-radius: 16px; padding: 28px 22px; }
+.ed-mobguard-ic { font-size: 40px; margin-bottom: 10px; }
+.ed-mobguard-card h3 { margin: 0 0 8px; font-size: 20px; }
+.ed-mobguard-card p { color: var(--muted); font-size: 14px; line-height: 1.55; margin: 0 0 20px; }
+.ed-mobguard-go { width: 100%; padding: 12px; border: none; border-radius: 11px; cursor: pointer;
+  background: linear-gradient(100deg,#8b6bff,#22d3ee); color: #08101a; font-weight: 700; font-size: 15px; }
+.ed-mobguard-back { display: inline-block; margin-top: 14px; color: var(--muted); font-size: 13px; }
+
+/* App shell: tighten padding + roomier tap targets on phones */
+@media (max-width: 640px) {
+  .main { padding: 18px 16px; height: auto; min-height: 100dvh; }
+  .shell { min-height: 100dvh; }
+  .sidebar { padding: 12px 8px; }
+  .settings-row, .set-row { flex-wrap: wrap; gap: 6px 12px; }
+  .proj-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .hero { flex-direction: column; align-items: flex-start; gap: 16px; padding: 20px; }
+  .hero h1 { font-size: 24px; }
+  .np-modal { padding: 20px 16px; }
+}
+@media (max-width: 430px) {
+  .proj-grid { grid-template-columns: 1fr; }
+  .tabs { flex-wrap: wrap; }
+}
+
+/* In-app pricing/billing: cards already auto-fit; tighten hero + usage on phones */
+@media (max-width: 560px) {
+  .pr-hero .pr-title { font-size: 26px; }
+  .pr-usage .row { flex-wrap: wrap; gap: 4px; }
+  .pr-topup-grid { grid-template-columns: 1fr; }
+}
