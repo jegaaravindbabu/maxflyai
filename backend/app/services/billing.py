@@ -2,8 +2,9 @@
 Plans, usage metering, entitlements and quota. Payment-provider-agnostic
 (see payments.py).
 
-Metering unit = processing MINUTES (video duration transcribed), enforced per
-calendar-month window. Access is time-boxed: a paid plan has a duration (day
+Metering unit = processing MINUTES (video duration transcribed). Paid plans
+pool their minutes across the whole purchased period; Free resets each calendar
+month. Access is time-boxed: a paid plan has a duration (day
 pass 1 day, monthly 30 days, up to 1 year) and sets current_period_end; once
 that passes the user falls back to Free automatically.
 
@@ -50,17 +51,17 @@ PLANS = {
         "watermark": False, "formats": ALL_FORMATS, "translate": "full",
     },
     "q3": {
-        "label": "3 Months", "minutes": 300, "storage_gb": 30, "max_res": 2160,
+        "label": "3 Months", "minutes": 900, "storage_gb": 30, "max_res": 2160,
         "price_inr": 1199, "duration_days": 90, "retention_days": None,
         "watermark": False, "formats": ALL_FORMATS, "translate": "full",
     },
     "h6": {
-        "label": "6 Months", "minutes": 300, "storage_gb": 30, "max_res": 2160,
+        "label": "6 Months", "minutes": 1800, "storage_gb": 30, "max_res": 2160,
         "price_inr": 2199, "duration_days": 180, "retention_days": None,
         "watermark": False, "formats": ALL_FORMATS, "translate": "full",
     },
     "y1": {
-        "label": "1 Year", "minutes": 300, "storage_gb": 30, "max_res": 2160,
+        "label": "1 Year", "minutes": 3600, "storage_gb": 30, "max_res": 2160,
         "price_inr": 3999, "duration_days": 365, "retention_days": None,
         "watermark": False, "formats": ALL_FORMATS, "translate": "full",
     },
@@ -108,8 +109,22 @@ def current_plan(db: Session, user_id: str) -> str:
     return sub.plan if sub else DEFAULT_PLAN
 
 
+def _usage_window_start(db: Session, user_id: str) -> datetime:
+    """Start of the window that usage is counted against. Paid plans pool their
+    minutes across the whole purchased period (from the day they bought, so a
+    6-month plan is one 1,800-minute pool, not 300 that resets monthly). Free has
+    no purchase window, so it resets on the 1st of each calendar month."""
+    sub = _active_sub(db, user_id)
+    if sub and sub.current_period_start:
+        st = sub.current_period_start
+        if st.tzinfo is None:
+            st = st.replace(tzinfo=timezone.utc)
+        return st
+    return _period_start()
+
+
 def minutes_used(db: Session, user_id: str) -> int:
-    start = _period_start()
+    start = _usage_window_start(db, user_id)
     rows = (db.query(UsageEvent)
               .filter(UsageEvent.user_id == user_id, UsageEvent.created_at >= start).all())
     return sum(r.minutes for r in rows)

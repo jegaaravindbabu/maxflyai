@@ -19,11 +19,11 @@ const PLANS: Plan[] = [
   { id: "monthly", name: "MONTHLY", price: "₹499", per: "/month", minutes: "300 min / month", cta: "Go Monthly", badge: "MOST POPULAR",
     feats: ["Everything unlocked", "1080p / 4K · all caption styles", "All formats + translate export",
       "Priority processing · 30 GB storage"] },
-  { id: "q3", name: "3 MONTHS", price: "₹1,199", per: "/3 mo", eff: "₹400/mo · save 20%", minutes: "300 min / month", cta: "Get 3 months",
+  { id: "q3", name: "3 MONTHS", price: "₹1,199", per: "/3 mo", eff: "₹400/mo · save 20%", minutes: "900 min / 3 months", cta: "Get 3 months",
     feats: ["Everything in Monthly", "Lower locked-in rate", "Priority processing", "30 GB storage"] },
-  { id: "h6", name: "6 MONTHS", price: "₹2,199", per: "/6 mo", eff: "₹366/mo · save 27%", minutes: "300 min / month", cta: "Get 6 months",
+  { id: "h6", name: "6 MONTHS", price: "₹2,199", per: "/6 mo", eff: "₹366/mo · save 27%", minutes: "1800 min / 6 months", cta: "Get 6 months",
     feats: ["Everything in Monthly", "Priority support", "Best for steady creators", "30 GB storage"] },
-  { id: "y1", name: "1 YEAR", price: "₹3,999", per: "/year", eff: "₹333/mo · save 33%", minutes: "300 min / month", cta: "Get 1 year", badge: "BEST VALUE",
+  { id: "y1", name: "1 YEAR", price: "₹3,999", per: "/year", eff: "₹333/mo · save 33%", minutes: "3600 min / 1 year", cta: "Get 1 year", badge: "BEST VALUE",
     feats: ["Everything in Monthly", "Lowest effective price", "Priority support", "30 GB storage"] },
 ];
 
