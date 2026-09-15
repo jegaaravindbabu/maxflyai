@@ -2640,3 +2640,5 @@ body.ed-scrubbing, body.ed-scrubbing * { cursor: ew-resize !important; user-sele
 .pr-eff-badge{display:inline-block;font-size:12px;font-weight:600;color:var(--ccyan);background:#0e1730;border:1px solid #1c3050;border-radius:20px;padding:3px 10px;}
 
 .cy-mins{font-size:13px;font-weight:600;color:#cfd6f0;background:#0e1730;border:1px solid #1c3050;border-radius:8px;padding:6px 10px;margin:0 0 14px;display:inline-block;}
+
+.cy-gst{font-size:11px;color:var(--cmuted);margin:0 0 12px;letter-spacing:.01em;}
