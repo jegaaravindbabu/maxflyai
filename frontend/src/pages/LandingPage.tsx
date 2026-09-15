@@ -42,9 +42,9 @@ const PLANS = [
   { name: "Free", price: "₹0", per: "/forever", eff: "", mins: "15 min / month", desc: "Try a full edit — watermarked, up to 720p.", feats: ["15 min of video / month", "All captions + translate preview", "720p export · watermark"], cta: "Start free", hot: false, save: "" },
   { name: "Day Pass", price: "₹59", per: "/day", eff: "", mins: "45 min · 24-hour access", desc: "Ship one reel at full quality.", feats: ["24-hour full access", "1080p · no watermark", "Every export format"], cta: "Buy day pass", hot: false, save: "" },
   { name: "Monthly", price: "₹499", per: "/month", eff: "", mins: "300 min / month", desc: "For creators posting every week.", feats: ["Everything unlocked", "1080p / 4K · all styles", "Priority processing"], cta: "Go Monthly", hot: true, save: "" },
-  { name: "3 Months", price: "₹1,199", per: "/3 mo", eff: "₹400/mo", mins: "900 min / 3 months", desc: "Lock in a lower rate for a quarter.", feats: ["Everything in Monthly", "Priority processing", "Cancel renewal anytime"], cta: "Get 3 months", hot: false, save: "Save 20%" },
-  { name: "6 Months", price: "₹2,199", per: "/6 mo", eff: "₹366/mo", mins: "1800 min / 6 months", desc: "Best for steady, regular creators.", feats: ["Everything in Monthly", "Priority support", "Cancel renewal anytime"], cta: "Get 6 months", hot: false, save: "Save 27%" },
-  { name: "1 Year", price: "₹3,999", per: "/year", eff: "₹333/mo", mins: "3600 min / 1 year", desc: "Lowest price per month — best value.", feats: ["Everything in Monthly", "Lowest effective price", "Priority support"], cta: "Get 1 year", hot: false, save: "Save 33%" },
+  { name: "3 Months", price: "₹1,199", per: "/3 mo", eff: "₹400/mo", mins: "300 min / month", desc: "Lock in a lower rate for a quarter.", feats: ["Everything in Monthly", "Priority processing", "Cancel renewal anytime"], cta: "Get 3 months", hot: false, save: "Save 20%" },
+  { name: "6 Months", price: "₹2,199", per: "/6 mo", eff: "₹366/mo", mins: "300 min / month", desc: "Best for steady, regular creators.", feats: ["Everything in Monthly", "Priority support", "Cancel renewal anytime"], cta: "Get 6 months", hot: false, save: "Save 27%" },
+  { name: "1 Year", price: "₹3,999", per: "/year", eff: "₹333/mo", mins: "300 min / month", desc: "Lowest price per month — best value.", feats: ["Everything in Monthly", "Lowest effective price", "Priority support"], cta: "Get 1 year", hot: false, save: "Save 33%" },
 ];
 
 const CMP = [
