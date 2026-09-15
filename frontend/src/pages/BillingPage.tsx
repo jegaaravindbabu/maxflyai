@@ -5,30 +5,26 @@ interface Me { plan: string; label: string; minutes_cap: number; minutes_used: n
   minutes_left: number; max_res: number; storage_gb: number; provider: string; }
 
 interface Plan {
-  id: string; name: string; price: string; per?: string; gst?: string; total?: string;
+  id: string; name: string; price: string; per?: string; eff?: string; gst?: string; total?: string;
   minutes: string; rate?: string; feats: string[]; cta: string; badge?: string;
 }
 
 const PLANS: Plan[] = [
-  { id: "free", name: "FREE", price: "Free", minutes: "5 Minutes / Month", cta: "Current plan",
-    feats: ["5 GB cloud storage", "Files auto-delete after 7 days", "Transcribe + Romanize + Translate",
-      "Max Export: 720p", "1 export / month (max 1 minute)", "No watermark"] },
-  { id: "daily", name: "DAILY PASS", price: "₹89", per: "/day", gst: "₹16.02", total: "₹105.02/day",
-    minutes: "10 Minutes (24-hour access)", cta: "Buy Pass", badge: "NEW",
-    feats: ["5 GB storage (files kept 7 days)", "Silence + Retake remover", "Audio + Video enhancement",
-      "NLE export (Premiere / DaVinci / FCP)", "SRT / VTT / TXT export", "Max Export: 4K"] },
-  { id: "starter", name: "STARTER", price: "₹399", per: "/month", gst: "₹71.82", total: "₹470.82/month",
-    minutes: "25 Minutes / Month", cta: "Get Starter",
-    feats: ["10 GB cloud storage (permanent)", "Audio enhancement included", "SRT / VTT / TXT export",
-      "Max Export: 1080p", "Transcribe + Romanize + Translate"] },
-  { id: "creator", name: "CREATOR", price: "₹799", per: "/month", gst: "₹143.82", total: "₹942.82/month",
-    minutes: "80 Minutes / Month", rate: "₹9.99 / MIN", cta: "Get Creator", badge: "MOST POPULAR",
-    feats: ["30 GB cloud storage (permanent)", "Silence + Retake remover", "Audio + Video enhancement",
-      "NLE export (Premiere / DaVinci / FCP)", "Custom fonts & presets", "Priority AI processing", "Max Export: 4K"] },
-  { id: "pro", name: "PRO", price: "₹2,499", per: "/month", gst: "₹449.82", total: "₹2,948.82/month",
-    minutes: "250 Minutes / Month", rate: "₹10.00 / MIN", cta: "Get Pro",
-    feats: ["100 GB cloud storage (permanent)", "Everything in Creator", "Priority AI processing",
-      "Team workspace — 5 seats included", "Max Export: 4K"] },
+  { id: "free", name: "FREE", price: "₹0", per: "/forever", minutes: "15 min / month", cta: "Current plan",
+    feats: ["Captions + translate preview", "720p export · ceyonai watermark", "MP4 export only",
+      "1 GB storage · files kept 7 days"] },
+  { id: "day", name: "DAY PASS", price: "₹59", per: "/day", minutes: "45 min · 24-hour access", cta: "Buy day pass", badge: "NEW",
+    feats: ["Full access for 24 hours", "1080p / 4K · no watermark", "Every export format",
+      "2 GB working storage"] },
+  { id: "monthly", name: "MONTHLY", price: "₹499", per: "/month", minutes: "300 min / month", cta: "Go Monthly", badge: "MOST POPULAR",
+    feats: ["Everything unlocked", "1080p / 4K · all caption styles", "All formats + translate export",
+      "Priority processing · 30 GB storage"] },
+  { id: "q3", name: "3 MONTHS", price: "₹1,199", per: "/3 mo", eff: "₹400/mo · save 20%", minutes: "300 min / month", cta: "Get 3 months",
+    feats: ["Everything in Monthly", "Lower locked-in rate", "Priority processing", "30 GB storage"] },
+  { id: "h6", name: "6 MONTHS", price: "₹2,199", per: "/6 mo", eff: "₹366/mo · save 27%", minutes: "300 min / month", cta: "Get 6 months",
+    feats: ["Everything in Monthly", "Priority support", "Best for steady creators", "30 GB storage"] },
+  { id: "y1", name: "1 YEAR", price: "₹3,999", per: "/year", eff: "₹333/mo · save 33%", minutes: "300 min / month", cta: "Get 1 year", badge: "BEST VALUE",
+    feats: ["Everything in Monthly", "Lowest effective price", "Priority support", "30 GB storage"] },
 ];
 
 const TOPUP_MIN: [string, string][] = [["+5", "₹50"], ["+10", "₹100"], ["+25", "₹250"], ["+50", "₹500"], ["+100", "₹1000"]];
@@ -84,9 +80,9 @@ export function BillingPage() {
               {p.badge && <div className={"pr-badge" + (p.badge === "MOST POPULAR" ? " pop" : "")}>{p.badge}</div>}
               <div className="pr-name">{p.name}</div>
               <div className="pr-price">{p.price}{p.per && <span className="pr-per">{p.per}</span>}</div>
-              {p.gst ? (
-                <div className="pr-gst">+ 18% GST {p.gst}<br /><span className="muted">Total {p.total}</span></div>
-              ) : <div className="pr-gst muted">Always free</div>}
+              {p.eff ? (
+                <div className="pr-gst"><span className="pr-eff-badge">{p.eff}</span></div>
+              ) : <div className="pr-gst muted">{p.id === "free" ? "Always free" : "Full access"}</div>}
               <div className="pr-mins">{p.minutes}{p.rate && <span className="pr-rate"> · {p.rate}</span>}</div>
               <ul className="pr-feats">
                 {p.feats.map((f) => <li key={f}>{f}</li>)}
@@ -103,7 +99,7 @@ export function BillingPage() {
 
       <div className="pr-topup">
         <h2>Top up anytime</h2>
-        <p className="muted">Out of minutes or storage? Buy a one-time add-on without touching your plan. +18% GST added at checkout. Available on Starter, Creator, and Pro.</p>
+        <p className="muted">Out of minutes or storage? Buy a one-time add-on without touching your plan. +18% GST added at checkout. Available on any paid plan.</p>
         <div className="pr-topup-grid">
           <div className="pr-topup-card">
             <div className="pr-topup-head">EXTRA MINUTES <span className="muted">₹10 / MIN</span></div>

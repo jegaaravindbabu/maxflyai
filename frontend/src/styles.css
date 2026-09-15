@@ -2636,3 +2636,5 @@ body.ed-scrubbing, body.ed-scrubbing * { cursor: ew-resize !important; user-sele
   .cy-cmp-head,.cy-cmp-row{grid-template-columns:1.4fr .8fr .8fr;}
   .cy-cmp-head span,.cy-cmp-row span{padding:11px 10px;font-size:12.5px;}
 }
+
+.pr-eff-badge{display:inline-block;font-size:12px;font-weight:600;color:var(--ccyan);background:#0e1730;border:1px solid #1c3050;border-radius:20px;padding:3px 10px;}

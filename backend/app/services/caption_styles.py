@@ -787,3 +787,11 @@ def build_overlay_events(overlays: list[dict]) -> str:
                 f"\\bord{bord}\\3c{oc}\\shad{shad}\\4c{sc}{extra}}}")
         out.append(f"Dialogue: 1,{start},{end},Default,,0,0,0,,{tags}{text}")
     return "\n".join(out)
+
+
+def watermark_event() -> str:
+    """A persistent, semi-transparent 'ceyonai' watermark burned bottom-right on
+    free-tier MP4 exports. Layer 6 keeps it above captions/overlays. Uses the
+    Default style's font via PlayRes 1920x1080; margins (R=48, V=44) inset it."""
+    return ("Dialogue: 6,0:00:00.00,9:59:59.99,Default,,0,48,44,,"
+            "{\\an3\\fs46\\b1\\bord2\\shad0\\1a&H3C&\\3a&H50&\\1c&HFFFFFF&\\3c&H12060A&}ceyonai")

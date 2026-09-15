@@ -10,7 +10,18 @@ from app.schemas import ExportRequest
 from app.tasks.exporting import run_export_job, export_task
 from app import runner
 from app.services.storage import storage
+from app.services import billing
 import re
+
+def _clamp_res(res: str, max_res: int) -> str:
+    """Cap a requested export resolution to the plan's max short-side pixels.
+    "auto" follows the source but is capped for limited plans (free = 720)."""
+    if res in ("1080", "720", "480"):
+        return str(min(int(res), max_res))
+    if res == "auto" and max_res < 2160:
+        return str(max_res)
+    return res
+
 
 router = APIRouter(prefix="/api/projects", tags=["exports"])
 
@@ -33,6 +44,24 @@ def export(project_id: str, body: ExportRequest, db: Session = Depends(get_db),
         if active >= settings.max_concurrent_exports:
             raise HTTPException(429, f"You already have {active} exports running. "
                                      "Please wait for one to finish before starting another.")
+    # plan entitlements: gate formats, translated export, resolution & watermark.
+    # dev/open mode (user is None) and admins are exempt.
+    resolution = body.resolution
+    watermark = False
+    if user is not None and not admin:
+        ent = billing.entitlements(billing.current_plan(db, user))
+        if body.format not in ent["formats"]:
+            raise HTTPException(402, detail={
+                "error": "upgrade_required", "reason": "format", "format": body.format,
+                "message": f"Exporting {body.format.upper()} needs a paid plan. "
+                           "Any paid plan unlocks every export format."})
+        if body.lang and ent["translate"] != "full":
+            raise HTTPException(402, detail={
+                "error": "upgrade_required", "reason": "translate",
+                "message": "Exporting translated captions needs a paid plan. "
+                           "Free previews translation in the editor."})
+        watermark = ent["watermark"]
+        resolution = _clamp_res(body.resolution, ent["max_res"])
     # create the export row as "processing", render in the background, return now
     exp = Export(project_id=project_id, format=body.format, status="processing")
     db.add(exp)
@@ -42,11 +71,11 @@ def export(project_id: str, body: ExportRequest, db: Session = Depends(get_db),
         export_task.delay(exp.id, project_id, body.format, body.use_translit,
                           body.apply_cuts, body.style, body.enhance_audio,
                           body.volume, body.speed, body.enhance_strength,
-                          body.resolution, body.lang)
+                          resolution, body.lang, watermark)
     else:
         runner.submit(run_export_job, exp.id, project_id, body.format, body.use_translit,
                       body.apply_cuts, body.style, body.enhance_audio, body.volume, body.speed,
-                      body.enhance_strength, body.resolution, body.lang)
+                      body.enhance_strength, resolution, body.lang, watermark)
     return {"export_id": exp.id, "status": "processing", "format": body.format}
 
 

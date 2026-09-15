@@ -14,7 +14,7 @@ from celery import shared_task
 from app.database import SessionLocal
 from app.models import Project, CaptionCue, Export, Edit, TextOverlay, ImageOverlay, BrollClip, CaptionTranslation
 from app.services.captions import SERIALIZERS
-from app.services.caption_styles import build_ass, build_overlay_events
+from app.services.caption_styles import build_ass, build_overlay_events, watermark_event
 from app.services import ffmpeg_utils, timeline, timeline_export, stems, autozoom, filters
 from app.services.storage import storage
 from app.config import settings
@@ -217,7 +217,8 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                apply_cuts: bool = True, style: str = "classic",
                enhance_audio: bool = False, volume: float = 1.0, speed: float = 1.0,
                enhance_strength: int = 50, resolution: str = "auto",
-               export_id: str | None = None, lang: str | None = None) -> dict:
+               export_id: str | None = None, lang: str | None = None,
+               watermark: bool = False) -> dict:
     db = SessionLocal()
     try:
         project = db.get(Project, project_id)
@@ -299,6 +300,8 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                 ev = build_overlay_events(overlays)
                 if ev:
                     ass = ass.rstrip("\n") + "\n" + ev + "\n"
+            if watermark:
+                ass = ass.rstrip("\n") + "\n" + watermark_event() + "\n"
             fd, ass_path = tempfile.mkstemp(suffix=".ass"); os.close(fd)
             with open(ass_path, "w", encoding="utf-8") as f:
                 f.write(ass)
@@ -532,12 +535,13 @@ def run_export_job(export_id: str, project_id: str, fmt: str, use_translit: bool
                    apply_cuts: bool, style: str, enhance_audio: bool,
                    volume: float = 1.0, speed: float = 1.0,
                    enhance_strength: int = 50, resolution: str = "auto",
-                   lang: str | None = None) -> None:
+                   lang: str | None = None, watermark: bool = False) -> None:
     """Background entry: run the export, mark the Export row error on failure."""
     try:
         run_export(project_id, fmt, use_translit, apply_cuts, style, enhance_audio,
                    volume, speed, enhance_strength=enhance_strength,
-                   resolution=resolution, export_id=export_id, lang=lang)
+                   resolution=resolution, export_id=export_id, lang=lang,
+                   watermark=watermark)
     except Exception as e:
         db = SessionLocal()
         try:
@@ -561,8 +565,9 @@ def export_task(self, export_id: str, project_id: str, fmt: str = "srt",
                 style: str = "classic", enhance_audio: bool = False,
                 volume: float = 1.0, speed: float = 1.0,
                 enhance_strength: int = 50, resolution: str = "auto",
-                lang: str | None = None) -> None:
+                lang: str | None = None, watermark: bool = False) -> None:
     """Celery entry for exports. Mirrors run_export_job so the Export row is
     marked error on failure; retries once on transient errors."""
     run_export_job(export_id, project_id, fmt, use_translit, apply_cuts, style,
-                   enhance_audio, volume, speed, enhance_strength, resolution, lang)
+                   enhance_audio, volume, speed, enhance_strength, resolution, lang,
+                   watermark)
