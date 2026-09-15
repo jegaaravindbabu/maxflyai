@@ -2399,33 +2399,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 </div>
               ) : null}
               controls={<>
-                <button className="ed-mon-replace" onClick={() => {}}>
-                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 3v5h-5" /></svg>
-                  Replace
-                </button>
                 <span className="ed-mon-h ed-mon-h-tl" /><span className="ed-mon-h ed-mon-h-tr" />
                 <span className="ed-mon-h ed-mon-h-bl" /><span className="ed-mon-h ed-mon-h-br" />
                 <span className="ed-mon-grip" aria-hidden><i /><i /><i /></span>
-                <div className="ed-mon-tools">
-                  <span className="ed-mon-tipwrap">
-                    <button className={"ed-mon-ibtn" + (safeZone ? " on" : "")} onClick={() => setSafeZone((v) => !v)} aria-label="Safe zone">
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="12" cy="12" r="9" /><line x1="12" y1="11" x2="12" y2="16" /><line x1="12" y1="7.6" x2="12.01" y2="7.6" /></svg>
-                    </button>
-                    <span className="ed-mon-tipbox">Danger zone — show where the app's buttons and caption will cover your video</span>
-                  </span>
-                  <span className="ed-mon-div" />
-                  <button className="ed-mon-ibtn" title="Zoom out" onClick={() => setPreviewZoom((z) => Math.max(0.25, +(z - 0.25).toFixed(2)))}>
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="8" y1="11" x2="14" y2="11" /></svg>
-                  </button>
-                  <button className="ed-mon-zoomlbl" title="Reset zoom" onClick={() => setPreviewZoom(1)}>{Math.round(previewZoom * 100)}%</button>
-                  <button className="ed-mon-ibtn" title="Zoom in" onClick={() => setPreviewZoom((z) => Math.min(3, +(z + 0.25).toFixed(2)))}>
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="11" y1="8" x2="11" y2="14" /><line x1="8" y1="11" x2="14" y2="11" /></svg>
-                  </button>
-                  <span className="ed-mon-div" />
-                  <button className="ed-mon-ibtn" title="Fullscreen" onClick={toggleFullscreen}>
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" /></svg>
-                  </button>
-                </div>
               </>}
               frameOverlay={<>
                 {!isHidden("captions") && movedWords.length > 0 && movedWords.map(({ i, w, wd }) => (
@@ -2503,18 +2479,46 @@ export function EditorPage({ projectId }: { projectId: string }) {
             </div>
           </div>
           <div className="ed-mon-bar">
-            <button className="ed-mon-tr" title="Previous caption" onClick={prevCap}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M7 6h2v12H7zM20 6v12l-9-6z" /></svg>
-            </button>
-            <button className="ed-mon-tr ed-mon-tr-play" title={playing ? "Pause" : "Play"} onClick={togglePlay}>
-              {playing
-                ? <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M7 5h4v14H7zM15 5h4v14h-4z" /></svg>
-                : <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>}
-            </button>
-            <button className="ed-mon-tr" title="Next caption" onClick={nextCap}>
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M15 6h2v12h-2zM4 6l9 6-9 6z" /></svg>
-            </button>
-            <span className="ed-mon-time">{fmtT(projMs)} / {fmtT(projDur)}</span>
+            <div className="ed-mon-bar-side ed-mon-bar-l">
+              <button className="ed-mon-chip" title="Replace video" onClick={() => setRail("uploads")}>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 3v5h-5" /></svg>
+                <span className="ed-mon-chip-t">Replace</span>
+              </button>
+            </div>
+            <div className="ed-mon-bar-c">
+              <button className="ed-mon-tr" title="Previous caption" onClick={prevCap}>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M7 6h2v12H7zM20 6v12l-9-6z" /></svg>
+              </button>
+              <button className="ed-mon-tr ed-mon-tr-play" title={playing ? "Pause" : "Play"} onClick={togglePlay}>
+                {playing
+                  ? <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M7 5h4v14H7zM15 5h4v14h-4z" /></svg>
+                  : <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>}
+              </button>
+              <button className="ed-mon-tr" title="Next caption" onClick={nextCap}>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M15 6h2v12h-2zM4 6l9 6-9 6z" /></svg>
+              </button>
+              <span className="ed-mon-time-inline">{fmtT(projMs)} / {fmtT(projDur)}</span>
+            </div>
+            <div className="ed-mon-bar-side ed-mon-bar-r">
+              <span className="ed-mon-tipwrap">
+                <button className={"ed-mon-ibtn" + (safeZone ? " on" : "")} onClick={() => setSafeZone((v) => !v)} aria-label="Safe zone">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="12" cy="12" r="9" /><line x1="12" y1="11" x2="12" y2="16" /><line x1="12" y1="7.6" x2="12.01" y2="7.6" /></svg>
+                </button>
+                <span className="ed-mon-tipbox">Danger zone — show where the app's buttons and caption will cover your video</span>
+              </span>
+              <span className="ed-mon-div" />
+              <button className="ed-mon-ibtn" title="Zoom out" onClick={() => setPreviewZoom((z) => Math.max(0.25, +(z - 0.25).toFixed(2)))}>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="8" y1="11" x2="14" y2="11" /></svg>
+              </button>
+              <button className="ed-mon-zoomlbl" title="Reset zoom" onClick={() => setPreviewZoom(1)}>{Math.round(previewZoom * 100)}%</button>
+              <button className="ed-mon-ibtn" title="Zoom in" onClick={() => setPreviewZoom((z) => Math.min(3, +(z + 0.25).toFixed(2)))}>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="11" y1="8" x2="11" y2="14" /><line x1="8" y1="11" x2="14" y2="11" /></svg>
+              </button>
+              <span className="ed-mon-div" />
+              <button className="ed-mon-ibtn" title="Fullscreen" onClick={toggleFullscreen}>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" /></svg>
+              </button>
+            </div>
           </div>
         </div>
 

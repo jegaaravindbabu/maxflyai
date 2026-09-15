@@ -492,7 +492,25 @@ select, input[type=text] { background: var(--panel-2); color: var(--text);
 .ed-stage { max-width: 560px; width: 100%; margin: 0 auto; padding: 18px;
   background: radial-gradient(130% 100% at 50% 0%, #16181f 0%, #0b0c0f 72%);
   border: 1px solid var(--border); border-radius: 16px; }
-.ed-mon-bar { max-width: 560px; width: 100%; margin: 6px auto 0; }
+.ed-mon-bar { max-width: 860px; width: 100%; margin: 6px auto 0; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.ed-mon-bar-side { display: flex; align-items: center; gap: 4px; flex: 1 1 0; min-width: 0; }
+.ed-mon-bar-l { justify-content: flex-start; }
+.ed-mon-bar-r { justify-content: flex-end; }
+.ed-mon-bar-c { display: flex; align-items: center; gap: 22px; flex: 0 0 auto; }
+.ed-mon-time-inline { margin-left: 8px; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+/* moved controls now sit on the panel bar, not the dark video — recolor for contrast */
+.ed-mon-bar .ed-mon-ibtn { color: var(--muted); }
+.ed-mon-bar .ed-mon-ibtn:hover { color: var(--text); background: rgba(127,132,160,.16); }
+.ed-mon-bar .ed-mon-zoomlbl { color: var(--text); }
+.ed-mon-bar .ed-mon-zoomlbl:hover { background: rgba(127,132,160,.16); }
+.ed-mon-bar .ed-mon-div { background: var(--line, rgba(127,132,160,.28)); }
+.ed-mon-chip { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 9px;
+  border: 1px solid var(--line, rgba(127,132,160,.3)); background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.ed-mon-chip:hover { color: var(--text); background: rgba(127,132,160,.14); }
+@media (max-width: 720px) {
+  .ed-mon-bar-side { flex-basis: 100%; justify-content: center; }
+  .ed-mon-chip-t { display: none; }
+}
 /* Don't clip the control strip / corner handles / grip against the narrow video */
 .ed-stage .preview-wrap { overflow: visible; }
 .ed-stage .preview-wrap video { border-radius: 10px; }
