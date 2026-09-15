@@ -497,6 +497,22 @@ export function EditorPage({ projectId }: { projectId: string }) {
     }).catch(() => {});
   }, [projectId]);
   useEffect(() => { if (videoRef.current) videoRef.current.muted = mediaMuted; }, [mediaMuted]);
+  // Selecting a b-roll/image seeks the playhead onto it so it shows in the
+  // monitor (and clears the main-clip selection) — it can then be resized.
+  useEffect(() => {
+    if (!selBroll) return;
+    setClipSelected(false);
+    const b = brollsRef.current.find((v) => v.id === selBroll);
+    if (b && (curMs < b.start_ms || curMs >= b.end_ms)) seek(b.start_ms + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selBroll]);
+  useEffect(() => {
+    if (!selImg) return;
+    setClipSelected(false);
+    const im = imagesRef.current.find((v) => v.id === selImg);
+    if (im && (curMs < im.start_ms || curMs >= im.end_ms)) seek(im.start_ms + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selImg]);
   useEffect(() => { setOverlays(proj?.overlays || []); }, [proj?.id]);
   useEffect(() => { api.listAutozoom(projectId).then((zs) => setZooms(zs.map(normZoom))).catch(() => {}); }, [projectId]);
   useEffect(() => {
@@ -869,24 +885,6 @@ export function EditorPage({ projectId }: { projectId: string }) {
     playIdxRef.current = i; setPlayIdx(i);
     if (videoRef.current) videoRef.current.currentTime = projToSrc(plSpans, pms) / 1000;
   }
-
-  // When a b-roll or image overlay is selected, make sure it is actually visible
-  // in the monitor (seek the playhead into its span) and drop the main-clip
-  // selection — otherwise there is no overlay on screen to grab and resize.
-  useEffect(() => {
-    if (!selBroll) return;
-    setClipSelected(false);
-    const b = brollsRef.current.find((v) => v.id === selBroll);
-    if (b && (curMs < b.start_ms || curMs >= b.end_ms)) seek(b.start_ms + 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selBroll]);
-  useEffect(() => {
-    if (!selImg) return;
-    setClipSelected(false);
-    const im = imagesRef.current.find((v) => v.id === selImg);
-    if (im && (curMs < im.start_ms || curMs >= im.end_ms)) seek(im.start_ms + 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selImg]);
   // Grab-and-drag the playhead / scrub smoothly along the ruler.
   function startScrub(e: ReactMouseEvent) {
     e.preventDefault(); e.stopPropagation();
