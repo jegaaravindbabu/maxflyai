@@ -19,7 +19,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
-from app.models import Subscription, UsageEvent
+from app.models import Subscription, UsageEvent, Project, Export
 
 # every export format the pipeline can produce
 ALL_FORMATS = ["srt", "vtt", "ass", "mp4", "fcpxml", "edl", "bundle"]
@@ -136,6 +136,16 @@ def duration_to_minutes(duration_ms: int) -> int:
     return max(1, math.ceil((duration_ms or 0) / 60000))
 
 
+def exports_used(db: Session, user_id: str) -> int:
+    """Successful + in-flight exports across all of a user's projects. Errored
+    renders don't count, so a failed export never burns the free allowance."""
+    return (db.query(Export)
+              .join(Project, Export.project_id == Project.id)
+              .filter(Project.user_id == user_id,
+                      Export.status.in_(["ready", "processing"]))
+              .count())
+
+
 def quota(db: Session, user_id: str) -> dict:
     plan = current_plan(db, user_id)
     cfg = plan_config(plan)
@@ -147,7 +157,9 @@ def quota(db: Session, user_id: str) -> dict:
             "minutes_used": used, "minutes_left": max(0, cfg["minutes"] - used),
             "max_res": cfg["max_res"], "storage_gb": cfg["storage_gb"],
             "watermark": ent["watermark"], "formats": ent["formats"],
-            "translate": ent["translate"], "expires_at": end}
+            "translate": ent["translate"], "expires_at": end,
+            "export_limit": ent["export_limit"],
+            "exports_used": exports_used(db, user_id)}
 
 
 def can_process(db: Session, user_id: str, duration_ms: int) -> tuple[bool, dict]:

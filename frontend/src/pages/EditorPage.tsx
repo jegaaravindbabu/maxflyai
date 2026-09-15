@@ -363,6 +363,12 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [expOpen, setExpOpen] = useState(false);  // right-side export panel (polished-style)
   const [expJob, setExpJob] = useState<{ fmt: string; status: "rendering" | "ready" | "error"; pct: number; url?: string; downloadUrl?: string; error?: string; open: boolean } | null>(null);
   const progRef = useRef<number | undefined>(undefined);
+  const [expUsage, setExpUsage] = useState<{ export_limit: number | null; exports_used: number } | null>(null);
+  const refreshExpUsage = () => api.billingMe()
+    .then((m: any) => setExpUsage({ export_limit: m?.export_limit ?? null, exports_used: m?.exports_used ?? 0 }))
+    .catch(() => {});
+  useEffect(() => { refreshExpUsage(); }, []);
+  const expAtLimit = !!expUsage && expUsage.export_limit != null && expUsage.exports_used >= expUsage.export_limit;
   const [rail, setRail] = useState<"uploads" | "captions" | "texts" | "images" | "broll" | "tools" | "retake" | "zoom" | "filters" | "canvas" | "export">("captions");
   const [rightTab, setRightTab] = useState<"styles" | "settings" | "animation">("styles");
   const [capPart, setCapPart] = useState<"top" | "big" | "bottom">("bottom");
@@ -1106,6 +1112,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
     } catch { /* no sound available */ }
   }
   async function doExport(fmt: string, resolution = "auto") {
+    if (expAtLimit) { window.location.hash = "#/billing"; return; }
     const style = animOn ? capStyle : "classic";
     upsertExport(fmt, { status: "processing" });
     setExpJob({ fmt, status: "rendering", pct: 0, open: true });
@@ -1125,6 +1132,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
           if (progRef.current) window.clearInterval(progRef.current);
           if (row.status === "ready" && row.url) {
             upsertExport(fmt, { url: row.url, status: "ready" });
+            refreshExpUsage();
             setExpJob({ fmt, status: "ready", pct: 100, url: row.url, downloadUrl: (row as any).download_url || row.url, open: true });
             exBeep();
           } else {
@@ -1667,10 +1675,21 @@ export function EditorPage({ projectId }: { projectId: string }) {
             </span>
           </div>
           <div className="ed-export-wrap">
-            <button className="ed-export" onClick={() => setExpOpen((v) => !v)}>
-              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v10" /><path d="M8 9l4 4 4-4" /><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" /></svg>
-              Export
-            </button>
+            {expAtLimit ? (
+              <button className="ed-export ed-export-locked" title="Free includes 2 exports — upgrade for unlimited"
+                onClick={() => { window.location.hash = "#/billing"; }}>
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="11" width="16" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+                {expUsage!.exports_used} of {expUsage!.export_limit} exports used — Upgrade
+              </button>
+            ) : (
+              <button className="ed-export" onClick={() => setExpOpen((v) => !v)}>
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v10" /><path d="M8 9l4 4 4-4" /><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" /></svg>
+                Export
+              </button>
+            )}
+            {!expAtLimit && expUsage && expUsage.export_limit != null && (
+              <div className="ed-export-usage">{expUsage.exports_used} of {expUsage.export_limit} free exports used</div>
+            )}
           </div>
         </div>
       </div>

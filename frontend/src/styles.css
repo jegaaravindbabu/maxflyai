@@ -2642,3 +2642,7 @@ body.ed-scrubbing, body.ed-scrubbing * { cursor: ew-resize !important; user-sele
 .cy-mins{font-size:13px;font-weight:600;color:#cfd6f0;background:#0e1730;border:1px solid #1c3050;border-radius:8px;padding:6px 10px;margin:0 0 14px;display:inline-block;}
 
 .cy-gst{font-size:11px;color:var(--cmuted);margin:0 0 12px;letter-spacing:.01em;}
+
+/* editor export: free-tier usage + upgrade CTA */
+.ed-export-locked{background:linear-gradient(100deg,#8b6bff,#22d3ee)!important;color:#08101a!important;font-weight:700;border:none!important;}
+.ed-export-usage{font-size:10.5px;color:var(--cmuted,#98a2c8);text-align:center;margin-top:4px;}
