@@ -2669,3 +2669,6 @@ body.ed-scrubbing, body.ed-scrubbing * { cursor: ew-resize !important; user-sele
 .hm-upgrade-link{display:inline-block;margin-top:16px;text-decoration:none;}
 .hm-upgrade{background:linear-gradient(100deg,#8b6bff,#22d3ee);color:#08101a;font-weight:700;font-size:14px;border:none;border-radius:11px;padding:11px 18px;cursor:pointer;box-shadow:0 10px 26px -12px rgba(124,92,255,.7);}
 .set-upgrade{background:linear-gradient(100deg,#8b6bff,#22d3ee);color:#08101a;font-weight:700;font-size:13px;border:none;border-radius:9px;padding:7px 14px;cursor:pointer;}
+
+.cy-rev-tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ccyan);margin-bottom:12px;}
+.cy-rev-title{font-family:'Space Grotesk',Inter,sans-serif;font-weight:700;font-size:18px;margin:0 0 8px;line-height:1.25;}

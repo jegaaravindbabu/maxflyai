@@ -30,10 +30,10 @@ const STATS = [
   ["12", "Indian languages"], ["~10×", "faster than manual"], ["0", "plugins to install"], ["100%", "in your browser"],
 ];
 
-const REVIEWS = [
-  { av: "M", who: "Meera S.", role: "food creator · Chennai", quote: "My Thanglish captions used to take an hour to fix by hand. Now they're just… right. I post two reels a day instead of two a week." },
-  { av: "A", who: "Aravind K.", role: "tech explainer · Bengaluru", quote: "The retake remover reads my mind. I ramble, redo the line, and it quietly keeps the good one. Editing stopped being a chore." },
-  { av: "P", who: "Priya R.", role: "educator · Coimbatore", quote: "Uploaded a 14-minute raw talk, got back a tight 6-minute cut with captions. Retention on that video was my best ever." },
+const USECASES = [
+  { tag: "Short-form creators", title: "Two reels a day, not two a week", body: "Auto-captions in Tamil and Thanglish, with silence and retake cuts handled for you — so posting daily stops eating your evenings." },
+  { tag: "Educators & explainers", title: "Long talks into tight clips", body: "Drop a 15-minute recording and pull clean, captioned cuts with the rambles, fillers and dead air removed automatically." },
+  { tag: "Regional & multilingual", title: "Reach every audience", body: "Caption in 12 Indian languages and add an English or regional track — switch, preview and export each one in a click." },
 ];
 
 const CHECK = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}><path d="M5 12l5 5L20 7" /></svg>;
@@ -75,7 +75,7 @@ export function LandingPage() {
           <nav className="cy-nav-links">
             <button onClick={() => go("product")}>Product</button>
             <button onClick={() => go("pricing")}>Pricing</button>
-            <button onClick={() => go("stories")}>Stories</button>
+            <button onClick={() => go("stories")}>Use cases</button>
           </nav>
           <div className="cy-nav-cta">
             <button className="cy-btn ghost" onClick={login}>Log in</button>
@@ -164,13 +164,13 @@ export function LandingPage() {
 
       <section className="cy-sec cy-tight" id="stories">
         <div className="cy-wrap">
-          <div className="cy-sec-head"><span className="cy-pill">stories</span><h2>Made for creators<br />who ship fast.</h2></div>
+          <div className="cy-sec-head"><span className="cy-pill">use cases</span><h2>Made for creators<br />who ship fast.</h2></div>
           <div className="cy-revs">
-            {REVIEWS.map((r) => (
-              <div key={r.who} className="cy-rev">
-                <div className="cy-rev-st">★★★★★</div>
-                <p>“{r.quote}”</p>
-                <div className="cy-rev-who"><div className="cy-rev-av">{r.av}</div><div><b>{r.who}</b><span>{r.role}</span></div></div>
+            {USECASES.map((u) => (
+              <div key={u.title} className="cy-rev">
+                <div className="cy-rev-tag">{u.tag}</div>
+                <div className="cy-rev-title">{u.title}</div>
+                <p>{u.body}</p>
               </div>
             ))}
           </div>
