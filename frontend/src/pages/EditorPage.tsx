@@ -1575,9 +1575,13 @@ export function EditorPage({ projectId }: { projectId: string }) {
   }
 
   // Resize a b-roll / image OVERLAY by dragging a corner handle in the monitor
-  // (minimise / maximise the picture-in-picture, like the reference editor). The
-  // box is scaled about its horizontal centre; the top edge stays put.
-  function startResizeOverlay(e: ReactMouseEvent, kind: "img" | "broll", id: string) {
+  // (minimise / maximise the picture-in-picture, like the reference editor).
+  // Proper corner resize: the OPPOSITE corner stays pinned and the grabbed
+  // corner follows the cursor on BOTH axes, aspect ratio locked. This is what
+  // makes a tall portrait clip resize when you drag a corner up/down as well as
+  // left/right (the old horizontal-only maths barely moved a portrait box).
+  function startResizeOverlay(e: ReactMouseEvent, kind: "img" | "broll", id: string,
+                              corner: "tl" | "tr" | "bl" | "br") {
     e.preventDefault(); e.stopPropagation();
     if (kind === "img") setSelImg(id); else setSelBroll(id);
     const wrap = (e.currentTarget as HTMLElement).closest(".preview-wrap") as HTMLElement | null;
@@ -1585,25 +1589,45 @@ export function EditorPage({ projectId }: { projectId: string }) {
     if (!wrap || !box) return;
     const rect = wrap.getBoundingClientRect();
     const br = box.getBoundingClientRect();
-    const cx = br.left + br.width / 2;              // horizontal centre stays fixed
-    const min = kind === "img" ? 8 : 20;
+    const aspect = br.height > 0 ? br.width / br.height : 1;   // px aspect, locked
+    // current box, in % of the preview frame
+    const x0 = ((br.left - rect.left) / rect.width) * 100;
+    const y0 = ((br.top - rect.top) / rect.height) * 100;
+    const w0 = (br.width / rect.width) * 100;
+    const h0 = (br.height / rect.height) * 100;
+    // the corner opposite the one being dragged is the fixed anchor
+    const right = corner === "tr" || corner === "br";
+    const bottom = corner === "bl" || corner === "br";
+    const anchorX = right ? x0 : x0 + w0;      // drag a right corner -> left edge pinned
+    const anchorY = bottom ? y0 : y0 + h0;     // drag a bottom corner -> top edge pinned
+    // heightPct = widthPct * k  for this aspect (width is what we store; height auto-follows)
+    const k = aspect > 0 ? (rect.width / aspect) / rect.height : 1;
+    const min = kind === "img" ? 8 : 12;
+    const maxW = k > 0 ? Math.min(100, 100 / k) : 100;   // keep height <= frame
     const move = (ev: MouseEvent) => {
-      const halfW = Math.abs(ev.clientX - cx);
-      const size = Math.max(min, Math.min(100, (halfW * 2 / rect.width) * 100));
-      const centerXpct = ((cx - rect.left) / rect.width) * 100;
-      const newX = Math.max(0, Math.min(100 - size, centerXpct - size / 2));
-      if (kind === "img") patchImgLocal(id, { size_pct: size, x_pct: newX });
-      else patchBrollLocal(id, { size_pct: size, x_pct: newX });
+      const cxp = ((ev.clientX - rect.left) / rect.width) * 100;
+      const cyp = ((ev.clientY - rect.top) / rect.height) * 100;
+      const wFromX = Math.abs(cxp - anchorX);
+      const wFromY = k > 0 ? Math.abs(cyp - anchorY) / k : 0;
+      let w = Math.max(wFromX, wFromY);          // follow whichever axis moved further
+      w = Math.max(min, Math.min(maxW, w));
+      const h = w * k;
+      const nx = right ? anchorX : anchorX - w;
+      const ny = bottom ? anchorY : anchorY - h;
+      const patch = { size_pct: w,
+        x_pct: Math.max(0, Math.min(100 - w, nx)),
+        y_pct: Math.max(0, Math.min(100 - h, ny)) };
+      if (kind === "img") patchImgLocal(id, patch); else patchBrollLocal(id, patch);
     };
     const up = () => {
       document.removeEventListener("mousemove", move);
       document.removeEventListener("mouseup", up);
       if (kind === "img") {
         const c = imagesRef.current.find((v) => v.id === id);
-        if (c) api.updateImage(projectId, id, { size_pct: c.size_pct, x_pct: c.x_pct }).catch(() => {});
+        if (c) api.updateImage(projectId, id, { size_pct: c.size_pct, x_pct: c.x_pct, y_pct: c.y_pct }).catch(() => {});
       } else {
         const c = brollsRef.current.find((v) => v.id === id);
-        if (c) api.updateBroll(projectId, id, { size_pct: c.size_pct, x_pct: c.x_pct }).catch(() => {});
+        if (c) api.updateBroll(projectId, id, { size_pct: c.size_pct, x_pct: c.x_pct, y_pct: c.y_pct }).catch(() => {});
       }
     };
     document.addEventListener("mousemove", move);
@@ -2499,7 +2523,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                       onClick={(e) => { e.stopPropagation(); setSelImg(im.id); setSelBroll(null); setSelOv(null); setRail("images"); }}>
                       <img src={im.image_url} draggable={false} className="ed-ov-media" />
                       {sel && (["tl", "tr", "bl", "br"] as const).map((c) => (
-                        <span key={c} className={"ed-ov-h " + c} onMouseDown={(e) => startResizeOverlay(e, "img", im.id)} />
+                        <span key={c} className={"ed-ov-h " + c} onMouseDown={(e) => startResizeOverlay(e, "img", im.id, c)} />
                       ))}
                     </div>
                   );
@@ -2518,7 +2542,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                       onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setSelOv(null); setSelImg(null); setRail("broll"); setTopTab("video"); }}>
                       <video src={b.video_url} muted autoPlay loop playsInline draggable={false} className="ed-ov-media" style={mediaStyle} />
                       {sel && (["tl", "tr", "bl", "br"] as const).map((c) => (
-                        <span key={c} className={"ed-ov-h " + c} onMouseDown={(e) => startResizeOverlay(e, "broll", b.id)} />
+                        <span key={c} className={"ed-ov-h " + c} onMouseDown={(e) => startResizeOverlay(e, "broll", b.id, c)} />
                       ))}
                     </div>
                   );

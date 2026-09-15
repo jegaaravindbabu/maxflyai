@@ -2724,12 +2724,15 @@ body.ed-scrubbing, body.ed-scrubbing * { cursor: ew-resize !important; user-sele
 .ed-ovwrap.full.sel { outline: 2px solid var(--accent); outline-offset: -2px; }
 .ed-ov-media { display: block; width: 100%; height: auto; border-radius: inherit; }
 .ed-ovwrap.full .ed-ov-media { height: 100%; object-fit: cover; }
-.ed-ov-h { position: absolute; width: 13px; height: 13px; background: #fff;
-  border: 2px solid var(--accent); border-radius: 3px; z-index: 6; box-shadow: 0 1px 3px rgba(0,0,0,.5); }
-.ed-ov-h.tl { left: -7px; top: -7px; cursor: nwse-resize; }
-.ed-ov-h.tr { right: -7px; top: -7px; cursor: nesw-resize; }
-.ed-ov-h.bl { left: -7px; bottom: -7px; cursor: nesw-resize; }
-.ed-ov-h.br { right: -7px; bottom: -7px; cursor: nwse-resize; }
+.ed-ov-h { position: absolute; width: 16px; height: 16px; background: #fff;
+  border: 2px solid var(--accent); border-radius: 4px; z-index: 6; box-shadow: 0 1px 3px rgba(0,0,0,.5);
+  pointer-events: auto; touch-action: none; }
+/* invisible larger hit target around each handle so it's easy to grab */
+.ed-ov-h::after { content: ""; position: absolute; inset: -8px; }
+.ed-ov-h.tl { left: -8px; top: -8px; cursor: nwse-resize; }
+.ed-ov-h.tr { right: -8px; top: -8px; cursor: nesw-resize; }
+.ed-ov-h.bl { left: -8px; bottom: -8px; cursor: nesw-resize; }
+.ed-ov-h.br { right: -8px; bottom: -8px; cursor: nwse-resize; }
 /* full-frame overlays: keep the handles INSIDE the frame so they're reachable
    (at the outer corners they get clipped by the monitor and can't be grabbed) */
 .ed-ovwrap.full .ed-ov-h.tl { left: 12px; top: 12px; }
