@@ -2646,3 +2646,8 @@ body.ed-scrubbing, body.ed-scrubbing * { cursor: ew-resize !important; user-sele
 /* editor export: free-tier usage + upgrade CTA */
 .ed-export-locked{background:linear-gradient(100deg,#8b6bff,#22d3ee)!important;color:#08101a!important;font-weight:700;border:none!important;}
 .ed-export-usage{font-size:10.5px;color:var(--cmuted,#98a2c8);text-align:center;margin-top:4px;}
+
+/* upgrade CTAs */
+.hm-upgrade-link{display:inline-block;margin-top:16px;text-decoration:none;}
+.hm-upgrade{background:linear-gradient(100deg,#8b6bff,#22d3ee);color:#08101a;font-weight:700;font-size:14px;border:none;border-radius:11px;padding:11px 18px;cursor:pointer;box-shadow:0 10px 26px -12px rgba(124,92,255,.7);}
+.set-upgrade{background:linear-gradient(100deg,#8b6bff,#22d3ee);color:#08101a;font-weight:700;font-size:13px;border:none;border-radius:9px;padding:7px 14px;cursor:pointer;}

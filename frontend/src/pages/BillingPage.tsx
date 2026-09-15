@@ -82,7 +82,12 @@ export function BillingPage() {
       const r = await api.billingCheckout(id);
       if (r.mode === "razorpay" && r.order_id) await openRazorpay(r);
       else { setNote(r.message || `Switched to ${id}.`); await load(); }
-    } catch (e: any) { setNote("Couldn\u2019t start checkout — " + (e?.message || "please try again") + "."); }
+    } catch (e: any) {
+      const msg = String(e?.message || "");
+      if (msg.includes("payments_unconfigured") || msg.includes("503"))
+        setNote("Payments are being set up \u2014 please try again in a few minutes.");
+      else setNote("Couldn\u2019t start checkout \u2014 please try again.");
+    }
     finally { setBusy(null); }
   }
 

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.services import billing, payments
 from app.services.auth import require_user
+from app.config import settings
 
 router = APIRouter(prefix="/api/billing", tags=["billing"])
 
@@ -24,7 +25,8 @@ class VerifyRequest(BaseModel):
 
 @router.get("/plans")
 def plans():
-    return {"plans": [{"id": k, **v} for k, v in billing.PLANS.items()]}
+    return {"plans": [{"id": k, **v} for k, v in billing.PLANS.items()],
+            "payments_live": payments.get_provider().name == "razorpay"}
 
 
 @router.get("/me")
@@ -42,7 +44,15 @@ def checkout(body: CheckoutRequest, db: Session = Depends(get_db),
     if body.plan == "free":
         billing.set_plan(db, user, "free", provider="mock")
         return {"mode": "mock", "status": "activated", "plan": "free"}
-    return payments.get_provider().create_checkout(db, user, body.plan)
+    prov = payments.get_provider()
+    # Safety: in a live deploy (auth on) never fall back to the mock provider,
+    # which would activate a paid plan for free with no payment. Surface a clear
+    # error instead so the misconfiguration is visible, not a free upgrade.
+    if prov.name == "mock" and settings.auth_enabled:
+        raise HTTPException(503, detail={
+            "error": "payments_unconfigured",
+            "message": "Payments aren\u2019t set up yet. Please try again shortly."})
+    return prov.create_checkout(db, user, body.plan)
 
 
 @router.post("/verify")

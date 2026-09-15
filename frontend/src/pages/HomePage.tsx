@@ -117,11 +117,12 @@ export function HomePage({ onNewProject }: { onNewProject: () => void }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [tab, setTab] = useState<"Projects" | "Media" | "Exports">("Projects");
   const [plan, setPlan] = useState("Free");
+  const [isFree, setIsFree] = useState(true);
 
   const load = () => api.listProjects().then(setProjects).catch(() => {});
   useEffect(() => {
     load();
-    api.billingMe().then((m) => setPlan(m.label)).catch(() => {});
+    api.billingMe().then((m: any) => { setPlan(m.label); setIsFree(m.plan === "free"); }).catch(() => {});
   }, []);
 
   const name = email ? email.split("@")[0] : "creator";
@@ -133,6 +134,9 @@ export function HomePage({ onNewProject }: { onNewProject: () => void }) {
         <span className="hm-pill">◆ {plan.toUpperCase()} PLAN</span>
         <h1 className="hm-greet">{greeting()}, <em>{name}</em></h1>
         <p className="hm-sub">Turn raw footage into a finished, captioned reel — pick up where you left off, or start something new.</p>
+        {isFree && (
+          <a href="#/billing" className="hm-upgrade-link"><button className="hm-upgrade">★ Upgrade — unlock 1080p/4K, no watermark, unlimited exports →</button></a>
+        )}
       </section>
 
       <section className="hm-bento">

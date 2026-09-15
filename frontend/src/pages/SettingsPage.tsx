@@ -111,7 +111,12 @@ export function SettingsPage() {
         </div>
         <div className="set-row">
           <div className="set-row-title">Subscription</div>
-          <span className="set-tier">{me?.plan && me.plan !== "free" ? planLabel : "Free Tier"}</span>
+          <div className="row" style={{ gap: 10, alignItems: "center" }}>
+            <span className="set-tier">{me?.plan && me.plan !== "free" ? planLabel : "Free Tier"}</span>
+            {(!me?.plan || me.plan === "free") && (
+              <a href="#/billing"><button className="set-upgrade">Upgrade →</button></a>
+            )}
+          </div>
         </div>
         <div className="set-row">
           <div className="set-row-title">Minutes this month</div>
