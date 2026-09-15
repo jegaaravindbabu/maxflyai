@@ -38,14 +38,51 @@ export function BillingPage() {
   const load = () => api.billingMe().then(setMe).catch(() => {});
   useEffect(() => { load(); }, []);
 
+  function loadRazorpay(): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      if ((window as any).Razorpay) return resolve(true);
+      const sc = document.createElement("script");
+      sc.src = "https://checkout.razorpay.com/v1/checkout.js";
+      sc.onload = () => resolve(true);
+      sc.onerror = () => reject(new Error("could not load Razorpay"));
+      document.body.appendChild(sc);
+    });
+  }
+
+  async function openRazorpay(r: any) {
+    await loadRazorpay();
+    const rz = new (window as any).Razorpay({
+      key: r.key_id,
+      amount: r.amount,
+      currency: r.currency || "INR",
+      name: "ceyonai",
+      description: `${r.plan} plan` + (r.total_inr ? ` \u00b7 \u20b9${r.total_inr} incl. GST` : ""),
+      order_id: r.order_id,
+      theme: { color: "#7c5cff" },
+      handler: async (resp: any) => {
+        setNote("Verifying payment\u2026");
+        try {
+          await api.billingVerify(resp.razorpay_order_id, resp.razorpay_payment_id, resp.razorpay_signature);
+          setNote("Payment successful \u2014 your plan is active.");
+          await load();
+        } catch {
+          setNote("Payment received \u2014 activation is finalizing. Refresh in a moment.");
+        }
+      },
+      modal: { ondismiss: () => setNote("Checkout closed \u2014 no charge was made.") },
+    });
+    rz.on("payment.failed", () => setNote("Payment failed. No charge was made \u2014 please try again."));
+    rz.open();
+  }
+
   async function choose(id: string) {
     if (id === "free") return;
     setBusy(id); setNote(null);
     try {
       const r = await api.billingCheckout(id);
-      if (r.mode === "razorpay" && r.order_id) setNote("Razorpay checkout would open here (order " + r.order_id + ").");
+      if (r.mode === "razorpay" && r.order_id) await openRazorpay(r);
       else { setNote(r.message || `Switched to ${id}.`); await load(); }
-    } catch (e: any) { setNote("This plan isn't wired to checkout yet — " + (e?.message || "coming soon") + "."); }
+    } catch (e: any) { setNote("Couldn\u2019t start checkout — " + (e?.message || "please try again") + "."); }
     finally { setBusy(null); }
   }
 

@@ -51,6 +51,13 @@ export const api = {
     }));
   },
 
+  async billingVerify(order_id: string, payment_id: string, signature: string) {
+    return j<any>(await afetch(`${BASE}/api/billing/verify`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order_id, payment_id, signature }),
+    }));
+  },
+
   async translate(id: string, target_lang: string) {
     return j<{ ok: boolean; lang: string; count: number }>(
       await afetch(`${BASE}/api/hub/${id}/translate`, {

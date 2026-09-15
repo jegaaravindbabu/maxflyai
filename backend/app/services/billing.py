@@ -73,6 +73,19 @@ DEFAULT_PLAN = "free"
 def plan_config(plan: str) -> dict:
     return PLANS.get(plan, PLANS[DEFAULT_PLAN])
 
+GST_RATE = 0.18  # 18% GST added on top of the base price
+
+
+def price_breakdown(plan: str) -> dict:
+    base = float(plan_config(plan).get("price_inr", 0))
+    gst = round(base * GST_RATE, 2)
+    return {"base_inr": base, "gst_inr": gst, "total_inr": round(base + gst, 2)}
+
+
+def checkout_amount_paise(plan: str) -> int:
+    """Amount to charge in paise = base price + 18% GST."""
+    return int(round(plan_config(plan).get("price_inr", 0) * (1 + GST_RATE) * 100))
+
 
 def entitlements(plan: str) -> dict:
     cfg = plan_config(plan)

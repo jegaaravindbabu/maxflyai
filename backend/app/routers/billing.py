@@ -16,6 +16,12 @@ class CheckoutRequest(BaseModel):
     plan: str
 
 
+class VerifyRequest(BaseModel):
+    order_id: str
+    payment_id: str
+    signature: str
+
+
 @router.get("/plans")
 def plans():
     return {"plans": [{"id": k, **v} for k, v in billing.PLANS.items()]}
@@ -37,6 +43,25 @@ def checkout(body: CheckoutRequest, db: Session = Depends(get_db),
         billing.set_plan(db, user, "free", provider="mock")
         return {"mode": "mock", "status": "activated", "plan": "free"}
     return payments.get_provider().create_checkout(db, user, body.plan)
+
+
+@router.post("/verify")
+def verify(body: VerifyRequest, db: Session = Depends(get_db),
+           user: str = Depends(require_user)):
+    """Instant activation from Razorpay Checkout's success callback. Verifies the
+    payment signature, then reads the plan/user from the trusted order notes (not
+    the client) before activating, so the plan can't be spoofed. The webhook
+    remains the backup source of truth."""
+    prov = payments.get_provider()
+    if not prov.verify_payment(body.order_id, body.payment_id, body.signature):
+        raise HTTPException(400, "invalid payment signature")
+    order = prov.fetch_order(body.order_id)
+    notes = order.get("notes", {}) or {}
+    plan, uid = notes.get("plan"), notes.get("user_id")
+    if not plan or uid != user:
+        raise HTTPException(400, "order does not match this user")
+    billing.set_plan(db, user, plan, provider="razorpay", provider_sub_id=body.payment_id)
+    return {"status": "activated", "plan": plan}
 
 
 @router.post("/webhook")
