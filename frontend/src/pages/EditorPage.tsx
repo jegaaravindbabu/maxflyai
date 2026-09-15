@@ -1558,6 +1558,42 @@ export function EditorPage({ projectId }: { projectId: string }) {
     document.addEventListener("mouseup", up);
   }
 
+  // Resize a b-roll / image OVERLAY by dragging a corner handle in the monitor
+  // (minimise / maximise the picture-in-picture, like the reference editor). The
+  // box is scaled about its horizontal centre; the top edge stays put.
+  function startResizeOverlay(e: ReactMouseEvent, kind: "img" | "broll", id: string) {
+    e.preventDefault(); e.stopPropagation();
+    if (kind === "img") setSelImg(id); else setSelBroll(id);
+    const wrap = (e.currentTarget as HTMLElement).closest(".preview-wrap") as HTMLElement | null;
+    const box = (e.currentTarget as HTMLElement).closest(".ed-ovwrap") as HTMLElement | null;
+    if (!wrap || !box) return;
+    const rect = wrap.getBoundingClientRect();
+    const br = box.getBoundingClientRect();
+    const cx = br.left + br.width / 2;              // horizontal centre stays fixed
+    const min = kind === "img" ? 8 : 20;
+    const move = (ev: MouseEvent) => {
+      const halfW = Math.abs(ev.clientX - cx);
+      const size = Math.max(min, Math.min(100, (halfW * 2 / rect.width) * 100));
+      const centerXpct = ((cx - rect.left) / rect.width) * 100;
+      const newX = Math.max(0, Math.min(100 - size, centerXpct - size / 2));
+      if (kind === "img") patchImgLocal(id, { size_pct: size, x_pct: newX });
+      else patchBrollLocal(id, { size_pct: size, x_pct: newX });
+    };
+    const up = () => {
+      document.removeEventListener("mousemove", move);
+      document.removeEventListener("mouseup", up);
+      if (kind === "img") {
+        const c = imagesRef.current.find((v) => v.id === id);
+        if (c) api.updateImage(projectId, id, { size_pct: c.size_pct, x_pct: c.x_pct }).catch(() => {});
+      } else {
+        const c = brollsRef.current.find((v) => v.id === id);
+        if (c) api.updateBroll(projectId, id, { size_pct: c.size_pct, x_pct: c.x_pct }).catch(() => {});
+      }
+    };
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", up);
+  }
+
   // Drag / trim a B-roll clip ON THE TIMELINE (move whole clip, or trim an edge).
   function startBrollClip(e: ReactMouseEvent, b: BrollClip, mode: "move" | "left" | "right") {
     e.preventDefault(); e.stopPropagation();
@@ -2440,35 +2476,41 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   </div>
                   );
                 })}
-                {!isHidden("images") && images.filter((im) => curMs >= im.start_ms && curMs < im.end_ms).map((im) => (
-                  (im.size_pct ?? 100) >= 90 ? (
-                    <img key={im.id} src={im.image_url} draggable={false}
-                      className={"ed-broll-fill" + (selImg === im.id ? " sel" : "")}
-                      onClick={(e) => { e.stopPropagation(); setSelImg(im.id); setSelBroll(null); setSelOv(null); setRail("images"); }} />
-                  ) : (
-                    <img key={im.id} src={im.image_url} draggable={false}
-                      className={"ed-imgovl" + (selImg === im.id ? " sel" : "")}
-                      style={{ left: im.x_pct + "%", top: im.y_pct + "%", width: im.size_pct + "%" }}
-                      onMouseDown={(e) => startDragImg(e, im)}
-                      onClick={(e) => { e.stopPropagation(); setSelImg(im.id); setRail("images"); }} />
-                  )
-                ))}
-                {!isHidden("broll") && [...brolls].sort((a, b) => (a.track || 1) - (b.track || 1)).filter((b) => curMs >= b.start_ms && curMs < b.end_ms).map((b) => (
-                  (b.size_pct ?? 100) >= 90 ? (
-                    <video key={b.id} src={b.video_url} muted autoPlay loop playsInline draggable={false}
-                      className={"ed-broll-fill" + (selBroll === b.id ? " sel" : "")}
-                      style={{ opacity: (b.opacity ?? 100) / 100,
-                        borderRadius: b.round_pct ? (b.round_pct / 2) + "%" : undefined,
-                        clipPath: (b.crop_t || b.crop_r || b.crop_b || b.crop_l) ? `inset(${b.crop_t || 0}% ${b.crop_r || 0}% ${b.crop_b || 0}% ${b.crop_l || 0}%)` : undefined }}
-                      onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setSelOv(null); setRail("broll"); setTopTab("video"); }} />
-                  ) : (
-                    <video key={b.id} src={b.video_url} muted autoPlay loop playsInline draggable={false}
-                      className={"ed-imgovl" + (selBroll === b.id ? " sel" : "")}
-                      style={{ left: b.x_pct + "%", top: b.y_pct + "%", width: b.size_pct + "%" }}
-                      onMouseDown={(e) => startDragBroll(e, b)}
-                      onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setRail("broll"); }} />
-                  )
-                ))}
+                {!isHidden("images") && images.filter((im) => curMs >= im.start_ms && curMs < im.end_ms).map((im) => {
+                  const full = (im.size_pct ?? 100) >= 90;
+                  const sel = selImg === im.id;
+                  return (
+                    <div key={im.id}
+                      className={"ed-ovwrap" + (full ? " full" : "") + (sel ? " sel" : "")}
+                      style={full ? undefined : { left: im.x_pct + "%", top: im.y_pct + "%", width: im.size_pct + "%" }}
+                      onMouseDown={full ? undefined : (e) => startDragImg(e, im)}
+                      onClick={(e) => { e.stopPropagation(); setSelImg(im.id); setSelBroll(null); setSelOv(null); setRail("images"); }}>
+                      <img src={im.image_url} draggable={false} className="ed-ov-media" />
+                      {sel && (["tl", "tr", "bl", "br"] as const).map((c) => (
+                        <span key={c} className={"ed-ov-h " + c} onMouseDown={(e) => startResizeOverlay(e, "img", im.id)} />
+                      ))}
+                    </div>
+                  );
+                })}
+                {!isHidden("broll") && [...brolls].sort((a, b) => (a.track || 1) - (b.track || 1)).filter((b) => curMs >= b.start_ms && curMs < b.end_ms).map((b) => {
+                  const full = (b.size_pct ?? 100) >= 90;
+                  const sel = selBroll === b.id;
+                  const mediaStyle = { opacity: (b.opacity ?? 100) / 100,
+                    borderRadius: b.round_pct ? (b.round_pct / 2) + "%" : undefined,
+                    clipPath: (b.crop_t || b.crop_r || b.crop_b || b.crop_l) ? `inset(${b.crop_t || 0}% ${b.crop_r || 0}% ${b.crop_b || 0}% ${b.crop_l || 0}%)` : undefined };
+                  return (
+                    <div key={b.id}
+                      className={"ed-ovwrap" + (full ? " full" : "") + (sel ? " sel" : "")}
+                      style={full ? undefined : { left: b.x_pct + "%", top: b.y_pct + "%", width: b.size_pct + "%" }}
+                      onMouseDown={full ? undefined : (e) => startDragBroll(e, b)}
+                      onClick={(e) => { e.stopPropagation(); setSelBroll(b.id); setSelOv(null); setSelImg(null); setRail("broll"); setTopTab("video"); }}>
+                      <video src={b.video_url} muted autoPlay loop playsInline draggable={false} className="ed-ov-media" style={mediaStyle} />
+                      {sel && (["tl", "tr", "bl", "br"] as const).map((c) => (
+                        <span key={c} className={"ed-ov-h " + c} onMouseDown={(e) => startResizeOverlay(e, "broll", b.id)} />
+                      ))}
+                    </div>
+                  );
+                })}
                 {rail === "zoom" && selZoom && (() => {
                   const half = 50 / Math.max(1.05, selZoom.scale);
                   const cx = selZoom.fx * 100, cy = selZoom.fy * 100;

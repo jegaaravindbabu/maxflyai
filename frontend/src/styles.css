@@ -2715,3 +2715,18 @@ body.ed-scrubbing, body.ed-scrubbing * { cursor: ew-resize !important; user-sele
   .pr-usage .row { flex-wrap: wrap; gap: 4px; }
   .pr-topup-grid { grid-template-columns: 1fr; }
 }
+
+/* ===== Editor · resizable b-roll / image overlays in the monitor ===== */
+.ed-ovwrap { position: absolute; cursor: move; user-select: none; border-radius: 4px; }
+.ed-ovwrap:not(.full) { box-shadow: 0 2px 10px rgba(0,0,0,.5); }
+.ed-ovwrap.full { inset: 0; width: 100%; height: 100%; border-radius: 0; cursor: default; }
+.ed-ovwrap.sel { outline: 2px dashed var(--accent); outline-offset: 3px; }
+.ed-ovwrap.full.sel { outline: 2px solid var(--accent); outline-offset: -2px; }
+.ed-ov-media { display: block; width: 100%; height: auto; border-radius: inherit; }
+.ed-ovwrap.full .ed-ov-media { height: 100%; object-fit: cover; }
+.ed-ov-h { position: absolute; width: 13px; height: 13px; background: #fff;
+  border: 2px solid var(--accent); border-radius: 3px; z-index: 6; box-shadow: 0 1px 3px rgba(0,0,0,.5); }
+.ed-ov-h.tl { left: -7px; top: -7px; cursor: nwse-resize; }
+.ed-ov-h.tr { right: -7px; top: -7px; cursor: nesw-resize; }
+.ed-ov-h.bl { left: -7px; bottom: -7px; cursor: nesw-resize; }
+.ed-ov-h.br { right: -7px; bottom: -7px; cursor: nwse-resize; }
