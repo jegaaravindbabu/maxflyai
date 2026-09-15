@@ -159,6 +159,21 @@ class BrollPatch(BaseModel):
     crop_l: int | None = None
 
 
+class TransCueOut(BaseModel):
+    idx: int
+    start_ms: int
+    end_ms: int
+    text: str
+
+    class Config:
+        from_attributes = True
+
+
+class TranslationOut(BaseModel):
+    lang: str
+    cues: list[TransCueOut] = []
+
+
 class ProjectDetail(ProjectOut):
     media_url: Optional[str] = None
     segments: list[SegmentOut] = []
@@ -168,6 +183,7 @@ class ProjectDetail(ProjectOut):
     brolls: list[BrollOut] = []
     language_code: Optional[str] = None
     mode: Optional[str] = None
+    translations: list[TranslationOut] = []
 
 
 class TranscribeRequest(BaseModel):
@@ -196,6 +212,7 @@ class ExportRequest(BaseModel):
     enhance_strength: int = 50    # 0..100 noise-reduction aggressiveness
     volume: float = 1.0       # audio level multiplier (mp4)
     speed: float = 1.0        # playback speed multiplier (mp4)
+    lang: Optional[str] = None  # translated caption track to export (e.g. en-IN); None = source
 
 
 class JobOut(BaseModel):

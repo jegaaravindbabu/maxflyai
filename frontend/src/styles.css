@@ -2601,3 +2601,14 @@ body.ed-scrubbing, body.ed-scrubbing * { cursor: ew-resize !important; user-sele
   .hm-hero{ padding:24px 20px; }
 }
 @media (prefers-reduced-motion:reduce){ .hm-tile{ transition:none; } }
+
+/* Caption translate bar (language switcher + translate-to) */
+.ed-tr-bar{ display:flex; align-items:center; flex-wrap:wrap; gap:6px; padding:8px 2px 10px; border-bottom:1px solid var(--border); margin-bottom:8px; }
+.ed-tr-lbl{ font-size:12px; font-weight:600; color:var(--muted); margin-right:2px; }
+.ed-tr-chip{ background:rgba(124,92,255,.08); border:1px solid var(--border); color:var(--text); border-radius:999px; padding:4px 11px; font-size:12.5px; font-weight:600; cursor:pointer; }
+.ed-tr-chip:hover{ border-color:var(--accent); }
+.ed-tr-chip.on{ background:var(--grad); color:#fff; border-color:transparent; }
+.ed-tr-add{ display:inline-flex; align-items:center; gap:6px; margin-left:auto; }
+.ed-tr-add select{ background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:5px 8px; font-size:12.5px; }
+.ed-tr-go{ background:var(--grad); color:#fff; border:none; border-radius:8px; padding:6px 12px; font-size:12.5px; font-weight:700; cursor:pointer; }
+.ed-tr-go:disabled{ opacity:.6; cursor:default; }

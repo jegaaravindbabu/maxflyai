@@ -82,6 +82,7 @@ export interface ProjectDetail extends Project {
   media_url?: string | null;
   segments: Segment[];
   cues: Cue[];
+  translations?: { lang: string; cues: { idx: number; start_ms: number; end_ms: number; text: string }[] }[];
   overlays?: Overlay[];
   images?: ImageOverlay[];
   brolls?: BrollClip[];

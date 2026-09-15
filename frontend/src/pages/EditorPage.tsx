@@ -220,6 +220,16 @@ function fmtT(ms: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
+const TRANSLATE_LANGS = [
+  { code: "en-IN", label: "English" }, { code: "hi-IN", label: "Hindi" },
+  { code: "ta-IN", label: "Tamil" }, { code: "te-IN", label: "Telugu" },
+  { code: "kn-IN", label: "Kannada" }, { code: "ml-IN", label: "Malayalam" },
+  { code: "mr-IN", label: "Marathi" }, { code: "bn-IN", label: "Bengali" },
+  { code: "gu-IN", label: "Gujarati" }, { code: "pa-IN", label: "Punjabi" },
+  { code: "od-IN", label: "Odia" },
+];
+const LANG_LABEL: Record<string, string> = Object.fromEntries(TRANSLATE_LANGS.map((l) => [l.code, l.label]));
+
 export function EditorPage({ projectId }: { projectId: string }) {
   const [proj, setProj] = useState<ProjectDetail | null>(null);
   const [loadErr, setLoadErr] = useState<string | null>(null);
@@ -335,6 +345,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [playing, setPlaying] = useState(false);
   const [playIdx, setPlayIdx] = useState(0);
   const [previewZoom, setPreviewZoom] = useState(1);
+  const [capLang, setCapLang] = useState("");
+  const [trTarget, setTrTarget] = useState("en-IN");
+  const [translating, setTranslating] = useState(false);
   const [safeZone, setSafeZone] = useState(false);
   const [clipSelected, setClipSelected] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
@@ -644,9 +657,22 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const activeIdx = cues.find((c) => curMs >= c.start_ms && curMs < c.end_ms)?.idx ?? -1;
   const activeCue = cues.find((c) => c.idx === activeIdx);
   cuesRef.current = cues;
+  const translations = proj.translations || [];
+  const _activeTrans = capLang ? translations.find((t) => t.lang === capLang) : null;
+  const tmap: Record<number, string> = {};
+  if (_activeTrans) _activeTrans.cues.forEach((cc) => { tmap[cc.idx] = cc.text; });
+  const capText = (c: { idx: number; text: string; translit_text?: string | null }) =>
+    (capLang && tmap[c.idx] != null) ? tmap[c.idx] : (showTranslit && c.translit_text ? c.translit_text : c.text);
+  async function runTranslate() {
+    if (!trTarget || cues.length === 0) return;
+    setTranslating(true);
+    try { await api.translate(projectId, trTarget); await load(); setCapLang(trTarget); }
+    catch (e: any) { alert("Translation failed: " + (e?.message || e)); }
+    finally { setTranslating(false); }
+  }
   const lineStyles = styles.filter((x) => !WORD_STYLES.includes(x.id));
   const wordStyles = styles.filter((x) => WORD_STYLES.includes(x.id));
-  const overlayText = activeCue ? (showTranslit && activeCue.translit_text ? activeCue.translit_text : activeCue.text) : "";
+  const overlayText = activeCue ? capText(activeCue) : "";
   // Per-caption + per-word style overrides (Paste-to / Single Words).
   const _cidx = String(activeIdx);
   const effSettings = activeIdx >= 0 ? { ...capSettings, ...(capOverrides[_cidx] || {}) } : capSettings;
@@ -1089,7 +1115,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
       setExpJob((j) => (j && j.status === "rendering" ? { ...j, pct: Math.min(92, j.pct + Math.max(1, (92 - j.pct) * 0.08)) } : j));
     }, 700);
     try {
-      const r = await api.exportSub(projectId, fmt, showTranslit, true, style, enhanceAudio, audioVol, playRate, enhanceStrength, resolution);
+      const r = await api.exportSub(projectId, fmt, showTranslit, true, style, enhanceAudio, audioVol, playRate, enhanceStrength, resolution, capLang || "");
       const eid = r.export_id;
       for (let i = 0; i < 160; i++) {
         await new Promise((res) => setTimeout(res, 1500));
@@ -1823,6 +1849,21 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   </span>
                 )}
               </div>
+              {cues.length > 0 && (
+                <div className="ed-tr-bar">
+                  <span className="ed-tr-lbl">Language</span>
+                  <button className={"ed-tr-chip" + (capLang === "" ? " on" : "")} onClick={() => setCapLang("")}>Source</button>
+                  {translations.map((t) => (
+                    <button key={t.lang} className={"ed-tr-chip" + (capLang === t.lang ? " on" : "")} onClick={() => setCapLang(t.lang)}>{LANG_LABEL[t.lang] || t.lang}</button>
+                  ))}
+                  <span className="ed-tr-add">
+                    <select value={trTarget} onChange={(e) => setTrTarget(e.target.value)} disabled={translating}>
+                      {TRANSLATE_LANGS.map((l) => (<option key={l.code} value={l.code}>{l.label}</option>))}
+                    </select>
+                    <button className="ed-tr-go" onClick={runTranslate} disabled={translating}>{translating ? "Translating\u2026" : "Translate \u2192"}</button>
+                  </span>
+                </div>
+              )}
               {selected.size > 0 && (
                 <div className="ed-bulkbar">
                   <span>{selected.size} selected</span>
@@ -1842,13 +1883,13 @@ export function EditorPage({ projectId }: { projectId: string }) {
                       <input type="checkbox" className="ed-cap-chk" checked={selected.has(c.idx)}
                         onClick={(e) => e.stopPropagation()} onChange={() => toggleSel(c.idx)} />
                       <div className="ed-cap-num">{c.idx + 1}<span>{fmtT(c.start_ms)}</span></div>
-                      <div className="ed-cap-text" onDoubleClick={(e) => { e.stopPropagation(); setEditingIdx(c.idx); setDraft(showTranslit && c.translit_text ? c.translit_text : c.text); }}>
+                      <div className="ed-cap-text" onDoubleClick={(e) => { if (capLang) return; e.stopPropagation(); setEditingIdx(c.idx); setDraft(showTranslit && c.translit_text ? c.translit_text : c.text); }}>
                         {editingIdx === c.idx ? (
                           <textarea autoFocus value={draft} onChange={(e) => setDraft(e.target.value)}
                             onBlur={() => saveCue(c.idx)} onClick={(e) => e.stopPropagation()}
                             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveCue(c.idx); } }} />
                         ) : (
-                          showTranslit && c.translit_text ? c.translit_text : c.text
+                          capText(c)
                         )}
                       </div>
                       <div className="ed-cap-acts" onClick={(e) => e.stopPropagation()}>

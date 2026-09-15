@@ -12,7 +12,7 @@ import tempfile
 from celery import shared_task
 
 from app.database import SessionLocal
-from app.models import Project, CaptionCue, Export, Edit, TextOverlay, ImageOverlay, BrollClip
+from app.models import Project, CaptionCue, Export, Edit, TextOverlay, ImageOverlay, BrollClip, CaptionTranslation
 from app.services.captions import SERIALIZERS
 from app.services.caption_styles import build_ass, build_overlay_events
 from app.services import ffmpeg_utils, timeline, timeline_export, stems, autozoom, filters
@@ -22,12 +22,19 @@ from app.config import settings
 CUT_TYPES = ("silence_cut", "manual_cut", "retake_remove", "filler_cut")
 
 
-def _load_cues(db, project_id: str) -> list[dict]:
+def _load_cues(db, project_id: str, lang: str | None = None) -> list[dict]:
     rows = (db.query(CaptionCue)
               .filter(CaptionCue.project_id == project_id)
               .order_by(CaptionCue.idx).all())
-    return [{"start_ms": r.start_ms, "end_ms": r.end_ms, "text": r.text,
-             "translit_text": r.translit_text, "idx": r.idx, "oidx": r.idx} for r in rows]
+    tmap = {}
+    if lang:
+        tmap = {t.idx: t.text for t in db.query(CaptionTranslation)
+                .filter(CaptionTranslation.project_id == project_id,
+                        CaptionTranslation.lang == lang).all()}
+    return [{"start_ms": r.start_ms, "end_ms": r.end_ms,
+             "text": (tmap.get(r.idx, r.text) if lang else r.text),
+             "translit_text": (None if lang else r.translit_text),
+             "idx": r.idx, "oidx": r.idx} for r in rows]
 
 
 def _load_zoom_segments(db, project_id: str) -> list[dict]:
@@ -210,14 +217,16 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                apply_cuts: bool = True, style: str = "classic",
                enhance_audio: bool = False, volume: float = 1.0, speed: float = 1.0,
                enhance_strength: int = 50, resolution: str = "auto",
-               export_id: str | None = None) -> dict:
+               export_id: str | None = None, lang: str | None = None) -> dict:
     db = SessionLocal()
     try:
         project = db.get(Project, project_id)
         if project is None:
             raise ValueError("project not found")
 
-        orig_cues = _load_cues(db, project_id)
+        if lang:
+            use_translit = False
+        orig_cues = _load_cues(db, project_id, lang)
         cuts = _load_enabled_cuts(db, project_id) if apply_cuts else []
         dups = _load_enabled_dups(db, project_id) if apply_cuts else []
         removed_ms = timeline.total_removed_ms(cuts) if cuts else 0
@@ -522,12 +531,13 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
 def run_export_job(export_id: str, project_id: str, fmt: str, use_translit: bool,
                    apply_cuts: bool, style: str, enhance_audio: bool,
                    volume: float = 1.0, speed: float = 1.0,
-                   enhance_strength: int = 50, resolution: str = "auto") -> None:
+                   enhance_strength: int = 50, resolution: str = "auto",
+                   lang: str | None = None) -> None:
     """Background entry: run the export, mark the Export row error on failure."""
     try:
         run_export(project_id, fmt, use_translit, apply_cuts, style, enhance_audio,
                    volume, speed, enhance_strength=enhance_strength,
-                   resolution=resolution, export_id=export_id)
+                   resolution=resolution, export_id=export_id, lang=lang)
     except Exception as e:
         db = SessionLocal()
         try:
@@ -550,8 +560,9 @@ def export_task(self, export_id: str, project_id: str, fmt: str = "srt",
                 use_translit: bool = False, apply_cuts: bool = True,
                 style: str = "classic", enhance_audio: bool = False,
                 volume: float = 1.0, speed: float = 1.0,
-                enhance_strength: int = 50, resolution: str = "auto") -> None:
+                enhance_strength: int = 50, resolution: str = "auto",
+                lang: str | None = None) -> None:
     """Celery entry for exports. Mirrors run_export_job so the Export row is
     marked error on failure; retries once on transient errors."""
     run_export_job(export_id, project_id, fmt, use_translit, apply_cuts, style,
-                   enhance_audio, volume, speed, enhance_strength, resolution)
+                   enhance_audio, volume, speed, enhance_strength, resolution, lang)

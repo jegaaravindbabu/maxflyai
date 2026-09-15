@@ -5,8 +5,8 @@ from sqlalchemy import func
 
 from app.database import get_db
 from app.deps import owned_project
-from app.models import Project, Segment, Transcript, CaptionCue, Job, TextOverlay, ImageOverlay, BrollClip
-from app.schemas import ProjectOut, ProjectDetail, SegmentOut, CueOut, OverlayOut, OverlayIn, OverlayPatch, ImageOut, ImagePatch, BrollOut, BrollPatch
+from app.models import Project, Segment, Transcript, CaptionCue, Job, TextOverlay, ImageOverlay, BrollClip, CaptionTranslation
+from app.schemas import ProjectOut, ProjectDetail, SegmentOut, CueOut, OverlayOut, OverlayIn, OverlayPatch, ImageOut, ImagePatch, BrollOut, BrollPatch, TranslationOut, TransCueOut
 from app.services.auth import current_user, is_admin
 from app.services.storage import storage
 from app.services import ffmpeg_utils
@@ -67,6 +67,12 @@ def _build_project_detail(project_id: str, db: Session) -> ProjectDetail:
     brolls = (db.query(BrollClip).filter(BrollClip.project_id == project_id)
                 .order_by(BrollClip.idx).all())
     detail.brolls = [_broll_out(b) for b in brolls]
+    _trs = (db.query(CaptionTranslation).filter(CaptionTranslation.project_id == project_id)
+              .order_by(CaptionTranslation.lang, CaptionTranslation.idx).all())
+    _by_lang: dict = {}
+    for _t in _trs:
+        _by_lang.setdefault(_t.lang, []).append(TransCueOut(idx=_t.idx, start_ms=_t.start_ms, end_ms=_t.end_ms, text=_t.text))
+    detail.translations = [TranslationOut(lang=_k, cues=_v) for _k, _v in _by_lang.items()]
     if transcript:
         detail.language_code = transcript.language_code
         detail.mode = transcript.mode

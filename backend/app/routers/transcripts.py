@@ -5,12 +5,13 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import owned_project
-from app.models import Project, CaptionCue
+from app.models import Project, CaptionCue, CaptionTranslation
 from app.schemas import TranscribeRequest, CaptionEditRequest
 from app.tasks.transcribe import transcribe_task, run_transcription
 from app.services import billing
 from app.services.auth import current_user, is_admin
 from app import runner
+from app.services import translate as translate_svc
 
 router = APIRouter(prefix="/api/projects", tags=["transcripts"])
 
@@ -195,3 +196,32 @@ def replace_cues(project_id: str, body: ReplaceCuesIn, db: Session = Depends(get
                           translit_text=c.translit_text, line_count=c.line_count or 1))
     db.commit()
     return {"ok": True, "count": len(ordered)}
+
+
+class TranslateIn(BaseModel):
+    target_lang: str
+
+
+@router.post("/{project_id}/translate")
+def translate_captions(project_id: str, body: TranslateIn, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    """Translate the project's caption cues into target_lang and store them as a
+    separate, non-destructive caption track (source cues are untouched)."""
+    target = (body.target_lang or "").strip()
+    if target not in translate_svc.SUPPORTED:
+        raise HTTPException(400, f"unsupported target language: {target}")
+    cues = (db.query(CaptionCue).filter(CaptionCue.project_id == project_id)
+              .order_by(CaptionCue.idx).all())
+    if not cues:
+        raise HTTPException(400, "no captions to translate yet")
+    try:
+        translated = translate_svc.translate_texts([c.text or "" for c in cues], target)
+    except translate_svc.TranslateError as e:
+        raise HTTPException(502, f"translation failed: {e}")
+    db.query(CaptionTranslation).filter(CaptionTranslation.project_id == project_id,
+                                        CaptionTranslation.lang == target).delete()
+    for c, t in zip(cues, translated):
+        db.add(CaptionTranslation(project_id=project_id, lang=target, idx=c.idx,
+                                  start_ms=c.start_ms, end_ms=c.end_ms, text=t))
+    db.commit()
+    return {"ok": True, "lang": target, "count": len(cues)}

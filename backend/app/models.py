@@ -47,6 +47,7 @@ class Project(Base):
     overlays = relationship("TextOverlay", back_populates="project", cascade="all, delete-orphan")
     images = relationship("ImageOverlay", back_populates="project", cascade="all, delete-orphan")
     brolls = relationship("BrollClip", back_populates="project", cascade="all, delete-orphan")
+    caption_translations = relationship("CaptionTranslation", back_populates="project", cascade="all, delete-orphan")
 
 
 class Transcript(Base):
@@ -230,3 +231,18 @@ class BrollClip(Base):
     created_at = Column(DateTime(timezone=True), default=_now)
 
     project = relationship("Project", back_populates="brolls")
+
+
+class CaptionTranslation(Base):
+    """A translated caption track for a project (one row per source cue per language)."""
+    __tablename__ = "caption_translations"
+    id = Column(String, primary_key=True, default=_uuid)
+    project_id = Column(String, ForeignKey("projects.id"), index=True, nullable=False)
+    lang = Column(String, nullable=False, index=True)   # BCP-47, e.g. en-IN
+    idx = Column(Integer, nullable=False)               # matches the source CaptionCue.idx
+    start_ms = Column(Integer, nullable=False, default=0)
+    end_ms = Column(Integer, nullable=False, default=0)
+    text = Column(Text, nullable=False, default="")
+    created_at = Column(DateTime(timezone=True), default=_now)
+
+    project = relationship("Project", back_populates="caption_translations")

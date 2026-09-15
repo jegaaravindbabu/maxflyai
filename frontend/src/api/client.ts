@@ -51,6 +51,14 @@ export const api = {
     }));
   },
 
+  async translate(id: string, target_lang: string) {
+    return j<{ ok: boolean; lang: string; count: number }>(
+      await afetch(`${BASE}/api/hub/${id}/translate`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target_lang }),
+      }));
+  },
+
   async captionStyles() {
     return j<{ styles: { id: string; label: string; animated: boolean }[] }>(
       await afetch(`${BASE}/api/caption-styles`));
@@ -425,12 +433,12 @@ export const api = {
     );
   },
 
-  async exportSub(id: string, format: string, use_translit: boolean, apply_cuts = true, style = "classic", enhance_audio = false, volume = 1, speed = 1, enhance_strength = 50, resolution = "auto") {
+  async exportSub(id: string, format: string, use_translit: boolean, apply_cuts = true, style = "classic", enhance_audio = false, volume = 1, speed = 1, enhance_strength = 50, resolution = "auto", lang = "") {
     return j<{ export_id: string; status: string; format: string }>(
       await afetch(`${BASE}/api/hub/${id}/export`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ format, use_translit, apply_cuts, style, enhance_audio, volume, speed, enhance_strength, resolution }),
+        body: JSON.stringify({ format, use_translit, apply_cuts, style, enhance_audio, volume, speed, enhance_strength, resolution, lang: lang || null }),
       })
     );
   },
