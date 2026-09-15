@@ -2462,11 +2462,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   </div>
                 </div>
               ) : null}
-              controls={<>
-                <span className="ed-mon-h ed-mon-h-tl" /><span className="ed-mon-h ed-mon-h-tr" />
-                <span className="ed-mon-h ed-mon-h-bl" /><span className="ed-mon-h ed-mon-h-br" />
-                <span className="ed-mon-grip" aria-hidden><i /><i /><i /></span>
-              </>}
+              controls={null}
               frameOverlay={<>
                 {!isHidden("captions") && movedWords.length > 0 && movedWords.map(({ i, w, wd }) => (
                   <div key={i}
