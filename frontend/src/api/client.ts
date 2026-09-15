@@ -210,7 +210,7 @@ export const api = {
     fd.append("file", file);
     fd.append("start_ms", String(start_ms));
     fd.append("end_ms", String(end_ms));
-    fd.append("x_pct", "0"); fd.append("y_pct", "0"); fd.append("size_pct", "100");
+    fd.append("x_pct", "30"); fd.append("y_pct", "30"); fd.append("size_pct", "40");
     return j<BrollClip>(await afetch(`${BASE}/api/hub/${id}/brolls`, { method: "POST", body: fd }));
   },
   async updateBroll(id: string, brollId: string, body: Partial<BrollClip>) {
@@ -252,7 +252,7 @@ export const api = {
   async addBrollFromUrl(id: string, url: string, start_ms: number, end_ms: number) {
     return j<BrollClip>(await afetch(`${BASE}/api/hub/${id}/brolls/from-url`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url, start_ms, end_ms, x_pct: 0, y_pct: 0, size_pct: 100 }),
+      body: JSON.stringify({ url, start_ms, end_ms, x_pct: 30, y_pct: 30, size_pct: 40 }),
     }));
   },
 
