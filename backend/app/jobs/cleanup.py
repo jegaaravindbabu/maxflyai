@@ -37,13 +37,21 @@ def run(days: int | None = None) -> dict:
     rows_deleted = objs_deleted = 0
     try:
         old = db.query(Export).filter(Export.created_at < cutoff).all()
+        # Export storage keys are deterministic per (project_id, format), so a newer
+        # re-export overwrites the same file. Never delete a key while a non-expired
+        # export of the same project+format still points at it, or we'd wipe a
+        # current file (paid/active users lose downloads).
+        live = {(r.project_id, r.format) for r in
+                db.query(Export.project_id, Export.format)
+                  .filter(Export.created_at >= cutoff).all()}
         for e in old:
-            for key in _candidate_keys(e.project_id, e.format):
-                try:
-                    if storage.delete(key):
-                        objs_deleted += 1
-                except Exception:
-                    pass
+            if (e.project_id, e.format) not in live:
+                for key in _candidate_keys(e.project_id, e.format):
+                    try:
+                        if storage.delete(key):
+                            objs_deleted += 1
+                    except Exception:
+                        pass
             db.delete(e)
             rows_deleted += 1
         db.commit()

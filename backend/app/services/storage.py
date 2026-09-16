@@ -91,12 +91,11 @@ class SupabaseStorage:
 
     def save_upload(self, tmp_path: str, filename: str) -> str:
         key = f"{uuid.uuid4()}_{_safe_filename(filename)}"
-        with open(tmp_path, "rb") as f:
-            data = f.read()
-        with httpx.Client(timeout=300) as c:
+        # stream the file so a large upload isn't read fully into RAM
+        with open(tmp_path, "rb") as f, httpx.Client(timeout=600) as c:
             r = c.post(self._obj_url(key), headers={**self._h,
                        "Content-Type": "application/octet-stream", "x-upsert": "true"},
-                       content=data)
+                       content=f)
         if r.status_code >= 400:
             raise RuntimeError(f"supabase upload failed {r.status_code}: {r.text[:200]}")
         return key

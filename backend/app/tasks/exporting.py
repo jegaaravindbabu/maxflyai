@@ -259,7 +259,10 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
         if lang:
             use_translit = False
         orig_cues = _load_cues(db, project_id, lang)
-        cuts = _load_enabled_cuts(db, project_id) if apply_cuts else []
+        # merge+sort so remap_ms/keep_intervals (which assume ordered, non-
+        # overlapping spans) place overlays/zoom/b-roll/images/filters correctly
+        # when there are 2+ cuts.
+        cuts = timeline.merge_cuts(_load_enabled_cuts(db, project_id)) if apply_cuts else []
         dups = _load_enabled_dups(db, project_id) if apply_cuts else []
         removed_ms = timeline.total_removed_ms(cuts) if cuts else 0
         dur0 = project.duration_ms or 0

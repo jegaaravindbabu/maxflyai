@@ -296,16 +296,32 @@ def speed_video(src: str, out_path: str, speed: float) -> str:
 def video_info(media_path: str) -> dict:
     """Probe fps (as num/den), width, height for timeline export."""
     cp = _run(["ffprobe", "-v", "quiet", "-select_streams", "v:0",
-               "-show_entries", "stream=r_frame_rate,width,height",
-               "-print_format", "json", media_path])
+               "-show_streams", "-print_format", "json", media_path])
     info = {"fps_num": 25, "fps_den": 1, "width": 1920, "height": 1080}
     try:
         st = json.loads(cp.stdout)["streams"][0]
-        rate = st.get("r_frame_rate", "25/1")
+        rate = st.get("r_frame_rate") or st.get("avg_frame_rate") or "25/1"
         num, den = rate.split("/")
         info["fps_num"], info["fps_den"] = int(num), int(den or 1)
-        info["width"] = int(st.get("width") or 1920)
-        info["height"] = int(st.get("height") or 1080)
+        w = int(st.get("width") or 1920)
+        h = int(st.get("height") or 1080)
+        # honour rotation (display matrix / rotate tag): a phone clip stored
+        # landscape with a 90 deg tag displays portrait, so swap the dims to the
+        # DISPLAYED orientation (ffmpeg auto-rotates on decode).
+        rot = 0
+        try:
+            rot = int(float((st.get("tags") or {}).get("rotate") or 0))
+        except Exception:
+            rot = 0
+        if not rot:
+            for sd in st.get("side_data_list") or []:
+                if "rotation" in sd:
+                    try: rot = int(float(sd.get("rotation") or 0))
+                    except Exception: rot = 0
+                    break
+        if abs(rot) % 180 == 90:
+            w, h = h, w
+        info["width"], info["height"] = w, h
     except Exception:
         pass
     return info
