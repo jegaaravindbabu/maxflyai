@@ -28,6 +28,8 @@ RUN mkdir -p /usr/share/fonts/truetype/maxfly && cd /usr/share/fonts/truetype/ma
     && curl -fsSL -o Lato-Bold.ttf         "https://github.com/google/fonts/raw/main/ofl/lato/Lato-Bold.ttf" || true \
     && curl -fsSL -o Rubik.ttf             "https://github.com/google/fonts/raw/main/ofl/rubik/Rubik%5Bwght%5D.ttf" || true \
     && curl -fsSL -o Teko.ttf              "https://github.com/google/fonts/raw/main/ofl/teko/Teko%5Bwght%5D.ttf" || true \
+    && curl -fsSL -o NotoSansTamil.ttf     "https://github.com/google/fonts/raw/main/ofl/notosanstamil/NotoSansTamil%5Bwdth%2Cwght%5D.ttf" || true \
+    && curl -fsSL -o NotoSansTamil-Bold.ttf "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoSansTamil/hinted/ttf/NotoSansTamil-Bold.ttf" || true \
     && fc-cache -f || true
 
 WORKDIR /app

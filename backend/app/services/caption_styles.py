@@ -578,11 +578,21 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
         except Exception:
             pass
     _tc = _ass_color(st.get("text_color"))
-    if _tc:
-        p["primary"] = _tc
     _hc = _ass_color(st.get("highlight_color"))
-    if _hc:
-        p["secondary"] = _hc
+    # Word-by-word / karaoke styles fill via ASS \kf, where PrimaryColour is the
+    # active (already-highlighted) colour and SecondaryColour is the base. So for
+    # those the user's highlight_color must be Primary and text_color Secondary --
+    # the opposite of normal styles (where text_color is the Primary body colour).
+    if p.get("anim") == "karaoke":
+        if _hc:
+            p["primary"] = _hc
+        if _tc:
+            p["secondary"] = _tc
+    else:
+        if _tc:
+            p["primary"] = _tc
+        if _hc:
+            p["secondary"] = _hc
     _hb = _ass_color(st.get("highlight_box"))
     if _hb:
         p["back"] = _hb

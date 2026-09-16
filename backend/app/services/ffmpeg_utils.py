@@ -368,6 +368,19 @@ def _rounded_alpha(W: int, H: int, r: int) -> str:
     return f"geq=lum='lum(X,Y)':cb='cb(X,Y)':cr='cr(X,Y)':a='{a}'"
 
 
+def _rounded_alpha_dyn(rp_frac: float) -> str:
+    """Rounded-rectangle alpha mask for an overlay of UNKNOWN size (PIP b-roll):
+    radius is a fraction of the shorter side, using geq's built-in W/H so it
+    adapts to whatever the scaled overlay dimensions are."""
+    rr = f"(min(W\,H)/2*{max(0.0, min(1.0, rp_frac)):.4f})"
+    cx, cy = "W/2", "H/2"
+    inx, iny = f"(W/2-{rr})", f"(H/2-{rr})"
+    corner = f"gt(abs(X-{cx})\,{inx})*gt(abs(Y-{cy})\,{iny})"
+    dist = f"hypot(abs(X-{cx})-{inx}\,abs(Y-{cy})-{iny})"
+    a = f"if({corner}\, if(lte({dist}\,{rr})\,255\,0)\, 255)"
+    return f"geq=lum='lum(X,Y)':cb='cb(X,Y)':cr='cr(X,Y)':a='{a}'"
+
+
 def render_mp4(video_src: str, ass_path: str, out_path: str, width: int,
                height: int | None = None,
                vfilters: list[str] | None = None,
@@ -453,8 +466,27 @@ def render_mp4(video_src: str, ass_path: str, out_path: str, width: int,
                 f"[{cur}][bv{j}]overlay=0:0:"
                 f"enable='between(t,{s:.3f},{e:.3f})'[ovb{j}]")
         else:
+            # picture-in-picture: apply the same crop / rounded corners / opacity
+            # the preview shows (previously these were dropped for < full-frame).
             pxw = max(16, round(width * size / 100.0))
-            parts.append(f"[{in_idx}:v]scale={pxw}:-1,setpts=PTS-STARTPTS+{s:.3f}/TB[bv{j}]")
+            L = max(0.0, float(br.get("crop_l", 0))) / 100.0
+            R = max(0.0, float(br.get("crop_r", 0))) / 100.0
+            T = max(0.0, float(br.get("crop_t", 0))) / 100.0
+            Bt = max(0.0, float(br.get("crop_b", 0))) / 100.0
+            op = max(0, min(100, int(br.get("opacity", 100) or 100)))
+            rp = max(0, min(100, int(br.get("round_pct", 0) or 0)))
+            ch = []
+            if (L + R) < 0.95 and (T + Bt) < 0.95 and (L or R or T or Bt):
+                ch.append(f"crop=iw*{1 - L - R:.4f}:ih*{1 - T - Bt:.4f}:iw*{L:.4f}:ih*{T:.4f}")
+            ch.append(f"scale={pxw}:-2")
+            ch.append(f"setpts=PTS-STARTPTS+{s:.3f}/TB")
+            if rp > 0 or op < 100:
+                ch.append("format=yuva420p")
+                if rp > 0:
+                    ch.append(_rounded_alpha_dyn(rp / 100.0))
+                if op < 100:
+                    ch.append(f"colorchannelmixer=aa={op / 100.0:.3f}")
+            parts.append(f"[{in_idx}:v]" + ",".join(ch) + f"[bv{j}]")
             parts.append(
                 f"[{cur}][bv{j}]overlay="
                 f"x='max(0,min(main_w*{fx:.4f},main_w-overlay_w))':"
