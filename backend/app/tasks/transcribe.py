@@ -63,6 +63,14 @@ def run_transcription(project_id: str, language_code: str = "unknown",
             language_code=language_code, mode=mode, model=model,
         )
         full_text = raw.get("transcript", "") or ""
+        # An empty transcript (wrong spoken language, music/no speech, or a partial
+        # provider failure) must fail loudly -- otherwise the project is marked
+        # "ready" with zero captions and every downstream AI tool (silence, retake,
+        # zoom) comes back empty, which reads to the user as "AI could not calculate".
+        if not full_text.strip():
+            raise ValueError("No speech was detected. Check that the spoken language "
+                             "matches the project language, or that the clip has "
+                             "audible speech, then try again.")
 
         # optional Thanglish / romanized pass (best-effort)
         translit_full = None

@@ -10,8 +10,32 @@ from app.schemas import ProjectOut, ProjectDetail, SegmentOut, CueOut, OverlayOu
 from app.services.auth import current_user, is_admin
 from app.services.storage import storage
 from app.services import ffmpeg_utils
-import os, tempfile, subprocess, base64
+import os, tempfile, subprocess, base64, socket, ipaddress
+from urllib.parse import urlparse
 import httpx
+
+
+
+def _assert_public_url(url: str) -> None:
+    """Block SSRF: only http(s) to a host that resolves entirely to public IPs.
+    Rejects localhost, private, link-local (incl. cloud metadata 169.254.169.254),
+    loopback and reserved ranges."""
+    try:
+        u = urlparse(url)
+    except Exception:
+        raise HTTPException(400, "invalid url")
+    if u.scheme not in ("http", "https") or not u.hostname:
+        raise HTTPException(400, "invalid url")
+    try:
+        infos = socket.getaddrinfo(u.hostname, u.port or (443 if u.scheme == "https" else 80),
+                                   proto=socket.IPPROTO_TCP)
+    except Exception:
+        raise HTTPException(400, "could not resolve url host")
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0])
+        if (ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
+                or ip.is_multicast or ip.is_unspecified):
+            raise HTTPException(400, "url host is not allowed")
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -478,10 +502,9 @@ class ImageFromUrlIn(BaseModel):
 @router.post("/{project_id}/images/from-url", response_model=ImageOut)
 def add_image_from_url(project_id: str, body: ImageFromUrlIn, db: Session = Depends(get_db),
     _owner: Project = Depends(owned_project)):
-    if not body.url.startswith(("http://", "https://")):
-        raise HTTPException(400, "invalid url")
+    _assert_public_url(body.url)
     try:
-        with httpx.Client(timeout=30, follow_redirects=True) as c:
+        with httpx.Client(timeout=30, follow_redirects=False) as c:
             r = c.get(body.url)
         if r.status_code >= 400:
             raise HTTPException(400, "could not fetch image")
@@ -522,10 +545,9 @@ class BrollFromUrlIn(BaseModel):
 @router.post("/{project_id}/brolls/from-url", response_model=BrollOut)
 def add_broll_from_url(project_id: str, body: BrollFromUrlIn, db: Session = Depends(get_db),
     _owner: Project = Depends(owned_project)):
-    if not body.url.startswith(("http://", "https://")):
-        raise HTTPException(400, "invalid url")
+    _assert_public_url(body.url)
     try:
-        with httpx.Client(timeout=90, follow_redirects=True) as c:
+        with httpx.Client(timeout=90, follow_redirects=False) as c:
             r = c.get(body.url)
         if r.status_code >= 400:
             raise HTTPException(400, "could not fetch video")

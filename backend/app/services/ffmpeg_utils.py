@@ -339,7 +339,8 @@ def audio_enhance_filter(arnndn_model: str | None = None, strength: int = 50) ->
         st = 50
     nf = -20 - round(st / 100 * 20)          # noise floor -20 .. -40 dB
     nr = 12 + round(st / 100 * 21)           # afftdn reduction 12 .. 33 dB
-    stages = ["highpass=f=90"]               # kill low rumble/handling noise
+    gthr = -30 - round(st / 100 * 12)        # gate opens at -30 .. -42 dB
+    stages = ["highpass=f=90", "lowpass=f=12000"]   # trim rumble + hiss band
     # RNNoise first: separates voice from non-stationary background (fans,
     # traffic, room tone) far better than a spectral gate alone.
     if arnndn_model:
@@ -347,6 +348,10 @@ def audio_enhance_filter(arnndn_model: str | None = None, strength: int = 50) ->
         stages.append(f"arnndn=m='{safe}'")
     stages += [
         f"afftdn=nr={nr}:nf={nf}:tn=1",      # residual stationary hiss/hum
+        # Gate the gaps BETWEEN words so the residual floor is pushed down before
+        # the loudness stage lifts everything -- this is what actually makes the
+        # background go quiet instead of getting re-amplified.
+        f"agate=threshold={gthr}dB:ratio=6:attack=8:release=180:range=-22dB",
         "acompressor=threshold=-18dB:ratio=3:attack=20:release=250",
         "loudnorm=I=-16:TP=-1.5:LRA=11",
     ]

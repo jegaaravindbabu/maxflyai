@@ -99,13 +99,16 @@ def detect_silences(project_id: str, mode: str = "audio",
     if mode == "ai":
         cues = (db.query(CaptionCue).filter(CaptionCue.project_id == project_id)
                   .order_by(CaptionCue.idx).all())
-        if cues:
-            raw = _cue_gap_silences(cues, dur, min_silence_ms)
-            sil = _pad_and_filter(raw, pad_before_ms, pad_after_ms, min_silence_ms, dur)
-            total = sum(r["end_ms"] - r["start_ms"] for r in sil)
-            return {"mode": "ai", "threshold_db": None, "count": len(sil),
-                    "total_ms": total, "silences": sil}
-        # no captions yet -> fall through to audio detection
+        if not cues:
+            # AI mode reads caption gaps; without captions it can't run. Tell the
+            # user to transcribe first instead of silently doing dB detection.
+            return {"mode": "ai", "needs_transcript": True, "threshold_db": None,
+                    "count": 0, "total_ms": 0, "silences": []}
+        raw = _cue_gap_silences(cues, dur, min_silence_ms)
+        sil = _pad_and_filter(raw, pad_before_ms, pad_after_ms, min_silence_ms, dur)
+        total = sum(r["end_ms"] - r["start_ms"] for r in sil)
+        return {"mode": "ai", "threshold_db": None, "count": len(sil),
+                "total_ms": total, "silences": sil}
 
     media_path = storage.path(project.source_media_url)
     audio = None
@@ -114,7 +117,7 @@ def detect_silences(project_id: str, mode: str = "audio",
         nz = noise_db
         if nz is None:
             mean = ffmpeg_utils.mean_volume(audio)
-            nz = (mean + 2.0) if mean is not None else -30.0
+            nz = (mean - 16.0) if mean is not None else -35.0  # gate below mean so only true pauses count
         raw = ffmpeg_utils.detect_silences(audio, noise_db=nz, min_ms=min_silence_ms)
         sil = _pad_and_filter(raw, pad_before_ms, pad_after_ms, min_silence_ms, dur)
         total = sum(r["end_ms"] - r["start_ms"] for r in sil)

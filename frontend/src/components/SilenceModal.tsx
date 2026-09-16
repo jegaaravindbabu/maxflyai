@@ -53,9 +53,11 @@ export function SilenceModal({ projectId, durationMs, onSeek, onClose, onApplied
       setThrDb(r.threshold_db);
       setRegions((r.silences || []).map((s) => ({ ...s, keep: true })));
       setPhase("results");
-      if (!(r.silences || []).length)
+      if ((r as any).needs_transcript)
+        setErr("AI mode reads your captions. Generate captions first (Captions tab), or switch to Audio mode below.");
+      else if (!(r.silences || []).length)
         setErr(m === "ai"
-          ? "No silences found. AI mode needs captions — generate captions first (Captions tab), or switch to Audio mode below."
+          ? "No silence gaps found between your captions — try lowering the minimum duration, or use Audio mode."
           : "No silences found — try raising the threshold or lowering the minimum duration.");
     } catch (e: any) {
       setErr(e?.message || "Detection failed."); setPhase("idle");

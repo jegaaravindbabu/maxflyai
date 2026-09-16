@@ -17,11 +17,12 @@ def _clamp_res(res: str, max_res: int) -> str:
     """Cap a requested export resolution to the plan's max short-side pixels.
     "auto" follows the source but is capped for limited plans (free = 720)."""
     if res in ("2160", "1440", "1080", "720", "480"):
-        capped = min(int(res), max_res)
-        return str(capped)
-    if res == "auto" and max_res < 2160:
+        return str(min(int(res), max_res))
+    # "auto" or any unrecognised value: cap to the plan's max short side for
+    # limited plans; only unlimited plans keep true source ("auto").
+    if max_res < 2160:
         return str(max_res)
-    return res
+    return "auto"
 
 
 router = APIRouter(prefix="/api/projects", tags=["exports"])

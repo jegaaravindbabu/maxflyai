@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.services import billing, payments
+from app.models import Subscription
 from app.services.auth import require_user
 from app.config import settings
 
@@ -63,6 +64,8 @@ def verify(body: VerifyRequest, db: Session = Depends(get_db),
     the client) before activating, so the plan can't be spoofed. The webhook
     remains the backup source of truth."""
     prov = payments.get_provider()
+    if prov.name == "mock" and settings.auth_enabled:
+        raise HTTPException(503, "Payments are not configured yet.")
     if not prov.verify_payment(body.order_id, body.payment_id, body.signature):
         raise HTTPException(400, "invalid payment signature")
     order = prov.fetch_order(body.order_id)
@@ -79,6 +82,11 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
     body = await request.body()
     sig = request.headers.get("x-razorpay-signature", "")
     prov = payments.get_provider()
+    # In a live deploy (auth on) the mock provider's verify_webhook always returns
+    # True, which would let anyone POST a crafted body and activate any plan for
+    # free. Refuse it unless payments are actually configured.
+    if prov.name == "mock" and settings.auth_enabled:
+        raise HTTPException(503, "Payments are not configured yet.")
     if not prov.verify_webhook(body, sig):
         raise HTTPException(400, "invalid signature")
     event = json.loads(body or b"{}")
@@ -88,6 +96,12 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
                   or event.get("payload", {}).get("payment", {}).get("entity") or {})
         notes = entity.get("notes", {}) or {}
         uid, plan = notes.get("user_id"), notes.get("plan")
+        ent_id = entity.get("id")
         if uid and plan:
-            billing.set_plan(db, uid, plan, provider="razorpay", provider_sub_id=entity.get("id"))
+            # idempotency: ignore Razorpay retries / replays of an event we already
+            # activated (same payment/order id).
+            if ent_id and db.query(Subscription).filter(
+                    Subscription.provider_sub_id == ent_id).first():
+                return {"ok": True, "duplicate": True}
+            billing.set_plan(db, uid, plan, provider="razorpay", provider_sub_id=ent_id)
     return {"ok": True}
