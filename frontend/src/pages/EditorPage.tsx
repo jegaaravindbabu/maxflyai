@@ -445,6 +445,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const videoRef = useRef<HTMLVideoElement>(null);
   const plSpansRef = useRef<ReturnType<typeof buildSpans>["spans"]>([]);
+  const removedSpansRef = useRef<{ id: string; start_ms: number; end_ms: number }[]>([]);
   const playIdxRef = useRef(0);
   const [mediaEl, setMediaEl] = useState<HTMLMediaElement | null>(null);
 
@@ -602,10 +603,17 @@ export function EditorPage({ projectId }: { projectId: string }) {
       setCurMs(src);
       const sp = plSpansRef.current;
       if (sp.length > 1 && !v.paused) {
+        const rm = removedSpansRef.current;
+        const isRem = (k: number) => rm.some((c) => c.start_ms <= sp[k].src0 + 60 && c.end_ms >= sp[k].src1 - 60);
         const idx = Math.min(playIdxRef.current, sp.length - 1);
         const cur = sp[idx];
-        if (cur && src >= cur.src1 - 40) {
-          const nextIdx = idx + 1;
+        // if the playhead is inside a removed (deleted) segment, jump to the next kept one
+        if (cur && isRem(idx)) {
+          let n = idx + 1; while (n < sp.length && isRem(n)) n++;
+          if (n < sp.length) { playIdxRef.current = n; setPlayIdx(n); v.currentTime = sp[n].src0 / 1000; }
+          else v.pause();
+        } else if (cur && src >= cur.src1 - 40) {
+          let nextIdx = idx + 1; while (nextIdx < sp.length && isRem(nextIdx)) nextIdx++;
           if (nextIdx < sp.length) {
             const nx = sp[nextIdx];
             playIdxRef.current = nextIdx; setPlayIdx(nextIdx);
@@ -676,6 +684,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const dur = proj.duration_ms || 1;
   const { spans: plSpans, projDur } = buildSpans(dur, videoCuts, dupEdits);
   plSpansRef.current = plSpans;
+  removedSpansRef.current = cutEdits;
   playIdxRef.current = Math.min(Math.max(playIdx, 0), plSpans.length - 1);
   const sToP = (src: number) => srcToProj(plSpans, src);
   const _psp = plSpans[Math.min(Math.max(playIdx, 0), plSpans.length - 1)];
@@ -957,6 +966,8 @@ export function EditorPage({ projectId }: { projectId: string }) {
     if (selSeg != null) {
       const s0 = Math.round(segBounds[selSeg]), e0 = Math.round(segBounds[selSeg + 1]);
       if (e0 - s0 >= dur - 400) { toast("Can't remove the whole clip — split it first"); return; }
+      const alreadyCut = cutEdits.reduce((a, c) => a + (c.end_ms - c.start_ms), 0);
+      if (dur - alreadyCut - (e0 - s0) < 500) { toast("That would remove the whole video — keep at least one segment"); return; }
       try {
         const r = await api.addEdit(projectId, "manual_cut", { start_ms: s0, end_ms: e0, source: "timeline" });
         setCutEdits((p) => [...p, { id: r.id, start_ms: s0, end_ms: e0 }]);
@@ -1679,9 +1690,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
         if (ns < 0) { ne -= ns; ns = 0; }
         if (ne > dur) { ns -= (ne - dur); ne = dur; }
       } else if (mode === "left") {
-        ns = snap(Math.min(e0 - MIN, Math.max(0, s0 + dMs)));
+        ns = Math.min(e0 - MIN, Math.max(0, snap(s0 + dMs)));
       } else {
-        ne = snap(Math.max(s0 + MIN, Math.min(dur, e0 + dMs)));
+        ne = Math.max(s0 + MIN, Math.min(dur, snap(e0 + dMs)));
       }
       patchBrollLocal(b.id, { start_ms: Math.round(ns), end_ms: Math.round(ne) });
     };
