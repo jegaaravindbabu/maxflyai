@@ -246,3 +246,14 @@ class CaptionTranslation(Base):
     created_at = Column(DateTime(timezone=True), default=_now)
 
     project = relationship("Project", back_populates="caption_translations")
+
+
+class Report(Base):
+    """A user-submitted problem report (stored + logged so nothing is lost)."""
+    __tablename__ = "reports"
+    id = Column(String, primary_key=True, default=_uuid)
+    user_id = Column(String, nullable=True, index=True)
+    project_id = Column(String, nullable=True)
+    text = Column(Text, nullable=False)
+    user_agent = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=_now)

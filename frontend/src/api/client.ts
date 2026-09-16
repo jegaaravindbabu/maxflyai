@@ -324,6 +324,12 @@ export const api = {
   async getCanvas(id: string) {
     return j<any>(await afetch(`${BASE}/api/hub/${id}/canvas`));
   },
+  async submitReport(text: string, project_id?: string) {
+    return j<{ ok: boolean }>(await afetch(`${BASE}/api/report`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, project_id: project_id || null }),
+    }));
+  },
   async getSplits(id: string) {
     return j<{ points: number[] }>(await afetch(`${BASE}/api/hub/${id}/splits`));
   },

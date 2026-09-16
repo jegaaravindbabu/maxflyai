@@ -4,7 +4,7 @@ import time
 
 _BOOTED = time.time()
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -108,6 +108,30 @@ def stock_search(q: str = ""):
         return {"results": stock.search(q)}
     except stock.StockError:
         return {"results": [], "error": "Couldn't reach the stock photo service. Try again in a moment."}
+
+
+from pydantic import BaseModel as _BaseModel
+from app.database import get_db as _get_db
+from app.services.auth import current_user as _current_user
+
+
+class _ReportIn(_BaseModel):
+    text: str
+    project_id: str | None = None
+
+
+@app.post("/api/report")
+def submit_report(body: _ReportIn, request: Request,
+                  db=Depends(_get_db), uid: str | None = Depends(_current_user)):
+    from app.models import Report
+    txt = (body.text or "").strip()
+    if not txt:
+        raise HTTPException(400, "Please describe the issue.")
+    ua = (request.headers.get("user-agent") or "")[:400]
+    db.add(Report(user_id=uid, project_id=body.project_id, text=txt[:5000], user_agent=ua))
+    db.commit()
+    print(f"[report] user={uid} project={body.project_id}: {txt[:500]}")
+    return {"ok": True}
 
 
 @app.get("/api/stock/videos")
