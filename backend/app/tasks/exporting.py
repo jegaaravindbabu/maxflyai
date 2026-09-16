@@ -86,6 +86,26 @@ def _load_videofx(db, project_id: str) -> dict | None:
 CANVAS_DIMS = {"9:16": (720, 1280), "4:5": (720, 900), "1:1": (720, 720), "16:9": (1280, 720)}
 
 
+def _canvas_dims(aspect: str, resolution: str = "auto", clip_short: int = 0):
+    """Canvas backdrop dimensions for an aspect, scaled to the export tier so a
+    background/blur/image canvas is produced at the chosen resolution (not the
+    old fixed 720). Falls back to the base 720-class ratio."""
+    bw, bh = CANVAS_DIMS[aspect]
+    base_short = min(bw, bh)
+    tiers = {"480": 480, "720": 720, "1080": 1080, "1440": 1440, "2160": 2160}
+    if resolution in tiers:
+        short_tgt = tiers[resolution]
+    elif clip_short and clip_short >= 2:
+        short_tgt = clip_short          # auto: match the rendered clip
+    else:
+        short_tgt = base_short
+    short_tgt = max(360, min(2160, int(short_tgt)))
+    f = short_tgt / float(base_short)
+    def _even(x):
+        return max(2, (int(round(x)) // 2) * 2)
+    return _even(bw * f), _even(bh * f)
+
+
 def _load_canvas(db, project_id: str) -> dict | None:
     row = (db.query(Edit)
              .filter(Edit.project_id == project_id, Edit.enabled == True,  # noqa: E712
@@ -188,26 +208,37 @@ def _load_enabled_cuts(db, project_id: str) -> list[dict]:
     return cuts
 
 
+# short-side target -> hard long-side ceiling, so a 9:16 clip at each tier is
+# 480x854 / 720x1280 / 1080x1920 / 1440x2560 / 2160x3840. Higher tiers need a
+# bigger worker (memory budget auto-scales; see ffmpeg_utils).
+_RES_TIERS = {"480": (480, 960), "720": (720, 1280), "1080": (1080, 1920),
+              "1440": (1440, 2560), "2160": (2160, 3840)}
+_AUTO_LONG_CEIL = 2160   # "auto" keeps the source but caps the long side here
+
+
 def _target_dims(sw: int, sh: int, resolution: str = "auto"):
     """Pick output (w, h) + scale filter from a requested resolution.
-    'auto' keeps the source but caps the long side to 1280 (memory-safe).
-    '1080'/'720'/'480' target that many pixels on the SHORT side, so vertical
-    9:16 clips read as 1080x1920 / 720x1280 / 480x854 -- downscale only, with a
-    hard 1920 long-side ceiling. Even dimensions for H.264."""
+    A tier ('480'..'2160') targets that many pixels on the SHORT side (upscaling
+    allowed for 1440/2160 so 4K is real); 'auto' keeps the source, capped on the
+    long side. Even dimensions for H.264."""
     sw = int(sw or 0); sh = int(sh or 0)
     if sw < 2 or sh < 2:
         return sw, sh, None
     short = min(sw, sh); longest = max(sw, sh)
     def _even(x):
         return max(2, (int(round(x)) // 2) * 2)
-    if resolution in ("1080", "720", "480"):
-        tgt = int(resolution)
-        sc = min(1.0, tgt / float(short))
-        if longest * sc > 1920:
-            sc = 1920.0 / longest
+    if resolution in _RES_TIERS:
+        tgt, long_ceil = _RES_TIERS[resolution]
+        # downscale always; upscale only for the HD+ tiers (1080/1440/2160) so a
+        # phone clip can be delivered at true 4K, but 480/720 never enlarge.
+        sc = tgt / float(short)
+        if resolution in ("480", "720"):
+            sc = min(1.0, sc)
+        if longest * sc > long_ceil:
+            sc = long_ceil / float(longest)
     else:  # auto
-        sc = 1280.0 / longest if longest > 1280 else 1.0
-    if sc >= 0.999:
+        sc = _AUTO_LONG_CEIL / float(longest) if longest > _AUTO_LONG_CEIL else 1.0
+    if abs(sc - 1.0) < 0.005:
         return sw, sh, None
     ow, oh = _even(sw * sc), _even(sh * sc)
     return ow, oh, f"scale={ow}:{oh}"
@@ -422,7 +453,7 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                     try: os.remove(_ds)
                     except Exception: pass
             if _canvas_active:
-                cw, ch = CANVAS_DIMS[canvas["aspect"]]
+                cw, ch = _canvas_dims(canvas["aspect"], resolution, min(ow, oh))
                 cimg = None
                 if canvas.get("bg_type") == "image" and canvas.get("image_url"):
                     try: cimg = storage.path(canvas["image_url"])

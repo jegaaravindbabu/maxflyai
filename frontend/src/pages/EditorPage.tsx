@@ -364,9 +364,11 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [expJob, setExpJob] = useState<{ fmt: string; status: "rendering" | "ready" | "error"; pct: number; url?: string; downloadUrl?: string; error?: string; open: boolean } | null>(null);
   const progRef = useRef<number | undefined>(undefined);
   const [expUsage, setExpUsage] = useState<{ export_limit: number | null; exports_used: number } | null>(null);
+  const [maxRes, setMaxRes] = useState(2160);   // plan's max short-side px (dev/open = 2160)
   const [mobileAck, setMobileAck] = useState(false);
   const refreshExpUsage = () => api.billingMe()
-    .then((m: any) => setExpUsage({ export_limit: m?.export_limit ?? null, exports_used: m?.exports_used ?? 0 }))
+    .then((m: any) => { setExpUsage({ export_limit: m?.export_limit ?? null, exports_used: m?.exports_used ?? 0 });
+      if (m?.max_res) setMaxRes(m.max_res); })
     .catch(() => {});
   useEffect(() => { refreshExpUsage(); }, []);
   const expAtLimit = !!expUsage && expUsage.export_limit != null && expUsage.exports_used >= expUsage.export_limit;
@@ -815,7 +817,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const capOvStyle = activeIdx >= 0 ? ((capOverrides[_cidx] || {}) as any).style : undefined;
   const effStyle = capOvStyle || (animOn ? capStyle : "classic");
   const activeStyleId = (styleScope === "caption" && capOvStyle) ? capOvStyle : capStyle;
-  const _resMul = expRes === "1080" ? 1.6 : expRes === "720" ? 1.1 : expRes === "480" ? 0.8 : 1.2;
+  const _resMul = expRes === "2160" ? 4.0 : expRes === "1440" ? 2.4 : expRes === "1080" ? 1.6 : expRes === "720" ? 1.1 : expRes === "480" ? 0.8 : 1.2;
   const _estSec = Math.round((dur / 1000) * _resMul + 12);
   const estText = _estSec <= 75 ? "Estimated time: under a minute" : `Estimated time: about ${Math.round(_estSec / 60)} min (based on video length)`;
   const activeLayer = filterLayers.find((l) => curMs >= l.start_ms && curMs < l.end_ms);
@@ -2753,7 +2755,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   <label>Resolution</label>
                   <Dropdown value={expRes} onChange={setExpRes} options={[
                     { value: "auto", label: "Auto (source)" },
-                    { value: "1080", label: "1080p" },
+                    ...(maxRes >= 2160 ? [{ value: "2160", label: "4K (2160p)" }] : []),
+                    ...(maxRes >= 1440 ? [{ value: "1440", label: "1440p" }] : []),
+                    ...(maxRes >= 1080 ? [{ value: "1080", label: "1080p" }] : []),
                     { value: "720", label: "720p" },
                     { value: "480", label: "480p" },
                   ]} />

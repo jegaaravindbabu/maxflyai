@@ -19,8 +19,34 @@ _FFMPEG_TIMEOUT = 1500
 
 # Kill an ffmpeg encode if its RSS approaches the instance ceiling, so a large
 # source fails with a clear error instead of OOM-killing the whole container
-# (which 502s every user). Overridable via FFMPEG_MEM_LIMIT_MB.
-_MEM_LIMIT_MB = int(os.environ.get("FFMPEG_MEM_LIMIT_MB", "330"))
+# (which 502s every user).
+#
+# The budget AUTO-SCALES with the worker's RAM: ~68% of total memory, floored at
+# 330MB. So a 512MB worker allows ~348MB, a 2GB worker ~1.4GB, a 4GB worker
+# ~2.7GB -- upgrading the Render worker instantly lifts the export ceiling with
+# no code change. Override explicitly with FFMPEG_MEM_LIMIT_MB if needed.
+def _auto_mem_limit_mb() -> int:
+    env = os.environ.get("FFMPEG_MEM_LIMIT_MB")
+    if env:
+        try:
+            return max(200, int(env))
+        except ValueError:
+            pass
+    total_mb = 0
+    try:
+        with open("/proc/meminfo") as f:
+            for line in f:
+                if line.startswith("MemTotal:"):
+                    total_mb = int(line.split()[1]) // 1024
+                    break
+    except Exception:
+        total_mb = 0
+    if total_mb <= 0:
+        return 330
+    return max(330, int(total_mb * 0.68))
+
+
+_MEM_LIMIT_MB = _auto_mem_limit_mb()
 
 
 def _proc_rss_mb(pid: int) -> int:
