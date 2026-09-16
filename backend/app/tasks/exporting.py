@@ -492,7 +492,7 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                     fps_num=info["fps_num"], fps_den=info["fps_den"])
             else:
                 content = timeline_export.build_fcpxml(
-                    title, src, media_name, dur, keep, cues=orig_cues,
+                    title, src, media_name, dur, keep, cues=orig_cues, use_translit=use_translit,
                     fps_num=info["fps_num"], fps_den=info["fps_den"],
                     width=info["width"], height=info["height"])
             key = f"exports/{project_id}{suffix}.{fmt}"
@@ -519,7 +519,7 @@ def run_export(project_id: str, fmt: str = "srt", use_translit: bool = False,
                 fcp = timeline_export.build_fcpxml_multitrack(
                     project.name or "ceyonai", total_ms, "video.mp4", "voice.wav", music_name,
                     cues=cues, fps_num=info["fps_num"], fps_den=info["fps_den"],
-                    width=info["width"], height=info["height"])
+                    width=info["width"], height=info["height"], use_translit=use_translit)
                 with open(os.path.join(work, "timeline.fcpxml"), "w", encoding="utf-8") as fh:
                     fh.write(fcp)
                 readme = (

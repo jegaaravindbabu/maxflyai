@@ -5,7 +5,8 @@ from sqlalchemy import func
 
 from app.database import get_db
 from app.deps import owned_project
-from app.models import Project, Segment, Transcript, CaptionCue, Job, TextOverlay, ImageOverlay, BrollClip, CaptionTranslation
+from app.models import Project, Segment, Transcript, CaptionCue, Job, TextOverlay, ImageOverlay, BrollClip, CaptionTranslation, Edit, Export
+from sqlalchemy import inspect as sa_inspect
 from app.schemas import ProjectOut, ProjectDetail, SegmentOut, CueOut, OverlayOut, OverlayIn, OverlayPatch, ImageOut, ImagePatch, BrollOut, BrollPatch, TranslationOut, TransCueOut
 from app.services.auth import current_user, is_admin
 from app.services.storage import storage
@@ -198,8 +199,41 @@ def rename_project(project_id: str, body: RenameIn, db: Session = Depends(get_db
 @router.delete("/{project_id}")
 def delete_project(project_id: str, db: Session = Depends(get_db),
     project: Project = Depends(owned_project)):
+    # Collect storage keys to reclaim, skipping any still referenced by another
+    # project (duplicates share source/overlay keys). Exports are per-project.
+    def _key(u):
+        try: return storage.key_from_url(u) if u else None
+        except Exception: return None
+    del_keys: set[str] = set()
+    if project.source_media_url and not db.query(Project).filter(
+            Project.id != project.id,
+            Project.source_media_url == project.source_media_url).first():
+        k = _key(project.source_media_url)
+        if k: del_keys.add(k)
+    for im in db.query(ImageOverlay).filter(ImageOverlay.project_id == project.id).all():
+        if im.image_url and not db.query(ImageOverlay).filter(
+                ImageOverlay.project_id != project.id,
+                ImageOverlay.image_url == im.image_url).first():
+            k = _key(im.image_url)
+            if k: del_keys.add(k)
+    for b in db.query(BrollClip).filter(BrollClip.project_id == project.id).all():
+        if b.video_url and not db.query(BrollClip).filter(
+                BrollClip.project_id != project.id,
+                BrollClip.video_url == b.video_url).first():
+            k = _key(b.video_url)
+            if k: del_keys.add(k)
+    for e in db.query(Export).filter(Export.project_id == project.id).all():
+        for suf in ("", "_clean"):
+            if e.format == "mp4":
+                del_keys.add(f"exports/{project.id}{suf}_captioned.mp4")
+            else:
+                del_keys.add(f"exports/{project.id}{suf}.{e.format}")
+                del_keys.add(f"exports/{project.id}{suf}_bundle.zip")
     db.delete(project)   # cascades to transcripts/segments/cues/edits/exports/jobs
     db.commit()
+    for k in del_keys:
+        try: storage.delete(k)
+        except Exception: pass
     return {"ok": True, "deleted": project_id}
 
 
@@ -241,6 +275,20 @@ def duplicate_project(project_id: str, db: Session = Depends(get_db),
         db.add(CaptionCue(project_id=copy.id, idx=c.idx, start_ms=c.start_ms,
                           end_ms=c.end_ms, text=c.text, translit_text=c.translit_text,
                           line_count=c.line_count))
+
+    # copy the rest of the editing work: text/image/b-roll overlays, every Edit
+    # (cuts, silence/retake/filler, canvas, videofx, filters, caption settings,
+    # saved styles, word overrides...) and translated caption tracks. Media keys
+    # are reused (shared); project delete guards against removing shared keys.
+    def _clone(row, project_id_val):
+        cols = {c.key: getattr(row, c.key)
+                for c in sa_inspect(row.__class__).columns
+                if c.key not in ("id", "created_at")}
+        cols["project_id"] = project_id_val
+        return row.__class__(**cols)
+    for Model in (TextOverlay, ImageOverlay, BrollClip, Edit, CaptionTranslation):
+        for row in db.query(Model).filter(Model.project_id == project_id).all():
+            db.add(_clone(row, copy.id))
 
     db.commit()
     db.refresh(copy)

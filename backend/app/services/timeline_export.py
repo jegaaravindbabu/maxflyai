@@ -37,6 +37,20 @@ def _tc(frames: int, fps: int) -> str:
 
 # ---------------- EDL ----------------
 
+def _cue_text(c: dict, use_translit: bool) -> str:
+    if use_translit:
+        return c.get("translit_text") or c.get("text", "") or ""
+    return c.get("text", "") or ""
+
+
+def _media_src(name: str) -> str:
+    """FCPXML media-rep src as a relative URL so the bundle relinks next to the
+    .fcpxml (a bare filename is rejected/offline by Final Cut)."""
+    if "://" in name or name.startswith("./") or name.startswith("/"):
+        return name
+    return "./" + name
+
+
 def build_edl(title: str, media_name: str, keep: list[dict],
               fps_num: int = 25, fps_den: int = 1) -> str:
     fps = max(1, round(fps_num / fps_den))
@@ -81,10 +95,11 @@ def _title_clip(text: str, effect_ref: str, lane: int, offset_t: str, dur_t: str
     )
 
 
-def build_fcpxml(title: str, media_path: str, media_name: str, duration_ms: int,
+def build_fcpxml(title: str, media_path: str, media_name: str, duration_ms: int,  # noqa: E501
                  keep: list[dict], cues: list[dict] | None = None,
                  fps_num: int = 25, fps_den: int = 1,
-                 width: int = 1920, height: int = 1080) -> str:
+                 width: int = 1920, height: int = 1080,
+                 use_translit: bool = False) -> str:
     """Editable timeline: video on lane 1, captions as editable titles on lane 2.
 
     Uses a start=0 <gap> container so every offset is an absolute timeline
@@ -127,7 +142,7 @@ def build_fcpxml(title: str, media_path: str, media_name: str, duration_ms: int,
         if rf is None:
             continue
         cue_dur_f = max(1, _ms_to_frames(int(c["end_ms"]) - int(c["start_ms"]), fps_num, fps_den))
-        titles.append(_title_clip(c.get("text", ""), "r3", 2, T(rf), T(cue_dur_f), i, font_size))
+        titles.append(_title_clip(_cue_text(c, use_translit), "r3", 2, T(rf), T(cue_dur_f), i, font_size))
 
     body = "\n".join(vid + titles)
 
@@ -162,7 +177,8 @@ def build_fcpxml_multitrack(title: str, total_ms: int, video_file: str,
                             voice_file: str, music_file: str | None,
                             cues: list[dict] | None = None,
                             fps_num: int = 25, fps_den: int = 1,
-                            width: int = 1920, height: int = 1080) -> str:
+                            width: int = 1920, height: int = 1080,
+                            use_translit: bool = False) -> str:
     """Multi-track project: video on the spine, voice + music as connected audio
     on lanes -1/-2, and captions as editable titles on lane 1. Stems are
     pre-rendered to the final cut timeline, so each layer is one contiguous clip."""
@@ -173,11 +189,11 @@ def build_fcpxml_multitrack(title: str, total_ms: int, video_file: str,
     font_size = max(24, round(height * 0.06))
 
     assets = [
-        '    <asset id="r2" name="video" start="0s" duration="' + dur + '" hasVideo="1" hasAudio="0" format="r1"><media-rep kind="original-media" src="' + escape(video_file) + '"/></asset>',
-        '    <asset id="r3" name="voice" start="0s" duration="' + dur + '" hasVideo="0" hasAudio="1" audioSources="1" audioChannels="2"><media-rep kind="original-media" src="' + escape(voice_file) + '"/></asset>',
+        '    <asset id="r2" name="video" start="0s" duration="' + dur + '" hasVideo="1" hasAudio="0" format="r1"><media-rep kind="original-media" src="' + escape(_media_src(video_file)) + '"/></asset>',
+        '    <asset id="r3" name="voice" start="0s" duration="' + dur + '" hasVideo="0" hasAudio="1" audioSources="1" audioChannels="2"><media-rep kind="original-media" src="' + escape(_media_src(voice_file)) + '"/></asset>',
     ]
     if music_file:
-        assets.append('    <asset id="r4" name="music" start="0s" duration="' + dur + '" hasVideo="0" hasAudio="1" audioSources="1" audioChannels="2"><media-rep kind="original-media" src="' + escape(music_file) + '"/></asset>')
+        assets.append('    <asset id="r4" name="music" start="0s" duration="' + dur + '" hasVideo="0" hasAudio="1" audioSources="1" audioChannels="2"><media-rep kind="original-media" src="' + escape(_media_src(music_file)) + '"/></asset>')
     assets.append('    <effect id="r5" name="Basic Title" uid="' + BASIC_TITLE_UID + '"/>')
 
     connected = ['          <asset-clip ref="r3" lane="-1" offset="0s" name="voice" duration="' + dur + '" audioRole="dialogue"/>']
@@ -186,7 +202,7 @@ def build_fcpxml_multitrack(title: str, total_ms: int, video_file: str,
     for i, c in enumerate(cues or []):
         rf = _ms_to_frames(int(c["start_ms"]), fps_num, fps_den)
         cue_dur_f = max(1, _ms_to_frames(int(c["end_ms"]) - int(c["start_ms"]), fps_num, fps_den))
-        connected.append(_title_clip(c.get("text", ""), "r5", 1, T(rf), T(cue_dur_f), i, font_size))
+        connected.append(_title_clip(_cue_text(c, use_translit), "r5", 1, T(rf), T(cue_dur_f), i, font_size))
 
     nl = "\n"
     return (
