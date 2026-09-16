@@ -733,6 +733,35 @@ def get_canvas(project_id: str, db: Session = Depends(get_db),
     return data
 
 
+class SplitsIn(BaseModel):
+    points: list[float] = []
+
+
+@router.get("/{project_id}/splits")
+def get_splits(project_id: str, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    """Timeline split points (ms), persisted server-side so segments follow the
+    user across devices instead of living only in one browser's localStorage."""
+    row = (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "splits")
+             .order_by(Edit.created_at.desc()).first())
+    pts = (row.payload_json or {}).get("points", []) if row else []
+    return {"points": pts}
+
+
+@router.post("/{project_id}/splits")
+def set_splits(project_id: str, body: SplitsIn, db: Session = Depends(get_db),
+    _owner: Project = Depends(owned_project)):
+    pts = sorted({int(p) for p in (body.points or []) if p and p > 0})
+    row = (db.query(Edit).filter(Edit.project_id == project_id, Edit.type == "splits")
+             .order_by(Edit.created_at.desc()).first())
+    if row:
+        row.payload_json = {"points": pts}
+    else:
+        db.add(Edit(project_id=project_id, type="splits", payload_json={"points": pts}, enabled=True))
+    db.commit()
+    return {"points": pts}
+
+
 @router.post("/{project_id}/canvas")
 def set_canvas(project_id: str, body: CanvasIn, db: Session = Depends(get_db),
     _owner: Project = Depends(owned_project)):

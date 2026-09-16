@@ -42,10 +42,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       setAuthToken(s?.access_token ?? null);
+      // Password-recovery link: send the user to the set-new-password screen.
+      if (event === "PASSWORD_RECOVERY") {
+        window.location.hash = "#/reset";
+        return;
+      }
       // After a successful sign-in (incl. the Google OAuth redirect, which returns
       // to the site root or with a token fragment), land the user inside the app.
       if (event === "SIGNED_IN") {
         const h = window.location.hash;
+        // a recovery token can arrive as a SIGNED_IN with type=recovery — don't
+        // whisk it to the app; let the reset screen handle it.
+        if (h.includes("type=recovery")) { window.location.hash = "#/reset"; return; }
         if (h === "" || h === "#" || h === "#/" || h === "#/login" ||
             h.startsWith("#access_token") || h.startsWith("#error")) {
           window.location.hash = "#/app";

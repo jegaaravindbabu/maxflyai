@@ -530,6 +530,14 @@ export function EditorPage({ projectId }: { projectId: string }) {
     try { return JSON.parse(localStorage.getItem("ceyonai:vcuts:" + projectId) || "[]"); } catch { return []; }
   });
   const [selSeg, setSelSeg] = useState<number | null>(null);
+  useEffect(() => {
+    api.getSplits(projectId)
+      .then((r) => { if (Array.isArray(r.points)) {
+        setVideoCuts(r.points);
+        try { localStorage.setItem("ceyonai:vcuts:" + projectId, JSON.stringify(r.points)); } catch {}
+      } })
+      .catch(() => {});
+  }, [projectId]);
   const [cutEdits, setCutEdits] = useState<{ id: string; start_ms: number; end_ms: number }[]>([]);
   const [dupEdits, setDupEdits] = useState<{ id: string; start_ms: number; end_ms: number }[]>([]);
   const tl2Ref = useRef<HTMLDivElement | null>(null);
@@ -919,6 +927,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
     const arr = [...next].sort((a, b) => a - b).filter((v, i, a2) => v > 200 && v < dur - 200 && (i === 0 || v - a2[i - 1] > 200));
     setVideoCuts(arr);
     try { localStorage.setItem("ceyonai:vcuts:" + projectId, JSON.stringify(arr)); } catch {}
+    api.setSplits(projectId, arr).catch(() => {});   // persist server-side (cross-device)
   }
   function splitAction() {
     if (selSeg == null) {

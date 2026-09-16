@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { IFilmLg } from "./components/icons";
 import { AuthProvider, useAuth, authEnabled } from "./auth/AuthContext";
 import { LoginPage } from "./auth/LoginPage";
+import { ResetPasswordPage } from "./auth/ResetPasswordPage";
 import { Sidebar } from "./components/Sidebar";
 import { NewProjectModal } from "./components/NewProjectModal";
 import { HomePage } from "./pages/HomePage";
@@ -67,6 +68,12 @@ function Gate() {
 
   // Public marketing landing at the root — the front door for every visitor.
   if (hash === "#/" || hash === "" || hash === "#") return <LandingPage />;
+
+  // Password-reset screen (from the recovery email link).
+  if (hash === "#/reset") {
+    if (!authEnabled) { window.location.hash = "#/app"; return null; }
+    return <ResetPasswordPage />;
+  }
 
   // Public login route.
   if (hash === "#/login") {

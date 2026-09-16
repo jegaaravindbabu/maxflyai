@@ -324,6 +324,15 @@ export const api = {
   async getCanvas(id: string) {
     return j<any>(await afetch(`${BASE}/api/hub/${id}/canvas`));
   },
+  async getSplits(id: string) {
+    return j<{ points: number[] }>(await afetch(`${BASE}/api/hub/${id}/splits`));
+  },
+  async setSplits(id: string, points: number[]) {
+    return j<{ points: number[] }>(await afetch(`${BASE}/api/hub/${id}/splits`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ points }),
+    }));
+  },
   async setCanvas(id: string, body: Record<string, any>) {
     return j<any>(await afetch(`${BASE}/api/hub/${id}/canvas`, {
       method: "POST", headers: { "Content-Type": "application/json" },
