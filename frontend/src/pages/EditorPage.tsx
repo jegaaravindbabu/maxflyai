@@ -2486,11 +2486,25 @@ export function EditorPage({ projectId }: { projectId: string }) {
             <div className={"ed-canvas-frame" + (canvas.aspect && canvas.aspect !== "original" ? " on" : "")}
               style={canvas.aspect && canvas.aspect !== "original" ? {
                 aspectRatio: canvas.aspect.replace(":", "/"),
-                padding: `${(100 - (canvas.scale_pct ?? 100)) / 2}%`,
+                // CSS %-padding is relative to WIDTH on all sides, so scale the
+                // vertical inset by the aspect ratio to match the export's uniform
+                // contain-scale (otherwise the video drifts on non-square canvases).
+                padding: (() => { const p = (100 - (canvas.scale_pct ?? 100)) / 2;
+                  const [aw, ah] = (canvas.aspect || "1:1").split(":").map(Number);
+                  const vy = aw && ah ? p * (ah / aw) : p;
+                  return `${vy.toFixed(3)}% ${p}%`; })(),
                 boxSizing: "border-box",
+                position: "relative", overflow: "hidden",
                 background: canvas.bg_type === "image" && canvas.image_url ? `center/cover no-repeat url("${canvas.image_url}")`
                   : canvas.bg_type === "blur" ? "#0a0c13" : (canvas.color || "#000000"),
               } : undefined}>
+            {canvas.aspect && canvas.aspect !== "original" && canvas.bg_type === "blur" && mediaSrc && (
+              <video src={mediaSrc} muted playsInline aria-hidden
+                style={{ position: "absolute", inset: 0, width: "100%", height: "100%",
+                  objectFit: "cover", zIndex: 0, pointerEvents: "none",
+                  filter: `blur(${({ light: 6, medium: 12, heavy: 20 } as any)[canvas.blur_amount || "medium"] || 12}px)` }}
+                ref={(el) => { if (el && videoRef.current) { try { el.currentTime = videoRef.current.currentTime || 0; } catch {} } }} />
+            )}
             <VideoPreview ref={videoRef} src={mediaSrc} videoStyle={videoFxStyle} zoom={previewZoom} safeZone={safeZone} onSurfaceClick={() => { const next = !clipSelected; setClipSelected(next); if (next) setTopTab("video"); }}
               enhancedSrc={enhancedUrl || undefined} enhanceOn={!!enhancedUrl}
               contentZooms={contentZooms} contentZoomOn={contentZoomOn}

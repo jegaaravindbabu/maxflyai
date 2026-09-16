@@ -4,7 +4,7 @@ import type { Cue } from "../types";
 // Styles that fill/highlight the current word (karaoke) regardless of scope.
 const FILL_STYLES = ["karaoke", "highlight"];
 // Motion presets that make sense per-word (each word animates in on cue).
-const MOTION = new Set(["fade", "slide_up", "slide_down", "slide_left", "slide_right", "pop", "bounce", "rotate", "flip"]);
+const MOTION = new Set(["fade", "slide_up", "slide_down", "slide_left", "slide_right", "pop", "bounce", "rotate", "flip", "fade_blur", "type_on", "type_expand", "scale", "bounce_drop"]);
 
 interface Props {
   text: string;
@@ -64,6 +64,16 @@ export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings, wor
   if (typeof _lg === "number") dyn.letterSpacing = _lg + "px";
   if (typeof st.word_gap === "number" && st.word_gap) dyn.wordSpacing = st.word_gap + "px";
   if (st.glow) dyn.textShadow = "0 0 10px rgba(255,255,255,.7), 0 0 4px #000";
+  // Live EFFECTS feedback: reflect the Outline / Drop-shadow sliders in the
+  // preview (the export already bakes them via ASS). Only when explicitly set.
+  if (typeof st.outline_w === "number") {
+    const ow = Math.max(0, st.outline_w) * 0.16;
+    (dyn as any).WebkitTextStroke = ow > 0 ? `${ow.toFixed(2)}px ${st.outline_color || "#000000"}` : undefined;
+  }
+  if (typeof st.shadow === "number" && st.shadow > 0) {
+    const d = (st.shadow * 0.4).toFixed(1);
+    dyn.textShadow = `${d}px ${d}px ${(st.shadow * 0.5).toFixed(1)}px rgba(0,0,0,.85)`;
+  }
   if (st.italic) dyn.fontStyle = "italic";
   if (st.underline) dyn.textDecoration = "underline";
   if (st.background) { dyn.background = "rgba(0,0,0,.5)"; dyn.padding = "0.06em 0.28em"; dyn.borderRadius = "6px"; }
@@ -117,7 +127,8 @@ export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings, wor
       const _hl = on || isEmph(w);
       if (_hl && st.highlight_color) wStyle.color = st.highlight_color;
       if (_hl && st.highlight_box) { wStyle.background = st.highlight_box; wStyle.padding = "0 .12em"; wStyle.borderRadius = "4px"; }
-      if (perWordMotion) {
+      const wordAnim = perWordMotion && (st.scope !== "single" || isEmph(w));
+      if (wordAnim) {
         if (arrived) {
           cw += " capword-move capset-" + anim;
           wStyle.animationDuration = wordDur;
