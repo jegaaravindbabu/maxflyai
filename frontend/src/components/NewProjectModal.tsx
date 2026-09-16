@@ -60,6 +60,7 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
   const [gapFrames, setGapFrames] = useState(0);
   const [minutesLeft, setMinutesLeft] = useState<number | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [genErr, setGenErr] = useState<string | null>(null);
 
   useEffect(() => {
     api.billingMe().then((m) => setMinutesLeft(m.minutes_left)).catch(() => {});
@@ -91,16 +92,26 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
 
   async function generate() {
     if (!ready) return;
-    setGenerating(true);
+    setGenerating(true); setGenErr(null);
+    let firstErr: any = null;
     try {
       for (const it of done) {
         const id = it.project!.id;
         try {
           localStorage.setItem(`ceyonai:proj:${id}`, JSON.stringify({ layout, outputMode, lang, maxChars, minDur, gapFrames }));
         } catch {}
-        try { await api.transcribe(id, lang, outputMode, {
-          max_chars: maxChars, min_dur_secs: minDur, gap_frames: gapFrames, layout,
-        }); } catch {}
+        try {
+          await api.transcribe(id, lang, outputMode, {
+            max_chars: maxChars, min_dur_secs: minDur, gap_frames: gapFrames, layout,
+          });
+        } catch (e: any) { if (!firstErr) firstErr = e; }
+      }
+      if (firstErr) {
+        const msg = String(firstErr?.message || "");
+        setGenErr(/quota|402|upgrade/i.test(msg)
+          ? "You've used your free transcription minutes. Upgrade your plan to keep going."
+          : "Couldn't start captioning. Please try again.");
+        return;   // stay on the modal so the user sees why
       }
       window.location.hash = `#/project/${done[0].project!.id}`;
       onClose();
@@ -240,6 +251,9 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
+        {genErr && <div className="np-foot" style={{ paddingBottom: 0 }}>
+          <div style={{ color: "#f59e9e", fontSize: 13 }}>{genErr}</div>
+        </div>}
         <div className="np-foot">
           <div className="np-foot-status">
             <span className={"np-dot" + (ready ? " on" : "")} />

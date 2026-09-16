@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase, authEnabled } from "./supabase";
-import { setAuthToken } from "../api/client";
+import { setAuthToken, setAuthHandlers } from "../api/client";
 
 interface AuthState {
   session: Session | null;
@@ -25,6 +25,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthToken(data.session?.access_token ?? null);
       setLoading(false);
     });
+    // wire the api client's 401 refresh/expiry handling to Supabase
+    setAuthHandlers(
+      async () => {
+        const { data } = await supabase!.auth.refreshSession();
+        const t = data.session?.access_token ?? null;
+        setAuthToken(t);
+        if (data.session) setSession(data.session);
+        return t;
+      },
+      () => {
+        setSession(null); setAuthToken(null);
+        if (!window.location.hash.startsWith("#/login")) window.location.hash = "#/login";
+      },
+    );
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       setAuthToken(s?.access_token ?? null);

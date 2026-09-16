@@ -19,10 +19,25 @@ const BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? "https://m
 let authToken: string | null = null;
 export function setAuthToken(t: string | null) { authToken = t; }
 
-function afetch(input: string, init: RequestInit = {}) {
+// On a 401 we try once to refresh the Supabase token and retry; if that fails
+// the session is gone, so sign out and send the user to login instead of
+// leaving them staring at empty "no projects" states.
+let _refresher: (() => Promise<string | null>) | null = null;
+let _onExpired: (() => void) | null = null;
+export function setAuthHandlers(refresh: () => Promise<string | null>, onExpired: () => void) {
+  _refresher = refresh; _onExpired = onExpired;
+}
+
+async function afetch(input: string, init: RequestInit = {}, _retried = false): Promise<Response> {
   const headers = new Headers(init.headers || {});
   if (authToken) headers.set("Authorization", `Bearer ${authToken}`);
-  return fetch(input, { ...init, headers });
+  const res = await fetch(input, { ...init, headers });
+  if (res.status === 401 && !_retried && _refresher) {
+    const t = await _refresher().catch(() => null);
+    if (t) { authToken = t; return afetch(input, init, true); }
+    if (_onExpired) _onExpired();
+  }
+  return res;
 }
 
 async function j<T>(res: Response): Promise<T> {

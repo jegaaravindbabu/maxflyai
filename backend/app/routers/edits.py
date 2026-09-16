@@ -258,7 +258,7 @@ def detect_fillers(project_id: str, aggressive: bool = False,
     transcript = (db.query(Transcript).filter(Transcript.project_id == project_id)
                     .order_by(Transcript.created_at.desc()).first())
     if transcript is None:
-        return {"count": 0, "fillers": []}
+        return {"count": 0, "fillers": [], "needs_transcript": True}
     segs = (db.query(Segment).filter(Segment.transcript_id == transcript.id)
               .order_by(Segment.idx).all())
     seg_dicts = [{"text": s.text, "start_ms": s.start_ms, "end_ms": s.end_ms} for s in segs]

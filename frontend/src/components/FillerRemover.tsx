@@ -17,6 +17,7 @@ export function FillerRemover({ projectId, onSeek }: Props) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [sens, setSens] = useState(30);       // 0 = gentle, 100 = aggressive
+  const [needsTr, setNeedsTr] = useState(false);
   const aggressive = sens >= 50;
 
   const totalMs = useMemo(() => (cuts || []).reduce((a, c) => a + (c.end_ms - c.start_ms), 0), [cuts]);
@@ -30,6 +31,7 @@ export function FillerRemover({ projectId, onSeek }: Props) {
     setBusy(true); setErr(null);
     try {
       const r = await api.detectFillers(projectId, agg);
+      setNeedsTr(!!(r as any).needs_transcript);
       setCuts(r.fillers.map((f) => ({ ...f, enabled: false })));
     } catch (e: any) {
       setErr(e?.message || "Filler detection failed. Transcribe the video first, then try again.");
@@ -58,7 +60,24 @@ export function FillerRemover({ projectId, onSeek }: Props) {
 
   async function setAll(on: boolean) {
     if (!cuts) return;
-    for (let i = 0; i < cuts.length; i++) await setEnabled(i, on);
+    const work = cuts.map((c) => ({ ...c }));
+    for (let i = 0; i < work.length; i++) {
+      const c = work[i];
+      if (c.enabled === on && (on ? c.editId : true)) continue;
+      work[i] = { ...c, busy: true }; setCuts([...work]);
+      try {
+        if (!c.editId) {
+          const e = await api.addEdit(projectId, "filler_cut", { start_ms: c.start_ms, end_ms: c.end_ms });
+          work[i] = { ...c, editId: e.id, enabled: true, busy: false };
+        } else {
+          await api.toggleEdit(projectId, c.editId, on);
+          work[i] = { ...c, enabled: on, busy: false };
+        }
+      } catch {
+        work[i] = { ...c, busy: false };
+      }
+      setCuts([...work]);
+    }
   }
 
   // re-scan when the sensitivity mode actually changes (gentle <-> aggressive)
@@ -107,7 +126,10 @@ export function FillerRemover({ projectId, onSeek }: Props) {
         <div className="rtk-removed">{IScissors} {secs(removedMs)} will be cut at export · {enabledCount} selected</div>
       )}
 
-      {cuts && cuts.length === 0 && (
+      {cuts && cuts.length === 0 && needsTr && (
+        <div className="rtk-empty">Transcribe the video first (Captions tab), then filler words can be detected.</div>
+      )}
+      {cuts && cuts.length === 0 && !needsTr && (
         <div className="rtk-empty">✓ No filler words detected.</div>
       )}
 
