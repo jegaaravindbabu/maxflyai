@@ -15,6 +15,8 @@ interface Props {
   settings?: any;
   wordOverrides?: Record<string, any>;
   selWord?: number;
+  frameW?: number;
+  frameH?: number;
 }
 
 const FONT_MAP: Record<string, string> = {
@@ -45,7 +47,7 @@ const FONT_MAP: Record<string, string> = {
 //  - scope "word" (or karaoke/highlight styles): each word is timed to the
 //    playhead — it can karaoke-fill (highlight current word) and/or pop/bounce
 //    in on its own as it is spoken.
-export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings, wordOverrides, selWord }: Props) {
+export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings, wordOverrides, selWord, frameW, frameH }: Props) {
   const st = settings || {};
   // "out" is a graceful exit baked into the export at the end of the cue; in the
   // live preview we just show the caption static rather than a misleading entrance.
@@ -86,7 +88,12 @@ export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings, wor
   else if (st.case === "lower") dyn.textTransform = "lowercase";
   else if (st.case === "title") dyn.textTransform = "capitalize";
   const _pv = Number(st.pos_v) || 0, _ph = Number(st.pos_h) || 0;
-  if (_pv || _ph) dyn.transform = `translate(${_ph}px, ${-_pv}px)`;
+  const _sY = frameH && frameH > 0 ? frameH / 1080 : 1;   // export script height
+  const _sX = frameW && frameW > 0 ? frameW / 1920 : 1;   // export script width
+  if (_pv || _ph) dyn.transform = `translate(${(_ph * _sX).toFixed(1)}px, ${(-_pv * _sY).toFixed(1)}px)`;
+  // align: mirror the ASS \an anchor (move the block to the edge), not just justify text
+  if (st.align === "left") { dyn.display = "block"; (dyn as any).width = "fit-content"; dyn.marginRight = "auto"; dyn.marginLeft = "0"; }
+  else if (st.align === "right") { dyn.display = "block"; (dyn as any).width = "fit-content"; dyn.marginLeft = "auto"; dyn.marginRight = "0"; }
   // Big-word (emphasis) per-part overrides shown live in the preview.
   const emphStyle: React.CSSProperties = {};
   if (typeof st.big_opacity === "number" && st.big_opacity < 100) emphStyle.opacity = Math.max(0, st.big_opacity) / 100;

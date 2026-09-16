@@ -456,6 +456,15 @@ export function EditorPage({ projectId }: { projectId: string }) {
   // appear (Settings: "Auto-apply caption preset"). capStyle isn't persisted, so
   // this restores the preferred look on open instead of defaulting to Classic.
   const autoPresetDoneRef = useRef(false);
+  const [capFrame, setCapFrame] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = videoRef.current?.closest(".preview-wrap") as HTMLElement | null;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const measure = () => { const r = el.getBoundingClientRect(); setCapFrame({ w: r.width, h: r.height }); };
+    measure();
+    const ro = new ResizeObserver(measure); ro.observe(el);
+    return () => ro.disconnect();
+  }, [proj?.id]);
   useEffect(() => { autoPresetDoneRef.current = false; }, [projectId]);
   const playIdxRef = useRef(0);
   const [mediaEl, setMediaEl] = useState<HTMLMediaElement | null>(null);
@@ -2666,7 +2675,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                 })()}
               </>}
               overlay={activeCue && overlayText && !isHidden("captions") ? (
-                <CaptionOverlay text={overlayText} styleId={effStyle} cue={activeCue} curMs={curMs} keyId={activeIdx} settings={effSettings} wordOverrides={activeWordOv} selWord={selWordSafe} />
+                <CaptionOverlay text={overlayText} styleId={effStyle} cue={activeCue} curMs={curMs} keyId={activeIdx} settings={effSettings} wordOverrides={activeWordOv} selWord={selWordSafe} frameW={capFrame.w} frameH={capFrame.h} />
               ) : null} />
             </div>
           </div>
