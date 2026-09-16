@@ -180,12 +180,28 @@ def _header(p: dict, spacing: float = 0.0,
     )
 
 
-def _anim_prefix(anim: str | None, dur_ms: int, speed: float = 1.0) -> str:
-    """Entrance-animation ASS override tags. `speed` scales the timing (higher = faster)."""
+def _anim_prefix(anim: str | None, dur_ms: int, speed: float = 1.0, when: str = "in") -> str:
+    """Entrance- (or exit-) animation ASS override tags. `speed` scales the
+    timing (higher = faster); when="out" plays the motion as a graceful exit at
+    the end of the cue instead of an entrance."""
     sp = max(0.3, min(float(speed or 1.0), 4.0))
     d = lambda ms: max(20, int(ms / sp))
     if anim in (None, "none"):
         return ""
+    if when == "out":
+        outms = min(360, max(160, int(dur_ms * 0.33)))
+        start = max(0, dur_ms - outms)
+        if anim in ("slide_up", "bounce", "bounce_drop"):
+            return f"{{\\fad({d(80)},{d(outms)})\\t({start},{dur_ms},\\fscy92)}}"
+        if anim == "slide_down":
+            return f"{{\\fad({d(80)},{d(outms)})\\t({start},{dur_ms},\\fscy108)}}"
+        if anim in ("pop", "scale", "type_on", "type_expand"):
+            return f"{{\\fad({d(80)},{d(outms)})\\t({start},{dur_ms},\\fscx90\\fscy90)}}"
+        if anim == "rotate":
+            return f"{{\\fad({d(80)},{d(outms)})\\t({start},{dur_ms},\\frz20)}}"
+        if anim == "flip":
+            return f"{{\\fad({d(80)},{d(outms)})\\t({start},{dur_ms},\\fry80)}}"
+        return f"{{\\fad({d(120)},{d(outms)})}}"
     if anim == "fade":
         return f"{{\\fad({d(180)},{d(120)})}}"
     if anim == "slide_up":
@@ -602,6 +618,7 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
     glow = bool(st.get("glow"))
     speed = float(st.get("speed", 1.0) or 1.0)
     scope = st.get("scope", "caption")
+    when = st.get("when", "in")
     if st.get("anim_enabled") is False:
         anim = None
     elif st.get("anim"):
@@ -714,7 +731,7 @@ def build_ass(cues: list[dict], style: str = DEFAULT, use_translit: bool = False
                 body = txt.replace("\n", "\\N")
                 if em:
                     body = _emphasize(body, em, emcol, cue_primary, big_case, big_alpha, base_alpha, big_size=big_size, big_glow=big_glow, base_size=pc["size"])
-            prefix = glow_tag + _anim_prefix(cue_anim, dur, speed)
+            prefix = glow_tag + _anim_prefix(cue_anim, dur, speed, when)
         if _cap_pre:
             prefix = "{" + _cap_pre + "}" + prefix
         _sa, _ea = _ms_to_ass(c['start_ms']), _ms_to_ass(c['end_ms'])

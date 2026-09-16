@@ -47,7 +47,9 @@ const FONT_MAP: Record<string, string> = {
 //    in on its own as it is spoken.
 export function CaptionOverlay({ text, styleId, cue, curMs, keyId, settings, wordOverrides, selWord }: Props) {
   const st = settings || {};
-  const animOn = st.anim_enabled !== false;
+  // "out" is a graceful exit baked into the export at the end of the cue; in the
+  // live preview we just show the caption static rather than a misleading entrance.
+  const animOn = st.anim_enabled !== false && st.when !== "out";
   const anim: string = animOn && st.anim && st.anim !== "none" ? st.anim : "";
   const wordScope = st.scope === "word" || st.scope === "single";
   const fillStyle = FILL_STYLES.includes(styleId) || styleId.startsWith("word_") || styleId === "anton_gold";
