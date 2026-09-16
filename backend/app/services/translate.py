@@ -51,8 +51,13 @@ def translate_texts(texts: list[str], target: str, source: str | None = None) ->
     out: list[str] = [""] * len(texts)
 
     def work(i: int) -> None:
-        out[i] = _one(texts[i], target, source or "auto")
+        # One cue failing (e.g. a 429 rate-limit) must not abort the whole
+        # translation; fall back to the original text for that cue only.
+        try:
+            out[i] = _one(texts[i], target, source or "auto")
+        except Exception:
+            out[i] = texts[i]
 
-    with ThreadPoolExecutor(max_workers=6) as ex:
+    with ThreadPoolExecutor(max_workers=4) as ex:
         list(ex.map(work, range(len(texts))))
     return out

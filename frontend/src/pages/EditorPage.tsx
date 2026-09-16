@@ -831,12 +831,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
   if (videofx.shadowBlur || videofx.shadowX || videofx.shadowY)
     _fparts.push(`drop-shadow(${videofx.shadowX}px ${videofx.shadowY}px ${Math.max(0, videofx.shadowBlur)}px ${videofx.shadowColor})`);
   const _vanim = [VFX_ANIM_LOOP[videofx.animLoop || "none"], VFX_ANIM_IN[videofx.animIn || "none"]].filter(Boolean).join(", ");
-  const _gradeLayer = filterLayers.find((l) => curMs >= l.start_ms && curMs < l.end_ms);
-  const _gradeCss = _gradeLayer
-    ? cssForFilter(_gradeLayer.name, _gradeLayer)
-    : cssForFilter(curFilter, adjust);
   const videoFxStyle: React.CSSProperties = {
-    filter: [_fparts.join(" "), _gradeCss].filter(Boolean).join(" ") || undefined,
+    // _fparts already includes the colour grade (_grade); don't add it twice.
+    filter: _fparts.join(" ") || undefined,
     animation: _vanim || undefined,
     opacity: videofx.opacity / 100,
     borderRadius: videofx.radius ? (videofx.radius / 2) + "%" : undefined,
