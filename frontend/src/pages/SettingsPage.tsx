@@ -23,18 +23,20 @@ function Switch({ on, onChange, disabled }: { on: boolean; onChange?: (v: boolea
   );
 }
 
-function memberSince(): string {
-  let iso: string | null = null;
-  try {
-    iso = localStorage.getItem("ceyonai:member_since") || localStorage.getItem("maxfly:member_since");
-    if (!iso) { iso = new Date().toISOString(); localStorage.setItem("ceyonai:member_since", iso); }
-  } catch {}
+function memberSince(accountIso?: string | null): string {
+  let iso: string | null = accountIso || null;   // real account creation date
+  if (!iso) {
+    try {
+      iso = localStorage.getItem("ceyonai:member_since") || localStorage.getItem("maxfly:member_since");
+      if (!iso) { iso = new Date().toISOString(); localStorage.setItem("ceyonai:member_since", iso); }
+    } catch {}
+  }
   const d = iso ? new Date(iso) : new Date();
   return d.toLocaleDateString(undefined, { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 export function SettingsPage() {
-  const { email, signOut } = useAuth();
+  const { email, signOut, session } = useAuth();
   const [me, setMe] = useState<any>(null);
   useEffect(() => { api.billingMe().then(setMe).catch(() => {}); }, []);
 
@@ -45,7 +47,7 @@ export function SettingsPage() {
   const mail = email || "guest@ceyonai.com";
   const name = email ? email.split("@")[0].replace(/[._-]+/g, " ") : "Creator";
   const planLabel = me?.label || "Free Plan";
-  const since = memberSince();
+  const since = memberSince((session as any)?.user?.created_at);
 
   return (
     <div className="main-inner">

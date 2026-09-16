@@ -938,6 +938,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   async function dupSeg(seg: number) {
     const s0 = Math.round(segBounds[seg]), e0 = Math.round(segBounds[seg + 1]);
     if (!(e0 > s0)) return;
+    pushHistory();   // align the cue-undo stack (segment op doesn't change cues)
     if (cutEdits.some((c) => c.start_ms <= s0 + 60 && c.end_ms >= e0 - 60)) {
       toast("Restore this clip before duplicating it"); return;
     }
@@ -966,6 +967,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
     if (selSeg != null) {
       const s0 = Math.round(segBounds[selSeg]), e0 = Math.round(segBounds[selSeg + 1]);
       if (e0 - s0 >= dur - 400) { toast("Can't remove the whole clip — split it first"); return; }
+      pushHistory();   // keep the cue-undo stack aligned so Ctrl+Z can't apply a stale caption snapshot
       const alreadyCut = cutEdits.reduce((a, c) => a + (c.end_ms - c.start_ms), 0);
       if (dur - alreadyCut - (e0 - s0) < 500) { toast("That would remove the whole video — keep at least one segment"); return; }
       try {
