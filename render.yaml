@@ -88,7 +88,7 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     plan: standard                    # 1 CPU / 2 GB per instance
-    dockerCommand: celery -A app.celery_app worker --loglevel=info --concurrency=2 --max-tasks-per-child=20
+    dockerCommand: celery -A app.celery_app worker --loglevel=info --concurrency=1 --max-tasks-per-child=20
     scaling:
       minInstances: 1
       maxInstances: 3                 # scales out under load, back to 1 when quiet
