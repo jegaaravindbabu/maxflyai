@@ -430,8 +430,13 @@ export function EditorPage({ projectId }: { projectId: string }) {
   });
   const [density, setDensity] = useState<"compact" | "roomy">("roomy");
   type CueSnap = { start_ms: number; end_ms: number; text: string; translit_text: string | null; line_count: number };
-  const [undoStack, setUndoStack] = useState<CueSnap[][]>([]);
-  const [redoStack, setRedoStack] = useState<CueSnap[][]>([]);
+  type HistEntry =
+    | { kind: "cue"; cues: CueSnap[] }
+    | { kind: "splitpt"; point: number }
+    | { kind: "cut"; editId: string }
+    | { kind: "dupbroll"; brollId: string };
+  const [undoStack, setUndoStack] = useState<HistEntry[]>([]);
+  const [redoStack, setRedoStack] = useState<HistEntry[]>([]);
   const [tlZoom, setTlZoom] = useState(1);
   const [tlFilter, setTlFilter] = useState<"all" | "videos" | "captions">("all");
   const [aiMenu, setAiMenu] = useState(false);
@@ -938,6 +943,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
     if (at <= 200 || at >= dur - 200) { toast("Move the playhead into the clip, then press Split"); return; }
     if (videoCuts.some((c) => Math.abs(c - at) < 200)) { toast("Already split here"); return; }
     saveVideoCuts([...videoCuts, at]);
+    pushAction({ kind: "splitpt", point: at });
     const crossing = dupEdits.filter((d) => d.start_ms < at - 60 && d.end_ms > at + 60);
     crossing.forEach((d) => { api.deleteEdit(projectId, d.id).catch(() => {}); });
     if (crossing.length) setDupEdits((p) => p.filter((d) => !crossing.some((x) => x.id === d.id)));
@@ -947,7 +953,6 @@ export function EditorPage({ projectId }: { projectId: string }) {
   async function dupSeg(seg: number) {
     const s0 = Math.round(segBounds[seg]), e0 = Math.round(segBounds[seg + 1]);
     if (!(e0 > s0)) return;
-    pushHistory();   // align the cue-undo stack (segment op doesn't change cues)
     if (cutEdits.some((c) => c.start_ms <= s0 + 60 && c.end_ms >= e0 - 60)) {
       toast("Restore this clip before duplicating it"); return;
     }
@@ -955,6 +960,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
     try {
       const b = await api.duplicateClip(projectId, s0, e0, s0);
       setBrolls((prev) => [...prev, b]);
+      pushAction({ kind: "dupbroll", brollId: b.id });
       setSelSeg(null); setSelBroll(b.id); setSelOv(null); setSelImg(null); setRail("broll"); setTopTab("video");
       toast("Clip duplicated onto a new video track \u2014 drag it along the timeline or to another track");
     } catch {
@@ -976,12 +982,12 @@ export function EditorPage({ projectId }: { projectId: string }) {
     if (selSeg != null) {
       const s0 = Math.round(segBounds[selSeg]), e0 = Math.round(segBounds[selSeg + 1]);
       if (e0 - s0 >= dur - 400) { toast("Can't remove the whole clip — split it first"); return; }
-      pushHistory();   // keep the cue-undo stack aligned so Ctrl+Z can't apply a stale caption snapshot
       const alreadyCut = cutEdits.reduce((a, c) => a + (c.end_ms - c.start_ms), 0);
       if (dur - alreadyCut - (e0 - s0) < 500) { toast("That would remove the whole video — keep at least one segment"); return; }
       try {
         const r = await api.addEdit(projectId, "manual_cut", { start_ms: s0, end_ms: e0, source: "timeline" });
         setCutEdits((p) => [...p, { id: r.id, start_ms: s0, end_ms: e0 }]);
+        pushAction({ kind: "cut", editId: r.id });
         const inside = dupEdits.filter((d) => d.start_ms >= s0 - 60 && d.end_ms <= e0 + 60);
         inside.forEach((d) => { api.deleteEdit(projectId, d.id).catch(() => {}); });
         if (inside.length) setDupEdits((p) => p.filter((d) => !inside.some((x) => x.id === d.id)));
@@ -1022,23 +1028,45 @@ export function EditorPage({ projectId }: { projectId: string }) {
       translit_text: c.translit_text ?? null, line_count: c.line_count ?? 1 }));
   }
   function pushHistory() {
-    setUndoStack((prev) => [...prev.slice(-40), cloneCues(cuesRef.current)]);
+    setUndoStack((prev) => [...prev.slice(-40), { kind: "cue", cues: cloneCues(cuesRef.current) }]);
+    setRedoStack([]);
+  }
+  function pushAction(entry: HistEntry) {
+    setUndoStack((prev) => [...prev.slice(-40), entry]);
     setRedoStack([]);
   }
   async function undo() {
     if (undoStack.length === 0) return;
-    const snap = undoStack[undoStack.length - 1];
-    setRedoStack((r) => [...r, cloneCues(cuesRef.current)]);
+    const top = undoStack[undoStack.length - 1];
     setUndoStack((s2) => s2.slice(0, -1));
-    try { await api.replaceCues(projectId, snap); } catch {}
-    load();
+    if (top.kind === "cue") {
+      setRedoStack((r) => [...r, { kind: "cue", cues: cloneCues(cuesRef.current) }]);
+      try { await api.replaceCues(projectId, top.cues); } catch {}
+      load();
+    } else if (top.kind === "splitpt") {
+      setRedoStack([]);   // segment ops aren't redoable (server ids regenerate)
+      saveVideoCuts(videoCuts.filter((pnt) => Math.abs(pnt - top.point) > 1));
+      toast("Split undone");
+    } else if (top.kind === "cut") {
+      setRedoStack([]);
+      try { await api.deleteEdit(projectId, top.editId); } catch {}
+      setCutEdits((p) => p.filter((c) => c.id !== top.editId));
+      toast("Segment restored");
+    } else if (top.kind === "dupbroll") {
+      setRedoStack([]);
+      try { await api.deleteBroll(projectId, top.brollId); } catch {}
+      setBrolls((p) => p.filter((b) => b.id !== top.brollId));
+      if (selBroll === top.brollId) setSelBroll(null);
+      toast("Duplicate removed");
+    }
   }
   async function redo() {
     if (redoStack.length === 0) return;
-    const snap = redoStack[redoStack.length - 1];
-    setUndoStack((s2) => [...s2, cloneCues(cuesRef.current)]);
+    const top = redoStack[redoStack.length - 1];
     setRedoStack((r) => r.slice(0, -1));
-    try { await api.replaceCues(projectId, snap); } catch {}
+    if (top.kind !== "cue") return;   // only caption ops are redoable
+    setUndoStack((s2) => [...s2, { kind: "cue", cues: cloneCues(cuesRef.current) }]);
+    try { await api.replaceCues(projectId, top.cues); } catch {}
     load();
   }
   function targetCueIdx(): number {
