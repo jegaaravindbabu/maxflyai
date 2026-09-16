@@ -305,6 +305,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [stockQ, setStockQ] = useState("");
   const [stockRes, setStockRes] = useState<{ id: string; thumb: string; url: string; alt: string }[]>([]);
   const [stockBusy, setStockBusy] = useState(false);
+  const [stockErr, setStockErr] = useState<string | null>(null);
   const [brolls, setBrolls] = useState<BrollClip[]>([]);
   const [selBroll, setSelBroll] = useState<string | null>(null);
   const [brollBusy, setBrollBusy] = useState(false);
@@ -318,6 +319,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [bvQ, setBvQ] = useState("");
   const [bvRes, setBvRes] = useState<{ id: string; thumb: string; url: string; alt: string; duration?: number }[]>([]);
   const [bvBusy, setBvBusy] = useState(false);
+  const [bvErr, setBvErr] = useState<string | null>(null);
   const [bvAdding, setBvAdding] = useState(false);
   const overlaysRef = useRef<Overlay[]>([]);
   overlaysRef.current = overlays;
@@ -1495,9 +1497,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
       anim_enabled: true, anim: "", speed: 1, scope: "caption" }).catch(() => {});
   }
   async function runStock() {
-    setStockBusy(true);
-    try { const r = await api.stockSearch(stockQ); setStockRes(r.results); }
-    catch { setStockRes([]); }
+    setStockBusy(true); setStockErr(null);
+    try { const r = await api.stockSearch(stockQ); setStockRes(r.results); setStockErr(r.error || null); }
+    catch { setStockRes([]); setStockErr("Couldn't reach the stock photo service."); }
     finally { setStockBusy(false); }
   }
   async function addStock(url: string) {
@@ -1509,9 +1511,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
     } catch (e: any) { alert("Could not add image: " + (e?.message || "")); }
   }
   async function runBrollStock() {
-    setBvBusy(true);
-    try { const r = await api.stockVideos(bvQ); setBvRes(r.results); }
-    catch { setBvRes([]); }
+    setBvBusy(true); setBvErr(null);
+    try { const r = await api.stockVideos(bvQ); setBvRes(r.results); setBvErr(r.error || null); }
+    catch { setBvRes([]); setBvErr("Couldn't reach the stock video service."); }
     finally { setBvBusy(false); }
   }
   async function addBrollStock(url: string, duration?: number) {
@@ -2071,6 +2073,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   onKeyDown={(e) => { if (e.key === "Enter") runStock(); }} />
                 <button className="ed-stock-go" onClick={runStock} disabled={stockBusy}>{stockBusy ? "…" : IcSearch}</button>
               </div>
+              {stockErr && <div className="np-sub" style={{ color: "#f59e9e", marginBottom: 10 }}>{stockErr}</div>}
               {stockRes.length > 0 && (
                 <div className="ed-stock-grid">
                   {stockRes.map((r) => (
@@ -2130,6 +2133,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
                   onKeyDown={(e) => { if (e.key === "Enter") runBrollStock(); }} />
                 <button className="ed-stock-go" onClick={runBrollStock} disabled={bvBusy}>{bvBusy ? "…" : IcSearch}</button>
               </div>
+              {bvErr && <div className="np-sub" style={{ color: "#f59e9e", marginBottom: 10 }}>{bvErr}</div>}
               {bvAdding && <div className="np-sub" style={{ marginBottom: 10 }}>Downloading clip…</div>}
               {bvRes.length > 0 && (
                 <div className="ed-stock-grid ed-stock-grid-2">

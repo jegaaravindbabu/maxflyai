@@ -793,6 +793,19 @@ def build_overlay_events(overlays: list[dict]) -> str:
         elif anim == "expand":
             extra = "\\fsp{sp}\\t(0,420,\\fsp0)\\fad(180,0)".replace("{sp}", str(round(size * 0.3)))
         pos = amove if amove else f"\\pos({x},{y})"
+        # Background pill (matches the editor): a filled rectangle on a lower
+        # layer, sized to the text. ASS has no per-line box, so we draw one.
+        bg = o.get("bg") or ""
+        if bg and not amove:   # static position only (animated text moves away from a fixed box)
+            bgc = _hex_to_ass(bg)
+            lines = text.split("\\N")
+            maxlen = max((len(ln) for ln in lines), default=1)
+            nlines = max(1, len(lines))
+            half_w = max(size, int(maxlen * size * 0.30)) + int(size * 0.35)
+            half_h = int(size * 0.75 * nlines) + int(size * 0.18)
+            draw = f"m -{half_w} -{half_h} l {half_w} -{half_h} {half_w} {half_h} -{half_w} {half_h}"
+            box = (f"{{\\an5\\pos({x},{y})\\c{bgc}\\bord0\\shad0\\p1}}{draw}{{\\p0}}")
+            out.append(f"Dialogue: 0,{start},{end},Default,,0,0,0,,{box}")
         tags = (f"{{\\an5{pos}\\fs{size}\\c{colour}\\b{bold}"
                 f"\\bord{bord}\\3c{oc}\\shad{shad}\\4c{sc}{extra}}}")
         out.append(f"Dialogue: 1,{start},{end},Default,,0,0,0,,{tags}{text}")

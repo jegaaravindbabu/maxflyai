@@ -7,10 +7,20 @@ import httpx
 from app.config import settings
 
 
+class StockError(Exception):
+    """Stock provider failed (auth/rate-limit/network) — distinct from an empty
+    but successful result, so the UI can show a real message or fall back."""
+
+
 def search(query: str, per_page: int = 24) -> list[dict]:
     query = (query or "").strip()
     if settings.pexels_api_key:
-        return _pexels(query, per_page)          # blank -> curated feed
+        try:
+            return _pexels(query, per_page)          # blank -> curated feed
+        except StockError:
+            # bad/expired key or rate-limit: fall back to the keyless source so
+            # the photo panel still works instead of showing "no results".
+            return _openverse(query or "cinematic background", per_page)
     # Openverse needs a term; seed a pleasant default so the panel is never empty
     return _openverse(query or "cinematic background", per_page)
 
@@ -27,7 +37,7 @@ def _pexels(query: str, per_page: int) -> list[dict]:
                           headers={"Authorization": settings.pexels_api_key},
                           params={"per_page": per_page})
         if r.status_code >= 400:
-            return []
+            raise StockError(f"pexels {r.status_code}")
         out = []
         for p in r.json().get("photos", []):
             src = p.get("src", {})
@@ -35,8 +45,10 @@ def _pexels(query: str, per_page: int) -> list[dict]:
                         "url": src.get("large2x") or src.get("large") or src.get("original"),
                         "alt": p.get("alt") or query})
         return out
-    except Exception:
-        return []
+    except StockError:
+        raise
+    except Exception as e:
+        raise StockError(str(e))
 
 
 def _openverse(query: str, per_page: int) -> list[dict]:
@@ -77,7 +89,7 @@ def search_videos(query: str, per_page: int = 18) -> list[dict]:
                           headers={"Authorization": settings.pexels_api_key},
                           params={"per_page": per_page})
         if r.status_code >= 400:
-            return []
+            raise StockError(f"pexels {r.status_code}")
         out = []
         for v in r.json().get("videos", []):
             files = v.get("video_files", []) or []
@@ -92,5 +104,7 @@ def search_videos(query: str, per_page: int = 18) -> list[dict]:
                         "url": pick["link"], "alt": query,
                         "duration": v.get("duration")})
         return out
-    except Exception:
-        return []
+    except StockError:
+        raise
+    except Exception as e:
+        raise StockError(str(e))

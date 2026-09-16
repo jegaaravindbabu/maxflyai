@@ -235,7 +235,7 @@ export const api = {
   },
 
   async stockSearch(q: string) {
-    return j<{ results: { id: string; thumb: string; url: string; alt: string }[] }>(
+    return j<{ results: { id: string; thumb: string; url: string; alt: string }[]; error?: string }>(
       await afetch(`${BASE}/api/stock/search?q=${encodeURIComponent(q)}`));
   },
   async addImageFromUrl(id: string, url: string, start_ms: number, end_ms: number) {
@@ -246,7 +246,7 @@ export const api = {
   },
 
   async stockVideos(q: string) {
-    return j<{ results: { id: string; thumb: string; url: string; alt: string; duration?: number }[] }>(
+    return j<{ results: { id: string; thumb: string; url: string; alt: string; duration?: number }[]; error?: string }>(
       await afetch(`${BASE}/api/stock/videos?q=${encodeURIComponent(q)}`));
   },
   async addBrollFromUrl(id: string, url: string, start_ms: number, end_ms: number) {

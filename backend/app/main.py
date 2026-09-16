@@ -74,7 +74,9 @@ async def _neutral_prefix(request, call_next):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list + ["https://ceyonai.com", "https://www.ceyonai.com"],
-    allow_origin_regex=r"https://([a-z0-9-]+\.)*(ceyonai\.com|vercel\.app)",
+    # Pin to our own domains: any ceyonai.com subdomain, and only this project's
+    # Vercel deployments (maxfly*.vercel.app) — not every *.vercel.app site.
+    allow_origin_regex=r"https://(([a-z0-9-]+\.)*ceyonai\.com|maxfly[a-z0-9-]*\.vercel\.app)",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -102,13 +104,22 @@ def filter_presets():
 @app.get("/api/stock/search")
 def stock_search(q: str = ""):
     from app.services import stock
-    return {"results": stock.search(q)}
+    try:
+        return {"results": stock.search(q)}
+    except stock.StockError:
+        return {"results": [], "error": "Couldn't reach the stock photo service. Try again in a moment."}
 
 
 @app.get("/api/stock/videos")
 def stock_videos(q: str = ""):
     from app.services import stock
-    return {"results": stock.search_videos(q)}
+    from app.config import settings
+    if not settings.pexels_api_key:
+        return {"results": [], "error": "Stock video isn't set up yet. Upload your own B-roll for now."}
+    try:
+        return {"results": stock.search_videos(q)}
+    except stock.StockError:
+        return {"results": [], "error": "Couldn't reach the stock video service. Try again in a moment."}
 
 
 @app.get("/api/health")

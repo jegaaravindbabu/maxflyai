@@ -12,6 +12,7 @@ from app import runner
 from app.services.storage import storage
 from app.services import billing
 import re
+from sqlalchemy import text
 
 def _clamp_res(res: str, max_res: int) -> str:
     """Cap a requested export resolution to the plan's max short-side pixels.
@@ -33,6 +34,16 @@ def export(project_id: str, body: ExportRequest, db: Session = Depends(get_db),
     _owner: Project = Depends(owned_project),
     user: str | None = Depends(current_user),
     admin: bool = Depends(is_admin)):
+    # Serialise per-user export creation so two simultaneous requests can't both
+    # slip past the concurrency cap / free export limit (TOCTOU). Postgres advisory
+    # lock, released at transaction end; no-op on other engines (e.g. dev sqlite).
+    if user is not None:
+        try:
+            if db.bind is not None and db.bind.dialect.name == "postgresql":
+                db.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:k, 0))"),
+                           {"k": user})
+        except Exception:
+            pass
     # Per-user cap on simultaneous heavy (MP4) renders so one account can't
     # flood the worker queue. Subtitle exports are instant and not limited;
     # admins and dev/open mode are exempt.
