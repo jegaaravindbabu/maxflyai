@@ -4,6 +4,7 @@ import { IScissors } from "./icons";
 
 interface Region { start_ms: number; end_ms: number; keep: boolean; }
 interface Props {
+  clipSelected?: boolean;
   projectId: string;
   durationMs: number;
   onSeek: (ms: number) => void;
@@ -18,7 +19,7 @@ function secs(ms: number) {
 
 // polished-style "Auto Remove Silence" modal: detect by AI (caption timings) or by a
 // manual dB threshold, preview the cuts on a waveform, keep/remove each, then apply.
-export function SilenceModal({ projectId, durationMs, onSeek, onClose, onApplied }: Props) {
+export function SilenceModal({ projectId, durationMs, onSeek, onClose, onApplied, clipSelected }: Props) {
   const [phase, setPhase] = useState<"idle" | "detecting" | "results">("idle");
   const [mode, setMode] = useState<"ai" | "audio">("ai");
   const [threshold, setThreshold] = useState(-35);       // dB
@@ -135,6 +136,12 @@ export function SilenceModal({ projectId, durationMs, onSeek, onClose, onApplied
         </div>
 
         <div className="ed-silmodal-body">
+          {clipSelected && (
+            <div className="np-sub" style={{ background: "rgba(245,180,80,.12)", border: "1px solid rgba(245,180,80,.35)",
+              borderRadius: 8, padding: "8px 10px", marginBottom: 10, color: "#f0c98a" }}>
+              Heads up: detection runs across the whole timeline, not just the clip you have selected.
+            </div>
+          )}
           <button className="ed-sil-ai" onClick={() => detect("ai")} disabled={phase === "detecting"}>
             {phase === "detecting" && mode === "ai" ? "Analyzing…" : <>✦ Calculate by AI</>}
           </button>

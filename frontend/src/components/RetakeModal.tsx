@@ -5,6 +5,7 @@ import { IScissors } from "./icons";
 interface Tok { i: number; seg_idx: number; text: string; start_ms: number; end_ms: number;
   flag: "retake" | "filler" | null; remove: boolean; }
 interface Props {
+  clipSelected?: boolean;
   projectId: string;
   onSeek: (ms: number) => void;
   onClose: () => void;
@@ -15,7 +16,7 @@ function secs(ms: number) { return `${(ms / 1000).toFixed(1)}s`; }
 
 // polished-style Retake Remover: AI flags retake / filler words red on a transcript;
 // click a word to keep/remove it, or drag-select a range and Mark Remove / Mark Keep.
-export function RetakeModal({ projectId, onSeek, onClose, onApplied }: Props) {
+export function RetakeModal({ projectId, onSeek, onClose, onApplied, clipSelected }: Props) {
   const [phase, setPhase] = useState<"idle" | "detecting" | "results">("idle");
   const [filler, setFiller] = useState(true);
   const [tokens, setTokens] = useState<Tok[]>([]);
@@ -89,6 +90,12 @@ export function RetakeModal({ projectId, onSeek, onClose, onApplied }: Props) {
         </div>
 
         <div className="ed-silmodal-body">
+          {clipSelected && (
+            <div className="np-sub" style={{ background: "rgba(245,180,80,.12)", border: "1px solid rgba(245,180,80,.35)",
+              borderRadius: 8, padding: "8px 10px", marginBottom: 10, color: "#f0c98a" }}>
+              Heads up: detection runs across the whole timeline, not just the clip you have selected.
+            </div>
+          )}
           {phase !== "results" ? (
             <div className="ed-rtk-intro">
               <div className="ed-rtk-magic">{IScissors}</div>

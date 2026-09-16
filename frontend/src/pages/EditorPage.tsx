@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { buildSpans, projToSrc, srcToProj, spanIndexAtProj } from "../lib/playlist";
+import { prefOn, chime, getDefaultPreset, setDefaultPreset } from "../lib/prefs";
 import { api, type Zoom } from "../api/client";
 import type { ProjectDetail, Overlay, ImageOverlay, BrollClip, Cue, Project } from "../types";
 import { VideoPreview } from "../components/VideoPreview";
@@ -451,6 +452,11 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const plSpansRef = useRef<ReturnType<typeof buildSpans>["spans"]>([]);
   const removedSpansRef = useRef<{ id: string; start_ms: number; end_ms: number }[]>([]);
+  // Auto-apply the user's default caption preset when a project's captions first
+  // appear (Settings: "Auto-apply caption preset"). capStyle isn't persisted, so
+  // this restores the preferred look on open instead of defaulting to Classic.
+  const autoPresetDoneRef = useRef(false);
+  useEffect(() => { autoPresetDoneRef.current = false; }, [projectId]);
   const playIdxRef = useRef(0);
   const [mediaEl, setMediaEl] = useState<HTMLMediaElement | null>(null);
 
@@ -483,6 +489,15 @@ export function EditorPage({ projectId }: { projectId: string }) {
       }
     }
   }, [projectId]);
+  useEffect(() => {
+    const n = proj?.cues?.length || 0;
+    if (autoPresetDoneRef.current || !n) return;
+    if (prefOn("autoPreset")) {
+      const def = getDefaultPreset();
+      if (def && def !== capStyle) setCapStyle(def);
+    }
+    autoPresetDoneRef.current = true;
+  }, [proj?.cues?.length, projectId]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => { api.captionStyles().then((r) => setStyles(r.styles)).catch(() => {}); }, []);
   useEffect(() => {
@@ -603,7 +618,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   useEffect(() => {
     if (proj?.status !== "transcribing") return;
     const t = setInterval(async () => {
-      try { const s = await api.getStatus(projectId); if (s.status !== "transcribing") load(); } catch {}
+      try { const s = await api.getStatus(projectId); if (s.status !== "transcribing") { chime(); load(); } } catch {}
     }, 2000);
     return () => clearInterval(t);
   }, [proj?.status, projectId, load]);
@@ -735,7 +750,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
       setCapOverrides((pr) => ({ ...pr, [c]: { ...(pr[c] || {}), style: id } }));
       api.setCaptionOverride(projectId, activeIdx, { style: id }).catch(() => {});
     } else {
-      setCapStyle(id);
+      setCapStyle(id); setDefaultPreset(id);
     }
   }
   function clearCaptionPreset() {
@@ -751,7 +766,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
       setCapOverrides((pr) => ({ ...pr, [cc]: { ...(pr[cc] || {}), style: id } }));
       api.setCaptionOverride(projectId, activeIdx, { style: id }).catch(() => {});
     } else {
-      setCapStyle(id);
+      setCapStyle(id); setDefaultPreset(id);
     }
   }
   function copyStyle() { setStyleClip({ ...effSettings }); }
@@ -1202,6 +1217,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
             upsertExport(fmt, { url: row.url, status: "ready" });
             refreshExpUsage();
             setExpJob({ fmt, status: "ready", pct: 100, url: row.url, downloadUrl: (row as any).download_url || row.url, open: true });
+            chime();
             exBeep();
           } else {
             upsertExport(fmt, { status: "error", error: row.error || undefined });
@@ -3938,6 +3954,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
       )}
       {silenceOpen && (
         <SilenceModal projectId={projectId} durationMs={dur} onSeek={seek}
+          clipSelected={prefOn("scopeWarn") && (!!selBroll || selSeg != null)}
           onClose={() => setSilenceOpen(false)}
           onApplied={(n, savedMs) => {
             api.listEdits(projectId).catch(() => {});
@@ -3946,6 +3963,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
       )}
       {retakeOpen && (
         <RetakeModal projectId={projectId} onSeek={seek}
+          clipSelected={prefOn("scopeWarn") && (!!selBroll || selSeg != null)}
           onClose={() => setRetakeOpen(false)}
           onApplied={(n, savedMs) => {
             api.listEdits(projectId).catch(() => {});
