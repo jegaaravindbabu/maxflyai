@@ -4,6 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- Google Analytics (GA4) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-399G7X0CQ9"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-399G7X0CQ9');
+      // Hash-routed SPA: also count in-app navigations as page views
+      window.addEventListener('hashchange', function () {
+        gtag('event', 'page_view', {
+          page_path: location.pathname + location.hash,
+          page_location: location.href,
+          page_title: document.title
+        });
+      });
+    </script>
+
     <!-- Primary meta -->
     <title>ceyonai — AI captions for reels in Tamil, Thanglish & Indic languages</title>
     <meta name="description" content="ceyonai is an AI video editor for creators: auto-generate accurate Tamil, Thanglish and Indic captions, auto-zoom, silence & filler removal, B-roll, and export reels in up to 4K. Start free." />
