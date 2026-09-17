@@ -1,0 +1,34 @@
+# ceyonai
+
+> ceyonai is an AI video editor for short-form creators that auto-generates accurate captions in Tamil, Thanglish, and other Indic languages, then edits the whole reel — auto-zoom, silence & filler removal, retake cutting, B-roll, translation — and exports up to 4K. Built for Indian creators. Free plan available; paid access from a ₹59 day pass.
+
+## What ceyonai does
+- Auto-captions video in Tamil, Thanglish (Tamil–English code-mix), Hindi, Telugu, Kannada, Malayalam and more Indic languages
+- 12 animated caption styles (karaoke, highlight, pop, glow and more), burned into the export
+- Silence removal, filler-word removal ("uh/um/aa"), and duplicate/retake cutting
+- Auto-zoom, B-roll overlays, and multi-video-track editing
+- Translate captions to a new language track (e.g. English) and export per language
+- Audio enhancement (noise cleanup) and export up to 4K
+- Exports MP4, SRT, VTT, ASS, plus editable timelines (FCPXML for Premiere/DaVinci, and EDL)
+
+## Who it is for
+- Tamil and Indic short-form creators making Instagram Reels, YouTube Shorts and TikTok
+- Freelance video editors serving regional-language creators
+
+## Key pages
+- Home: https://www.ceyonai.com/
+- Pricing (machine-readable): https://www.ceyonai.com/pricing.md
+- Privacy: https://www.ceyonai.com/privacy.html
+- Terms: https://www.ceyonai.com/terms.html
+- Refund policy: https://www.ceyonai.com/refund.html
+
+## Pricing summary
+- Free: ₹0 — 15 processing minutes/month, 720p, watermark, MP4 only
+- Day Pass: ₹59 (1 day) — 45 minutes, 4K, no watermark, all formats
+- Monthly: ₹499 (30 days) — 300 minutes, 4K, no watermark, all formats
+- 3 Months: ₹1199 (90 days) — 900 minutes
+- 6 Months: ₹2199 (180 days) — 1800 minutes
+- 1 Year: ₹3999 (365 days) — 3600 minutes
+
+## Contact
+- Support: aravindbabu6969@gmail.com
