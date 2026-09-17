@@ -1,0 +1,10 @@
+<svg width="256" height="256" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ceyonai">
+  <defs>
+    <linearGradient id="gC" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8b6bff"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+  </defs>
+  <path d="M46.8 17.2 A21 21 0 1 0 46.8 46.8" stroke="url(#gC)" stroke-width="8.5" stroke-linecap="round" fill="none"/>
+  <path d="M29 22 L43 32 L29 42 Z" fill="url(#gC)"/>
+</svg>
