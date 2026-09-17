@@ -69,7 +69,7 @@ export function LandingPage() {
       <header className="cy-nav">
         <div className="cy-wrap cy-nav-in">
           <a className="cy-logo" href="#/">
-            <span className="cy-logo-mark"><svg viewBox="0 0 24 24" fill="#08101a"><path d="M8 5v14l11-7z" /></svg></span>
+            <span className="cy-logo-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M16.52 7.48 A6.4 6.4 0 1 0 16.52 16.52" stroke="#08101a" strokeWidth="2.8" strokeLinecap="round" fill="none" /><path d="M10.4 8.7 L15 12 L10.4 15.3 Z" fill="#08101a" /></svg></span>
             <span>ceyon<i>ai</i></span>
           </a>
           <nav className="cy-nav-links">

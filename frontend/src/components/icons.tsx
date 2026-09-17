@@ -11,6 +11,12 @@ const icf = (children: React.ReactNode, size = 14) => (
 
 export const IPlayFill = icf(<path d="M8 5.5v13l11-6.5z" />);
 export const IPlayFillLg = icf(<path d="M8 5.5v13l11-6.5z" />, 20);
+export const ICeyonMark = (
+  <svg viewBox="0 0 24 24" width={16} height={16} fill="none">
+    <path d="M16.52 7.48 A6.4 6.4 0 1 0 16.52 16.52" stroke="currentColor" strokeWidth={2.8} strokeLinecap="round" fill="none" />
+    <path d="M10.4 8.7 L15 12 L10.4 15.3 Z" fill="currentColor" />
+  </svg>
+);
 export const ITrash = ic(<><path d="M3 6h18" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" /></>);
 export const IPlus = ic(<path d="M12 5v14M5 12h14" />);
 export const IEdit = ic(<><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></>);

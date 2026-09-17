@@ -10,7 +10,7 @@ import { Waveform } from "../components/Waveform";
 import { Filmstrip } from "../components/Filmstrip";
 import { Dropdown } from "../components/Dropdown";
 import { SilenceModal } from "../components/SilenceModal";
-import { IScissors } from "../components/icons";
+import { IScissors, ICeyonMark } from "../components/icons";
 import { RetakeModal } from "../components/RetakeModal";
 import { TranscribeModal } from "../components/TranscribeModal";
 
@@ -1832,7 +1832,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
       <div className="ed-top">
         <div className="ed-top-l">
           <a href="#/app" className="ed-back" title="Back">←</a>
-          <span className="ed-play-logo">{IcPlayS}</span>
+          <span className="ed-play-logo">{ICeyonMark}</span>
         </div>
         <div className="ed-title">{proj.name}</div>
         <div className="ed-top-r">

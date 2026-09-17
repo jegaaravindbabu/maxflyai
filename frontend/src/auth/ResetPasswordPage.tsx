@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { IPlayFill } from "../components/icons";
+import { ICeyonMark } from "../components/icons";
 import { supabase } from "./supabase";
 
 // Reached from a password-recovery email link: Supabase establishes a temporary
@@ -39,7 +39,7 @@ export function ResetPasswordPage() {
 
       <div className="lg-card">
         <div className="lg-brand">
-          <span className="lg-mark">{IPlayFill}</span>
+          <span className="lg-mark">{ICeyonMark}</span>
           <span className="lg-word">ceyon<span>ai</span></span>
         </div>
 

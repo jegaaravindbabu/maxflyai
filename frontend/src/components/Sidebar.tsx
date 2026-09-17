@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { IHome, IGrid, IFilm, ITag, IGear, IPlayFill } from "./icons";
+import { IHome, IGrid, IFilm, ITag, IGear, ICeyonMark } from "./icons";
 import { api } from "../api/client";
 import { useAuth, authEnabled } from "../auth/AuthContext";
 import { ReportProblemModal } from "./ReportProblemModal";
@@ -28,7 +28,7 @@ export function Sidebar({ route, onNewProject }: Props) {
   return (
     <aside className="sidebar">
       <div className="sb-logo">
-        <div className="mark">{IPlayFill}</div>
+        <div className="mark">{ICeyonMark}</div>
         <div className="name">ceyon<span>ai</span></div>
       </div>
 
