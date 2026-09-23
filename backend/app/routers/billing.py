@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.services import billing, payments
 from app.models import Subscription
-from app.services.auth import require_user
+from app.services.auth import require_user, is_admin
 from app.config import settings
 
 router = APIRouter(prefix="/api/billing", tags=["billing"])
@@ -31,8 +31,9 @@ def plans():
 
 
 @router.get("/me")
-def me(db: Session = Depends(get_db), user: str = Depends(require_user)):
-    q = billing.quota(db, user)
+def me(db: Session = Depends(get_db), user: str = Depends(require_user),
+       admin: bool = Depends(is_admin)):
+    q = billing.admin_quota() if admin else billing.quota(db, user)
     prov = payments.get_provider().name
     return {**q, "provider": prov}
 

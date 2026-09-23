@@ -175,6 +175,16 @@ def quota(db: Session, user_id: str) -> dict:
             "exports_used": exports_used(db, user_id)}
 
 
+def admin_quota() -> dict:
+    """Superadmins have no plan limits; report an unlimited quota so the UI shows
+    no export lock, watermark or upgrade prompt."""
+    return {"plan": "admin", "label": "Admin", "minutes_cap": 1_000_000,
+            "minutes_used": 0, "minutes_left": 1_000_000, "max_res": 2160,
+            "storage_gb": 1_000_000, "watermark": False, "formats": ALL_FORMATS,
+            "translate": "full", "expires_at": None, "export_limit": None,
+            "exports_used": 0}
+
+
 def can_process(db: Session, user_id: str, duration_ms: int) -> tuple[bool, dict]:
     q = quota(db, user_id)
     need = duration_to_minutes(duration_ms)
