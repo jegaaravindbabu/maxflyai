@@ -2074,7 +2074,9 @@ export function EditorPage({ projectId }: { projectId: string }) {
               )}
               {cues.length === 0 ? (
                 <div className="ed-cap-empty">
-                  {transcribing ? "Transcribing your video…" : "No captions yet."}
+                  {transcribing ? (
+                    <div>Transcribing your video…<div style={{ marginTop: 8, fontSize: 13, opacity: 0.7 }}>Long videos can take several minutes. You can leave this open — captions appear here when it's done.</div></div>
+                  ) : "No captions yet."}
                   {!transcribing && <button className="secondary" style={{ marginTop: 12 }} onClick={runTranscribe} disabled={busy}>Generate captions</button>}
                 </div>
               ) : (

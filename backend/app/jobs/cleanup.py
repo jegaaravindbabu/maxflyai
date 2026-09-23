@@ -59,7 +59,37 @@ def run(days: int | None = None) -> dict:
         db.close()
     print(f"[cleanup] removed {rows_deleted} export rows and {objs_deleted} "
           f"storage objects older than {days} day(s)")
-    return {"rows": rows_deleted, "objects": objs_deleted}
+    stale = reap_stale_jobs()
+    return {"rows": rows_deleted, "objects": objs_deleted, "stale_jobs": stale}
+
+
+
+
+def reap_stale_jobs(minutes: int = 90) -> int:
+    """Flip transcribe jobs stuck 'running' (worker killed / provider hung) to error so
+    their projects don't sit in 'transcribing' forever. Nightly backstop to the
+    per-job timeout in the Sarvam client."""
+    from datetime import datetime, timedelta, timezone
+    from app.models import Job, Project
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=minutes)
+    db = SessionLocal()
+    n = 0
+    try:
+        stale = (db.query(Job)
+                   .filter(Job.status == "running", Job.created_at < cutoff).all())
+        for j in stale:
+            j.status = "error"; j.error = "timed out (worker/provider)"
+            p = db.get(Project, j.project_id)
+            if p and p.status == "transcribing":
+                p.status = "error"
+                p.error = "This took too long and timed out - please try again."
+            n += 1
+        db.commit()
+    finally:
+        db.close()
+    if n:
+        print(f"[cleanup] reaped {n} stale running job(s)")
+    return n
 
 
 if __name__ == "__main__":

@@ -175,6 +175,21 @@ def project_status(project_id: str, db: Session = Depends(get_db),
         raise HTTPException(404, "project not found")
     job = (db.query(Job).filter(Job.project_id == project_id)
              .order_by(Job.created_at.desc()).first())
+    # Self-heal: a transcribe job stuck "running" far longer than any real job takes
+    # means the worker was killed (OOM/restart) or the provider hung without flipping
+    # status. Mark it errored so the UI stops showing "Transcribing..." forever and the
+    # user can retry (the transcribe endpoint refuses while status is "transcribing").
+    if project.status == "transcribing" and job and job.status == "running" and job.kind == "transcribe":
+        from datetime import datetime, timezone, timedelta
+        started = job.created_at
+        if started is not None:
+            if started.tzinfo is None:
+                started = started.replace(tzinfo=timezone.utc)
+            if datetime.now(timezone.utc) - started > timedelta(minutes=90):
+                msg = "This took too long and timed out - please try again."
+                project.status = "error"; project.error = msg
+                job.status = "error"; job.error = msg
+                db.commit()
     return {"status": project.status, "error": project.error,
             "job": ({"kind": job.kind, "status": job.status, "error": job.error}
                     if job else None)}

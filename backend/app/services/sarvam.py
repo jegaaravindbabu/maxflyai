@@ -22,6 +22,7 @@ import glob
 import json
 import os
 import tempfile
+import time
 
 import httpx
 
@@ -29,6 +30,14 @@ from app.config import settings
 
 REST_URL = "https://api.sarvam.ai/speech-to-text"
 REST_MAX_MS = 30_000
+BATCH_MAX_WAIT_S = 2400   # default ceiling; callers pass a duration-scaled value
+BATCH_POLL_S = 5
+
+def batch_wait_for(duration_ms: int | None) -> int:
+    """Time budget for a batch job, scaled to audio length (Sarvam batch runs at
+    roughly real-time or slower), with a floor and a hard ceiling so a genuine hang
+    still errors out instead of blocking the worker forever."""
+    return min(3600, max(600, int((duration_ms or 0) / 1000 * 4)))
 
 
 class SarvamError(RuntimeError):
@@ -39,6 +48,30 @@ def _require_key() -> str:
     if not settings.sarvam_api_key:
         raise SarvamError("SARVAM_API_KEY is not set")
     return settings.sarvam_api_key
+
+
+def _wait_for_job(job, *, max_wait_s: int = BATCH_MAX_WAIT_S, poll_s: int = BATCH_POLL_S) -> None:
+    """Bounded wait for a Sarvam batch job. The SDK's wait_until_complete() blocks
+    forever when a job fails or stalls, which hangs our single worker and leaves the
+    project stuck at 'transcribing'. Poll instead: fail fast on a failed job, and give
+    up after max_wait_s so the task errors loudly (project -> error) and can be retried."""
+    deadline = time.monotonic() + max_wait_s
+    jid = getattr(job, "job_id", "?")
+    while True:
+        try:
+            if job.is_failed():
+                raise SarvamError(f"Sarvam batch job failed (job {jid})")
+            if job.is_complete():
+                return
+        except SarvamError:
+            raise
+        except Exception:
+            pass  # transient status-check error; keep polling until the deadline
+        if time.monotonic() >= deadline:
+            raise SarvamError(
+                f"Transcription timed out after {max_wait_s // 60} min. The video may be "
+                f"too long, or the speech service is busy - please try again.")
+        time.sleep(poll_s)
 
 
 # ---------------- REST (sync, <=30s) ----------------
@@ -92,7 +125,8 @@ def transcribe_batch(audio_path: str, *, language_code: str = "unknown",
                      mode: str = "transcribe", model: str = "saaras:v3",
                      with_timestamps: bool = True,
                      with_diarization: bool = False,
-                     num_speakers: int | None = None) -> dict:
+                     num_speakers: int | None = None,
+                     max_wait_s: int = BATCH_MAX_WAIT_S) -> dict:
     """
     Production path for files > 30s. Uses the sarvamai SDK. Returns the parsed
     per-file output JSON (raw). Requires `pip install sarvamai`.
@@ -117,7 +151,7 @@ def transcribe_batch(audio_path: str, *, language_code: str = "unknown",
     job = client.speech_to_text_job.create_job(**kwargs)
     job.upload_files(file_paths=[audio_path])
     job.start()
-    job.wait_until_complete()
+    _wait_for_job(job, max_wait_s=max_wait_s)
 
     out_dir = tempfile.mkdtemp(prefix="sarvam_batch_")
     job.download_outputs(output_dir=out_dir)
@@ -144,5 +178,6 @@ def transcribe_media(audio_path: str, *, duration_ms: int,
                               mode=mode, model=model, with_timestamps=True)
         return raw, normalize_rest(raw, duration_ms or REST_MAX_MS)
     raw = transcribe_batch(audio_path, language_code=language_code,
-                           mode=mode, model=model)
+                           mode=mode, model=model,
+                           max_wait_s=batch_wait_for(duration_ms))
     return raw, normalize_batch(raw, duration_ms or REST_MAX_MS)

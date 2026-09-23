@@ -82,7 +82,8 @@ def run_transcription(project_id: str, language_code: str = "unknown",
                         mode="translit", model=model, with_timestamps=False)
                 else:
                     tr_raw = sarvam.transcribe_batch(
-                        audio_path, language_code=language_code, mode="translit", model=model)
+                        audio_path, language_code=language_code, mode="translit", model=model,
+                        max_wait_s=sarvam.batch_wait_for(duration_ms))
                 translit_full = tr_raw.get("transcript", "")
             except Exception:
                 pass
