@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 
 from celery import shared_task
 
@@ -58,35 +59,48 @@ def run_transcription(project_id: str, language_code: str = "unknown",
 
         audio_path = ffmpeg_utils.extract_audio(media_path)
 
-        raw, chunk_segments = sarvam.transcribe_media(
-            audio_path, duration_ms=duration_ms,
-            language_code=language_code, mode=mode, model=model,
-        )
-        full_text = raw.get("transcript", "") or ""
-        # An empty transcript (wrong spoken language, music/no speech, or a partial
-        # provider failure) must fail loudly -- otherwise the project is marked
-        # "ready" with zero captions and every downstream AI tool (silence, retake,
-        # zoom) comes back empty, which reads to the user as "AI could not calculate".
-        if not full_text.strip():
-            raise ValueError("No speech was detected. Check that the spoken language "
-                             "matches the project language, or that the clip has "
-                             "audible speech, then try again.")
+        # Run the main transcript and the optional Thanglish/romanized pass CONCURRENTLY.
+        # Both are I/O-bound waits on Sarvam jobs, so running them in parallel roughly
+        # halves total time for long videos (previously they ran back-to-back).
+        want_tl = want_translit and model.startswith("saaras:v3") and mode == "transcribe"
 
-        # optional Thanglish / romanized pass (best-effort)
-        translit_full = None
-        if want_translit and model.startswith("saaras:v3") and mode == "transcribe":
-            try:
-                if duration_ms and duration_ms <= sarvam.REST_MAX_MS:
-                    tr_raw = sarvam.transcribe_rest(
-                        audio_path, language_code=language_code,
-                        mode="translit", model=model, with_timestamps=False)
-                else:
-                    tr_raw = sarvam.transcribe_batch(
-                        audio_path, language_code=language_code, mode="translit", model=model,
-                        max_wait_s=sarvam.batch_wait_for(duration_ms))
-                translit_full = tr_raw.get("transcript", "")
-            except Exception:
-                pass
+        def _do_main():
+            return sarvam.transcribe_media(
+                audio_path, duration_ms=duration_ms,
+                language_code=language_code, mode=mode, model=model)
+
+        def _do_translit():
+            if duration_ms and duration_ms <= sarvam.REST_MAX_MS:
+                return sarvam.transcribe_rest(
+                    audio_path, language_code=language_code,
+                    mode="translit", model=model, with_timestamps=False)
+            return sarvam.transcribe_batch(
+                audio_path, language_code=language_code, mode="translit", model=model,
+                max_wait_s=sarvam.batch_wait_for(duration_ms))
+
+        ex = ThreadPoolExecutor(max_workers=2)
+        try:
+            fut_main = ex.submit(_do_main)
+            fut_tl = ex.submit(_do_translit) if want_tl else None
+            raw, chunk_segments = fut_main.result()  # main must succeed; error propagates
+            full_text = raw.get("transcript", "") or ""
+            # An empty transcript (wrong spoken language, music/no speech, or a partial
+            # provider failure) must fail loudly -- otherwise the project is marked
+            # "ready" with zero captions and every downstream AI tool (silence, retake,
+            # zoom) comes back empty, which reads to the user as "AI could not calculate".
+            if not full_text.strip():
+                raise ValueError("No speech was detected. Check that the spoken language "
+                                 "matches the project language, or that the clip has "
+                                 "audible speech, then try again.")
+            # translit is best-effort; never let it fail the run
+            translit_full = None
+            if fut_tl is not None:
+                try:
+                    translit_full = (fut_tl.result() or {}).get("transcript", "")
+                except Exception:
+                    translit_full = None
+        finally:
+            ex.shutdown(wait=False)  # don't block on a straggling translit job
 
         # Sarvam gives ~one timestamp for the whole request, so derive cue timing
         # ourselves from silence-anchored segmentation of the accurate transcript.
