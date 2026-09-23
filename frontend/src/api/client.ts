@@ -403,6 +403,73 @@ export const api = {
     });
   },
 
+  async signUpload(filename: string) {
+    return j<{ supported: boolean; key?: string; upload_url?: string; sig?: string }>(
+      await afetch(`${BASE}/api/hub/direct/sign`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename }),
+      }));
+  },
+
+  finalizeUpload(payload: { key: string; sig?: string; filename?: string; name?: string; duration_ms?: number; size_bytes?: number }) {
+    return afetch(`${BASE}/api/hub/direct/finalize`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then((r) => j<Project>(r));
+  },
+
+  _probeDurationMs(file: File): Promise<number> {
+    return new Promise((resolve) => {
+      try {
+        const v = document.createElement("video");
+        v.preload = "metadata";
+        v.onloadedmetadata = () => {
+          const ms = Math.round((v.duration || 0) * 1000);
+          try { URL.revokeObjectURL(v.src); } catch {}
+          resolve(isFinite(ms) && ms > 0 ? ms : 0);
+        };
+        v.onerror = () => resolve(0);
+        v.src = URL.createObjectURL(file);
+      } catch { resolve(0); }
+    });
+  },
+
+  _putToSignedUrl(url: string, file: File, onProgress?: (pct: number) => void): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("PUT", url);
+      const anon = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+      if (anon) { xhr.setRequestHeader("apikey", anon); xhr.setRequestHeader("Authorization", `Bearer ${anon}`); }
+      xhr.setRequestHeader("x-upsert", "true");
+      if (file.type) xhr.setRequestHeader("Content-Type", file.type);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+      };
+      xhr.onload = () => { (xhr.status >= 200 && xhr.status < 300) ? resolve() : reject(new Error(`${xhr.status}: ${xhr.responseText}`)); };
+      xhr.onerror = () => reject(new Error("Network error during upload"));
+      xhr.send(file);
+    });
+  },
+
+  // Create a project from a file. Tries direct-to-storage (browser -> Supabase,
+  // bypassing the backend); on ANY failure falls back to the through-backend upload
+  // so uploads never break.
+  async createProject(file: File, onProgress?: (pct: number) => void, name?: string): Promise<Project> {
+    let target: { key: string; upload_url: string; sig?: string } | null = null;
+    try {
+      const s2 = await this.signUpload(file.name);
+      if (s2 && s2.supported && s2.upload_url && s2.key) target = { key: s2.key, upload_url: s2.upload_url, sig: s2.sig };
+    } catch { /* fall back */ }
+    if (target) {
+      try {
+        const durMs = await this._probeDurationMs(file);
+        await this._putToSignedUrl(target.upload_url, file, onProgress);
+        return await this.finalizeUpload({ key: target.key, sig: target.sig, filename: file.name, name, duration_ms: durMs, size_bytes: file.size });
+      } catch { /* direct path failed mid-way -> fall back to through-backend */ }
+    }
+    return this.uploadWithProgress(file, onProgress, name);
+  },
+
   async transcribe(id: string, language_code: string, mode: string, prefs?: {
     max_chars?: number; min_dur_secs?: number; gap_frames?: number; layout?: string;
   }) {

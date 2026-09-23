@@ -76,7 +76,7 @@ export function NewProjectModal({ onClose }: { onClose: () => void }) {
       const key = `f${++counter}`;
       setItems((prev) => [...prev, { key, file, status: "uploading", progress: 0 }]);
       api
-        .uploadWithProgress(file, (pct) => patch(key, { progress: pct }))
+        .createProject(file, (pct) => patch(key, { progress: pct }))
         .then((project) => patch(key, { status: "done", progress: 100, project }))
         .catch((e: any) => patch(key, { status: "error", error: e?.message || "Upload failed" }));
     });

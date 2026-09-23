@@ -40,6 +40,7 @@ os.makedirs(_CACHE_DIR, exist_ok=True)
 
 class LocalStorage:
     backend = "local"
+    supports_direct = False
 
     def __init__(self, base_dir: str):
         self.base = os.path.abspath(base_dir)
@@ -79,6 +80,7 @@ class LocalStorage:
 class SupabaseStorage:
     """Uses the Supabase Storage REST API with the service-role key."""
     backend = "supabase"
+    supports_direct = True
 
     def __init__(self, url: str, service_key: str, bucket: str):
         self.base = url.rstrip("/")
@@ -88,6 +90,37 @@ class SupabaseStorage:
 
     def _obj_url(self, key: str) -> str:
         return f"{self.base}/storage/v1/object/{self.bucket}/{key}"
+
+    def sign_upload(self, filename: str) -> dict:
+        """Create a Supabase signed upload URL so the browser can PUT the file
+        straight to storage (bypassing our backend). Returns {key, upload_url}."""
+        key = f"{uuid.uuid4()}_{_safe_filename(filename)}"
+        with httpx.Client(timeout=30) as c:
+            r = c.post(f"{self.base}/storage/v1/object/upload/sign/{self.bucket}/{key}",
+                       headers={**self._h, "Content-Type": "application/json"}, json={})
+        if r.status_code >= 400:
+            raise RuntimeError(f"supabase sign-upload {r.status_code}: {r.text[:200]}")
+        rel = (r.json() or {}).get("url", "")
+        upload_url = f"{self.base}/storage/v1{rel}" if rel.startswith("/") else rel
+        if not upload_url:
+            raise RuntimeError("supabase sign-upload returned no url")
+        return {"key": key, "upload_url": upload_url}
+
+    def head(self, key: str) -> "int | None":
+        """Return the object's size in bytes if it exists, else None (no download)."""
+        try:
+            with httpx.Client(timeout=30) as c:
+                r = c.get(self._obj_url(key), headers={**self._h, "Range": "bytes=0-0"})
+            if r.status_code in (200, 206):
+                cr = r.headers.get("content-range")  # "bytes 0-0/12345"
+                if cr and "/" in cr:
+                    tail = cr.rsplit("/", 1)[1]
+                    return int(tail) if tail.isdigit() else 0
+                cl = r.headers.get("content-length")
+                return int(cl) if cl and cl.isdigit() else 0
+        except Exception:
+            pass
+        return None
 
     def save_upload(self, tmp_path: str, filename: str) -> str:
         key = f"{uuid.uuid4()}_{_safe_filename(filename)}"
@@ -165,6 +198,7 @@ class SupabaseStorage:
 class R2Storage:
     """Cloudflare R2 via the S3 API (boto3). No egress fees."""
     backend = "r2"
+    supports_direct = False
 
     def __init__(self, account_id, access_key, secret_key, bucket):
         import boto3  # imported lazily so it's optional

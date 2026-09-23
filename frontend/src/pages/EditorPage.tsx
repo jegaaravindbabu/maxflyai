@@ -1483,7 +1483,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   async function uploadNewVideo(file: File) {
     setUpBusy(true); setUpName(file.name); setUpPct(0);
     try {
-      const np = await api.uploadWithProgress(file, (p) => setUpPct(p));
+      const np = await api.createProject(file, (p) => setUpPct(p));
       try { await api.transcribe(np.id, "ta-IN", "translit"); } catch {}
       window.location.hash = `#/project/${np.id}`;
     } catch (e: any) { alert("Upload failed: " + (e?.message || "")); }
