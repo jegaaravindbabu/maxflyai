@@ -624,13 +624,30 @@ export function EditorPage({ projectId }: { projectId: string }) {
     api.getCanvas(projectId).then((r) => setCanvas(r || {})).catch(() => {});
   }, [projectId]);
 
+  const [transStart, setTransStart] = useState<number | null>(null);
+  const [nowTs, setNowTs] = useState<number>(Date.now());
+
+  useEffect(() => {
+    if (proj?.status !== "transcribing") { setTransStart(null); return; }
+    let alive = true;
+    const tick = async () => {
+      try {
+        const s = await api.getStatus(projectId);
+        if (!alive) return;
+        if (s.started_at) setTransStart(new Date(s.started_at).getTime());
+        if (s.status !== "transcribing") { chime(); load(); }
+      } catch {}
+    };
+    tick();
+    const t = setInterval(tick, 2000);
+    return () => { alive = false; clearInterval(t); };
+  }, [proj?.status, projectId, load]);
+
   useEffect(() => {
     if (proj?.status !== "transcribing") return;
-    const t = setInterval(async () => {
-      try { const s = await api.getStatus(projectId); if (s.status !== "transcribing") { chime(); load(); } } catch {}
-    }, 2000);
+    const t = setInterval(() => setNowTs(Date.now()), 1000);
     return () => clearInterval(t);
-  }, [proj?.status, projectId, load]);
+  }, [proj?.status]);
 
   useEffect(() => {
     const v = videoRef.current;
@@ -2074,9 +2091,29 @@ export function EditorPage({ projectId }: { projectId: string }) {
               )}
               {cues.length === 0 ? (
                 <div className="ed-cap-empty">
-                  {transcribing ? (
-                    <div>Transcribing your video…<div style={{ marginTop: 8, fontSize: 13, opacity: 0.7 }}>Long videos can take several minutes. You can leave this open — captions appear here when it's done.</div></div>
-                  ) : "No captions yet."}
+                  {transcribing ? (() => {
+                    const durS = (proj.duration_ms || 0) / 1000;
+                    const estS = Math.min(3000, Math.max(15, durS * 0.8 + 25));
+                    const elS = transStart ? Math.max(0, (nowTs - transStart) / 1000) : 0;
+                    const frac = estS ? elS / estS : 0;
+                    const pct = Math.min(99, frac < 1 ? 8 + frac * 82 : 90 + Math.min(9, (frac - 1) * 18));
+                    const remS = Math.max(0, estS - elS);
+                    const mmss = (x: number) => `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, "0")}`;
+                    const eta = frac < 0.95 ? (remS < 60 ? "less than a minute left" : `about ${Math.round(remS / 60)} min left`) : "almost done…";
+                    return (
+                      <div style={{ textAlign: "center", padding: "6px 2px" }}>
+                        <div style={{ fontWeight: 600, marginBottom: 4 }}>Transcribing your video…</div>
+                        <div style={{ height: 8, borderRadius: 99, background: "rgba(255,255,255,.09)", overflow: "hidden", margin: "12px 0 8px" }}>
+                          <div style={{ height: "100%", width: pct + "%", borderRadius: 99, background: "linear-gradient(90deg,#7c5cff,#22d3ee)", transition: "width .6s ease" }} />
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, opacity: 0.75 }}>
+                          <span>{transStart ? `${mmss(elS)} elapsed` : "starting…"}</span>
+                          <span>{transStart ? eta : ""}</span>
+                        </div>
+                        <div style={{ marginTop: 10, fontSize: 12.5, opacity: 0.55 }}>Long videos can take several minutes. You can leave this open — captions appear here when it's done.</div>
+                      </div>
+                    );
+                  })() : "No captions yet."}
                   {!transcribing && <button className="secondary" style={{ marginTop: 12 }} onClick={runTranscribe} disabled={busy}>Generate captions</button>}
                 </div>
               ) : (

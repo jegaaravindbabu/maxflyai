@@ -191,6 +191,7 @@ def project_status(project_id: str, db: Session = Depends(get_db),
                 job.status = "error"; job.error = msg
                 db.commit()
     return {"status": project.status, "error": project.error,
+            "started_at": (job.created_at.isoformat() if job and job.created_at else None),
             "job": ({"kind": job.kind, "status": job.status, "error": job.error}
                     if job else None)}
 

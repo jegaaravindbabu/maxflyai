@@ -368,7 +368,7 @@ export const api = {
   },
 
   async getStatus(id: string) {
-    return j<{ status: string; error?: string | null; job?: any }>(
+    return j<{ status: string; error?: string | null; started_at?: string | null; job?: any }>(
       await afetch(`${BASE}/api/hub/${id}/status`));
   },
 
