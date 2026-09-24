@@ -10,6 +10,23 @@
   gtag('js', new Date());
   gtag('config', 'G-399G7X0CQ9');
 </script>
+<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1670047301392372');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=1670047301392372&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->
 <title>ceyonai — Free Tamil Reels Masterclass</title>
 <meta name="description" content="Free on-demand masterclass: how Tamil creators grow their reel views with AI captions, auto-zoom and silence-cut. Pick a time and watch instantly." />
 <meta name="keywords" content="Tamil reels masterclass, grow reel views, Tamil AI captions, reels editing webinar, ceyonai" />
@@ -283,7 +300,7 @@
 
 <script>
   document.querySelectorAll('a[href*="cued.live"]').forEach(function(a){
-    a.addEventListener('click',function(){ try{ gtag('event','webinar_cta_click',{event_category:'webinar',event_label:'save_seat'}); }catch(e){} });
+    a.addEventListener('click',function(){ try{ gtag('event','webinar_cta_click',{event_category:'webinar',event_label:'save_seat'}); }catch(e){} try{ fbq('track','Lead',{content_name:'webinar_registration'}); }catch(e){} });
   });
 </script>
 </body>
