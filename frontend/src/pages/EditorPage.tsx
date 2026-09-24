@@ -357,7 +357,7 @@ export function EditorPage({ projectId }: { projectId: string }) {
   const [reportText, setReportText] = useState("");
   function sendReport() {
     const body = encodeURIComponent(reportText.trim() + "\n\n— Project: " + (proj?.name || "") + " (" + projectId + ")");
-    window.open("mailto:aravindbabu6969@gmail.com?subject=" + encodeURIComponent("ceyonai report") + "&body=" + body, "_blank");
+    window.open("mailto:support@ceyonai.com?subject=" + encodeURIComponent("ceyonai report") + "&body=" + body, "_blank");
     setReportOpen(false); setReportText("");
   }
   const [exports, setExports] = useState<{ fmt: string; url?: string; status: string; error?: string }[]>([]);

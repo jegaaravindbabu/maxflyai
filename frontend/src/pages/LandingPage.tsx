@@ -228,7 +228,7 @@ export function LandingPage() {
       <footer className="cy-foot">
         <div className="cy-wrap cy-foot-in">
           <span>© 2026 ceyonai · Made in India for Indian creators</span>
-          <span><a href="/privacy.html" target="_blank" rel="noopener">Privacy</a><a href="/terms.html" target="_blank" rel="noopener">Terms</a><a href="/refund.html" target="_blank" rel="noopener">Refund</a><a href="mailto:aravindbabu6969@gmail.com">Contact</a></span>
+          <span><a href="/privacy.html" target="_blank" rel="noopener">Privacy</a><a href="/terms.html" target="_blank" rel="noopener">Terms</a><a href="/refund.html" target="_blank" rel="noopener">Refund</a><a href="mailto:support@ceyonai.com">Contact</a></span>
         </div>
       </footer>
     </div>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "../api/client";
 
-const SUPPORT_EMAIL = "aravindbabu6969@gmail.com";
+const SUPPORT_EMAIL = "support@ceyonai.com";
 
 export function ReportProblemModal({ onClose, projectId }: { onClose: () => void; projectId?: string }) {
   const [text, setText] = useState("");
